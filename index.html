@@ -313,8 +313,8 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { getAuth, signInWithPopup, signInWithCredential, linkWithCredential, fetchSignInMethodsForEmail, deleteUser, GithubAuthProvider, GoogleAuthProvider, OAuthProvider, OAuthCredential, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     // ============================================================
     // FIREBASE CONFIG — replace with your credentials
@@ -386,10 +386,12 @@
           <a href="#"><i data-lucide="user" style="width:16px;height:16px"></i>${state.user.displayName || 'Profile'}</a>
           <div class="dropdown-divider"></div>
           <button id="logout-btn"><i data-lucide="log-out" style="width:16px;height:16px"></i>Logout</button>
+          <button id="delete-account-btn" style="color:var(--error)"><i data-lucide="trash-2" style="width:16px;height:16px"></i>Delete Account</button>
         `;
         document.getElementById('nav-submit-btn').addEventListener('click', openSubmitModal);
         document.getElementById('nav-avatar').addEventListener('click', (e) => { e.stopPropagation(); avatarDropdown.classList.toggle('open'); });
         document.getElementById('logout-btn').addEventListener('click', logout);
+        document.getElementById('delete-account-btn').addEventListener('click', deleteAccount);
       } else {
         navRight.innerHTML = `<button class="btn-outlined btn-small" id="nav-login-btn">Login / Join</button>`;
         avatarDropdown.innerHTML = '';
@@ -483,28 +485,100 @@
       btn.innerHTML = `<div class="oauth-spinner"></div> Connecting...`;
     }
 
+    const providerNames = { 'google.com': 'Google', 'github.com': 'GitHub', 'apple.com': 'Apple' };
+
+    async function handleOAuthError(err, providerName) {
+      if (err.code === 'auth/account-exists-with-different-credential') {
+        const email = err.customData?.email;
+        const pendingCred = OAuthProvider.credentialFromError(err);
+        if (email) {
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+          if (methods.length > 0) {
+            const existingProvider = methods[0];
+            const existingName = providerNames[existingProvider] || existingProvider;
+            // Store pending credential so we can link after sign-in
+            state.pendingLinkCred = pendingCred;
+            state.pendingLinkProvider = providerName;
+            showToast(`${email} already uses ${existingName}. Sign in with ${existingName} to link your ${providerName} account.`, 'info', 6000);
+          } else {
+            showToast(`${email} is registered with a different method. Try another sign-in option.`, 'error');
+          }
+        } else {
+          showToast('This email is already linked to another sign-in method. Try a different option.', 'error');
+        }
+      } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        // User closed popup — no error needed
+      } else {
+        console.error(`${providerName} auth error:`, err);
+        showToast(`Auth error: ${err.code || err.message}`, 'error');
+      }
+      enableOAuthButtons();
+    }
+
+    async function handleOAuthSuccess(result) {
+      // If there's a pending credential from a previous failed attempt, link it now
+      if (state.pendingLinkCred && result.user) {
+        try {
+          await linkWithCredential(result.user, state.pendingLinkCred);
+          showToast(`${state.pendingLinkProvider} account linked!`, 'success');
+        } catch (linkErr) {
+          console.error('Account linking error:', linkErr);
+          // Non-fatal — user is still signed in with the primary provider
+        }
+        state.pendingLinkCred = null;
+        state.pendingLinkProvider = null;
+      }
+      closeLoginModal();
+      showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success');
+    }
+
     async function loginWithGitHub() {
       const btn = document.getElementById('btn-github');
       setLoading(btn);
-      try { await signInWithPopup(auth, new GithubAuthProvider()); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
-      catch (err) { console.error('GitHub auth error:', err); showToast(`Auth error: ${err.code || err.message}`, 'error'); enableOAuthButtons(); }
+      try { const result = await signInWithPopup(auth, new GithubAuthProvider()); await handleOAuthSuccess(result); }
+      catch (err) { await handleOAuthError(err, 'GitHub'); }
     }
     async function loginWithGoogle() {
       const btn = document.getElementById('btn-google');
       setLoading(btn);
-      try { await signInWithPopup(auth, new GoogleAuthProvider()); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
-      catch (err) { console.error('Google auth error:', err); showToast(`Auth error: ${err.code || err.message}`, 'error'); enableOAuthButtons(); }
+      try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); await handleOAuthSuccess(result); }
+      catch (err) { await handleOAuthError(err, 'Google'); }
     }
     async function loginWithApple() {
       const btn = document.getElementById('btn-apple');
       setLoading(btn);
-      try { await signInWithPopup(auth, new OAuthProvider('apple.com')); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
-      catch (err) { console.error('Apple auth error:', err); showToast(`Auth error: ${err.code || err.message}`, 'error'); enableOAuthButtons(); }
+      try { const result = await signInWithPopup(auth, new OAuthProvider('apple.com')); await handleOAuthSuccess(result); }
+      catch (err) { await handleOAuthError(err, 'Apple'); }
     }
     async function logout() {
       avatarDropdown.classList.remove('open');
       await signOut(auth);
       showToast('Signed out.', 'info');
+    }
+
+    async function deleteAccount() {
+      avatarDropdown.classList.remove('open');
+      if (!state.user) return;
+      const confirmed = confirm('Are you sure you want to delete your account? This will remove your account and all your submitted projects. This cannot be undone.');
+      if (!confirmed) return;
+      try {
+        const uid = state.user.uid;
+        // Delete user's projects from Firestore
+        const q = query(collection(db, 'projects'), where('submittedBy', '==', uid));
+        const snap = await getDocs(q);
+        const deletes = snap.docs.map(d => deleteDoc(doc(db, 'projects', d.id)));
+        await Promise.all(deletes);
+        // Delete Firebase Auth account
+        await deleteUser(state.user);
+        showToast('Account deleted successfully.', 'info');
+      } catch (err) {
+        if (err.code === 'auth/requires-recent-login') {
+          showToast('For security, please sign out, sign back in, and try again.', 'error', 5000);
+        } else {
+          console.error('Delete account error:', err);
+          showToast(`Error deleting account: ${err.message}`, 'error');
+        }
+      }
     }
 
     // ── Repo URL validation ─────────────────────────────
@@ -607,14 +681,14 @@
     // ── Utilities ───────────────────────────────────────
     function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-    function showToast(message, type = 'success') {
+    function showToast(message, type = 'success', duration = 3000) {
       const icons = { success: 'check-circle', error: 'x-circle', info: 'info' };
       const t = document.createElement('div');
       t.className = `toast glass ${type}`;
       t.innerHTML = `<i data-lucide="${icons[type]}" style="width:18px;height:18px"></i><span>${message}</span>`;
       toastContainer.appendChild(t);
       requestAnimationFrame(() => lucide.createIcons());
-      setTimeout(() => { t.classList.add('removing'); t.addEventListener('animationend', () => t.remove()); }, 3000);
+      setTimeout(() => { t.classList.add('removing'); t.addEventListener('animationend', () => t.remove()); }, duration);
     }
 
     function observeCards() {
