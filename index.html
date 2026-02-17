@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     :root {
@@ -36,7 +36,7 @@
     a{color:inherit;text-decoration:none}
     button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 
-    .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.4;z-index:0;pointer-events:none}
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.4;z-index:0;pointer-events:none;will-change:transform;contain:strict}
     #orb-1{width:500px;height:500px;background:#3b82f6;top:-10%;left:-5%;animation:o1 20s ease-in-out infinite}
     #orb-2{width:400px;height:400px;background:#8b5cf6;top:40%;right:-10%;animation:o2 25s ease-in-out infinite}
     #orb-3{width:350px;height:350px;background:#06b6d4;bottom:-5%;left:30%;animation:o3 22s ease-in-out infinite}
@@ -409,7 +409,7 @@
       if (ml) ml.addEventListener('click', openLoginModal);
       const mlo = document.getElementById('mobile-logout');
       if (mlo) mlo.addEventListener('click', logout);
-      requestAnimationFrame(() => lucide.createIcons());
+      refreshIcons();
     }
 
     function renderSkeletons() {
@@ -423,7 +423,7 @@
       if (state.projects.length === 0) {
         projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="folder-open" style="width:48px;height:48px"></i><p>No projects yet. Be the first to submit one!</p><button class="btn-primary" id="empty-submit">Submit a Project</button></div>`;
         document.getElementById('empty-submit').addEventListener('click', () => { state.isLoggedIn ? openSubmitModal() : openLoginModal(); });
-        requestAnimationFrame(() => lucide.createIcons());
+        refreshIcons();
         return;
       }
 
@@ -449,7 +449,7 @@
           </div>`;
       }).join('');
 
-      requestAnimationFrame(() => lucide.createIcons());
+      refreshIcons();
       observeCards();
       updateStats();
     }
@@ -621,7 +621,7 @@
         document.getElementById('preview-lang').textContent = data.language || '';
         repoPreview.classList.add('show');
         submitBtn.disabled = false;
-        requestAnimationFrame(() => lucide.createIcons());
+        refreshIcons();
       }, 600);
     });
 
@@ -656,8 +656,10 @@
         closeSubmitModal();
         renderProjects();
 
-        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'] });
-        showToast('Project submitted!', 'success');
+        setTimeout(() => {
+          confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'] });
+          showToast('Project submitted!', 'success');
+        }, 100);
       } catch (err) {
         showToast('Failed to submit. Try again.', 'error');
       }
@@ -693,19 +695,27 @@
     // ── Utilities ───────────────────────────────────────
     function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
+    let iconsTimer = null;
+    function refreshIcons() {
+      clearTimeout(iconsTimer);
+      iconsTimer = setTimeout(() => lucide.createIcons(), 50);
+    }
+
     function showToast(message, type = 'success', duration = 3000) {
       const icons = { success: 'check-circle', error: 'x-circle', info: 'info' };
       const t = document.createElement('div');
       t.className = `toast glass ${type}`;
       t.innerHTML = `<i data-lucide="${icons[type]}" style="width:18px;height:18px"></i><span>${message}</span>`;
       toastContainer.appendChild(t);
-      requestAnimationFrame(() => lucide.createIcons());
+      refreshIcons();
       setTimeout(() => { t.classList.add('removing'); t.addEventListener('animationend', () => t.remove()); }, duration);
     }
 
+    let activeObserver = null;
     function observeCards() {
-      const obs = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }), { threshold: 0.1 });
-      projectGrid.querySelectorAll('.project-card').forEach(c => obs.observe(c));
+      if (activeObserver) activeObserver.disconnect();
+      activeObserver = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); activeObserver.unobserve(e.target); } }), { threshold: 0.1 });
+      projectGrid.querySelectorAll('.project-card').forEach(c => activeObserver.observe(c));
     }
 
     function animateStats() {
@@ -749,7 +759,7 @@
     renderNavbar();
     animateStats();
     loadProjects();
-    requestAnimationFrame(() => lucide.createIcons());
+    refreshIcons();
   </script>
 </body>
 </html>
