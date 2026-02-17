@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Digital Crew — Community AI Projects</title>
+  <meta name="description" content="Discover and share AI projects built by developers. Submit your GitHub repo and join the community.">
+  <meta property="og:title" content="AI Digital Crew">
+  <meta property="og:description" content="Community-driven AI project showcase. Submit your GitHub repo.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://aidigitalcrew.com">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0f1c;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+      --primary: #3b82f6;
+      --primary-end: #8b5cf6;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --radius: 16px;
+      --success: #10b981;
+      --error: #ef4444;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;min-height:100vh}
+    h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.4;z-index:0;pointer-events:none}
+    #orb-1{width:500px;height:500px;background:#3b82f6;top:-10%;left:-5%;animation:o1 20s ease-in-out infinite}
+    #orb-2{width:400px;height:400px;background:#8b5cf6;top:40%;right:-10%;animation:o2 25s ease-in-out infinite}
+    #orb-3{width:350px;height:350px;background:#06b6d4;bottom:-5%;left:30%;animation:o3 22s ease-in-out infinite}
+    @keyframes o1{0%,100%{transform:translate(0,0)}33%{transform:translate(60px,80px)}66%{transform:translate(-40px,50px)}}
+    @keyframes o2{0%,100%{transform:translate(0,0)}33%{transform:translate(-70px,-50px)}66%{transform:translate(50px,60px)}}
+    @keyframes o3{0%,100%{transform:translate(0,0)}33%{transform:translate(80px,-40px)}66%{transform:translate(-60px,-70px)}}
+
+    .glass{background:var(--surface);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius)}
+
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:linear-gradient(135deg,var(--primary),var(--primary-end));background-size:200% 200%;color:#fff;font-weight:600;font-size:15px;border-radius:12px;border:none;transition:all .3s ease}
+    .btn-primary:hover{background-position:100% 0;transform:translateY(-2px);box-shadow:0 0 24px rgba(59,130,246,.4)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .btn-outlined{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:transparent;color:var(--text);font-weight:600;font-size:15px;border-radius:12px;border:1px solid var(--border);transition:all .3s ease}
+    .btn-outlined:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-2px)}
+    .btn-small{padding:8px 16px;font-size:13px;border-radius:8px}
+
+    /* Nav */
+    nav{position:sticky;top:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:all .3s ease}
+    nav.scrolled{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(10,15,28,.8);border-bottom:1px solid var(--border)}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px}
+    .nav-logo i{color:var(--primary)}
+    .nav-links{display:flex;align-items:center;gap:32px}
+    .nav-links a{color:var(--text-muted);font-size:15px;font-weight:500;transition:color .2s}
+    .nav-links a:hover{color:var(--text)}
+    .nav-right{display:flex;align-items:center;gap:16px}
+    .nav-avatar{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:border-color .2s;object-fit:cover}
+    .nav-avatar:hover{border-color:var(--primary)}
+    .avatar-dropdown{position:absolute;top:60px;right:32px;min-width:180px;padding:8px;display:none;flex-direction:column;z-index:200}
+    .avatar-dropdown.open{display:flex}
+    .avatar-dropdown a,.avatar-dropdown button{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:var(--text-muted);border-radius:8px;transition:all .2s;width:100%;text-align:left}
+    .avatar-dropdown a:hover,.avatar-dropdown button:hover{background:rgba(255,255,255,.05);color:var(--text)}
+    .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+    .hamburger{display:none}
+    .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150}
+    .mobile-menu.open{display:flex}
+    .mobile-menu a,.mobile-menu button{color:var(--text-muted);font-size:16px;padding:10px;border-radius:8px;transition:all .2s;text-align:left}
+
+    /* Hero */
+    .hero{position:relative;z-index:1;min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px}
+    .hero h1{font-size:64px;font-weight:700;line-height:1.1;max-width:800px;background:linear-gradient(135deg,var(--text),var(--text-muted));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero .subtitle{font-size:20px;color:var(--text-muted);max-width:600px;margin:20px auto 0}
+    .hero-ctas{display:flex;gap:16px;margin-top:40px;flex-wrap:wrap;justify-content:center}
+    .stats-bar{display:flex;gap:20px;margin-top:60px;flex-wrap:wrap;justify-content:center}
+    .stat-pill{padding:12px 24px;font-size:15px;font-weight:600}
+    .stat-pill .stat-number{color:var(--primary);margin-right:6px}
+    .stat-pill .stat-label{color:var(--text-muted)}
+
+    /* Sections */
+    section{position:relative;z-index:1;padding:80px 24px}
+    .section-container{max-width:1200px;margin:0 auto}
+    .section-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:40px}
+    .section-title{font-size:36px;font-weight:700}
+    .section-subtitle{font-size:18px;color:var(--text-muted)}
+
+    /* Project Cards */
+    .project-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .project-card{overflow:hidden;transition:transform .3s ease,opacity .4s ease;opacity:0;transform:translateY(20px)}
+    .project-card.visible{opacity:1;transform:translateY(0)}
+    .project-card:hover{transform:translateY(-4px);box-shadow:0 0 24px rgba(59,130,246,.15)}
+    .project-banner{height:100px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius) var(--radius) 0 0;background:linear-gradient(135deg,var(--primary),var(--primary-end))}
+    .project-banner img{width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
+    .project-banner .initial{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;color:rgba(255,255,255,.9)}
+    .project-body{padding:20px}
+    .project-name{font-size:18px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+    .project-name a{color:var(--text);transition:color .2s}
+    .project-name a:hover{color:var(--primary)}
+    .project-owner{font-size:13px;color:var(--text-muted);margin-bottom:10px}
+    .project-desc{font-size:14px;color:var(--text-muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:14px}
+    .project-topics{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+    .project-topic{padding:3px 10px;font-size:11px;color:var(--primary);background:rgba(59,130,246,.1);border-radius:6px}
+    .project-stats{display:flex;gap:16px;font-size:13px;color:var(--text-muted)}
+    .project-stats span{display:flex;align-items:center;gap:4px}
+    .project-lang-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+    /* Empty & Loading */
+    .empty-state{text-align:center;padding:80px 20px;grid-column:1/-1}
+    .empty-state i{color:var(--text-muted);margin-bottom:16px}
+    .empty-state p{color:var(--text-muted);font-size:16px;margin-bottom:24px}
+    .skeleton-card{overflow:hidden;min-height:280px}
+    .skeleton-banner{height:100px;background:rgba(255,255,255,.04);border-radius:var(--radius) var(--radius) 0 0}
+    .skeleton-body{padding:20px}
+    .skeleton-line{height:14px;border-radius:7px;background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:12px}
+    .skeleton-line.short{width:60%}.skeleton-line.medium{width:80%}.skeleton-line.long{width:100%}.skeleton-line.title{height:20px;width:70%}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:24px}
+    .modal-overlay.open{display:flex}
+    .modal{width:100%;max-width:480px;padding:32px;position:relative;max-height:90vh;overflow-y:auto}
+    .modal-close{position:absolute;top:16px;right:16px;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:8px;transition:color .2s;background:none;border:none}
+    .modal-close:hover{color:var(--text)}
+    .modal h2{font-size:24px;margin-bottom:8px}
+    .modal .modal-subtitle{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+
+    .oauth-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;border:none;margin-bottom:12px}
+    .oauth-btn:hover{transform:translateY(-1px)}
+    .oauth-btn.github{background:#24292e;color:#fff}
+    .oauth-btn.google{background:#fff;color:#1f2937}
+    .oauth-btn.apple{background:#000;color:#fff}
+    .oauth-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .oauth-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+    .oauth-btn.google .oauth-spinner{border-color:rgba(0,0,0,.2);border-top-color:#1f2937}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Submit form */
+    .form-group{margin-bottom:20px}
+    .form-group label{display:block;font-size:14px;font-weight:500;margin-bottom:6px}
+    .form-group input{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;transition:border-color .2s}
+    .form-group input:focus{outline:none;border-color:var(--primary)}
+    .form-error{font-size:12px;color:var(--error);margin-top:4px;display:none}
+    .form-error.show{display:block}
+    .repo-preview{margin-top:16px;padding:16px;display:none}
+    .repo-preview.show{display:block}
+    .repo-preview h4{font-size:16px;margin-bottom:4px}
+    .repo-preview p{font-size:13px;color:var(--text-muted);margin-bottom:8px}
+    .repo-preview .repo-meta{display:flex;gap:12px;font-size:12px;color:var(--text-muted)}
+    .repo-preview .repo-meta span{display:flex;align-items:center;gap:4px}
+
+    /* Toast */
+    #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    .toast{min-width:280px;padding:14px 18px;display:flex;align-items:center;gap:10px;font-size:14px;pointer-events:auto;animation:slideIn .3s ease forwards}
+    .toast.removing{animation:slideOut .3s ease forwards}
+    .toast.success{border-left:4px solid var(--success)}
+    .toast.error{border-left:4px solid var(--error)}
+    .toast.info{border-left:4px solid var(--primary)}
+    .toast i{flex-shrink:0}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
+
+    /* Footer */
+    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:60px 24px 32px}
+    .footer-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-bottom:40px}
+    .footer-col h4{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text)}
+    .footer-col a{display:block;font-size:14px;color:var(--text-muted);margin-bottom:10px;transition:color .2s}
+    .footer-col a:hover{color:var(--text)}
+    .footer-social{display:flex;gap:16px;margin-bottom:24px;justify-content:center}
+    .footer-social a{color:var(--text-muted);transition:color .2s}
+    .footer-social a:hover{color:var(--text)}
+    .footer-bottom{text-align:center;font-size:13px;color:var(--text-muted);padding-top:24px;border-top:1px solid var(--border);max-width:1200px;margin:0 auto}
+
+    @media(max-width:768px){
+      .hero h1{font-size:36px}.hero .subtitle{font-size:16px}
+      .nav-links,.nav-right{display:none}.hamburger{display:block}
+      .project-grid{grid-template-columns:repeat(2,1fr)}
+      .footer-grid{grid-template-columns:repeat(2,1fr)}
+      .stat-pill{padding:10px 16px;font-size:13px}.stats-bar{gap:12px}
+      .modal{max-width:100%}
+    }
+    @media(max-width:480px){
+      .hero h1{font-size:28px}nav{padding:14px 16px}
+      .project-grid{grid-template-columns:1fr}
+      .hero-ctas{flex-direction:column;align-items:center}
+      .footer-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="orb" id="orb-1"></div>
+  <div class="orb" id="orb-2"></div>
+  <div class="orb" id="orb-3"></div>
+
+  <nav id="navbar">
+    <div class="nav-logo"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></div>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#projects">Projects</a>
+    </div>
+    <div class="nav-right" id="nav-right"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
+    <div class="mobile-menu glass" id="mobile-menu"></div>
+    <div class="avatar-dropdown glass" id="avatar-dropdown"></div>
+  </nav>
+
+  <main>
+    <section id="home" class="hero">
+      <h1>AI Tools Built by the Community</h1>
+      <p class="subtitle">Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.</p>
+      <div class="hero-ctas">
+        <a href="#projects" class="btn-primary">Browse Projects</a>
+        <button class="btn-outlined" id="hero-submit-btn"><i data-lucide="plus" style="width:18px;height:18px"></i> Submit Your Project</button>
+      </div>
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-pill glass"><span class="stat-number" id="stat-projects" data-target="0">0</span><span class="stat-label"> Projects</span></div>
+        <div class="stat-pill glass"><span class="stat-number" id="stat-stars" data-target="0">0</span><span class="stat-label"> Total Stars</span></div>
+        <div class="stat-pill glass"><span class="stat-number" data-target="100">0</span><span class="stat-label">% Open Source</span></div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="section-container">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Community Projects</h2>
+            <p class="section-subtitle">Live from GitHub — stars, descriptions, and topics update automatically</p>
+          </div>
+          <button class="btn-primary btn-small" id="section-submit-btn"><i data-lucide="plus" style="width:16px;height:16px"></i> Submit Project</button>
+        </div>
+        <div class="project-grid" id="project-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>AI Digital Crew</h4>
+        <a href="#projects">Projects</a>
+        <a href="https://github.com/ariv14" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://moltbook.com" target="_blank" rel="noopener">Moltbook</a>
+      </div>
+      <div class="footer-col">
+        <h4>Featured</h4>
+        <a href="https://github.com/ariv14/moltmind" target="_blank" rel="noopener">MoltMind</a>
+        <a href="https://www.npmjs.com/package/moltmind" target="_blank" rel="noopener">npm: moltmind</a>
+        <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Protocol</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="https://github.com/ariv14/moltmind/issues" target="_blank" rel="noopener">Report an Issue</a>
+        <a href="https://github.com/ariv14/moltmind#readme" target="_blank" rel="noopener">Documentation</a>
+      </div>
+    </div>
+    <div class="footer-social">
+      <a href="https://github.com/ariv14" target="_blank" rel="noopener" aria-label="GitHub"><i data-lucide="github" style="width:20px;height:20px"></i></a>
+      <a href="https://moltbook.com" target="_blank" rel="noopener" aria-label="Moltbook"><i data-lucide="message-square" style="width:20px;height:20px"></i></a>
+    </div>
+    <div class="footer-bottom">AI Digital Crew &copy; 2026 — Open source, community driven</div>
+  </footer>
+
+  <div id="toast-container"></div>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="login-modal" role="dialog" aria-modal="true" aria-label="Login">
+    <div class="modal glass">
+      <button class="modal-close" id="login-close" aria-label="Close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+      <h2>Join AI Digital Crew</h2>
+      <p class="modal-subtitle">Sign in to submit your AI projects.</p>
+      <button class="oauth-btn github" id="btn-github"><i data-lucide="github" style="width:20px;height:20px"></i>Continue with GitHub</button>
+      <button class="oauth-btn google" id="btn-google">
+        <svg style="width:20px;height:20px" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <button class="oauth-btn apple" id="btn-apple">
+        <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        Continue with Apple
+      </button>
+    </div>
+  </div>
+
+  <!-- Submit Project Modal -->
+  <div class="modal-overlay" id="submit-modal" role="dialog" aria-modal="true" aria-label="Submit project">
+    <div class="modal glass">
+      <button class="modal-close" id="submit-close" aria-label="Close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+      <h2>Submit a Project</h2>
+      <p class="modal-subtitle">Paste a public GitHub repo URL. We'll pull the details automatically.</p>
+      <form id="submit-form" novalidate>
+        <div class="form-group">
+          <label for="repo-url">GitHub Repository URL</label>
+          <input type="url" id="repo-url" placeholder="https://github.com/username/repo" required>
+          <div class="form-error" id="repo-error">Enter a valid GitHub repo URL (e.g. https://github.com/user/repo)</div>
+        </div>
+        <div class="repo-preview glass" id="repo-preview">
+          <h4 id="preview-name"></h4>
+          <p id="preview-desc"></p>
+          <div class="repo-meta">
+            <span><i data-lucide="star" style="width:12px;height:12px"></i> <span id="preview-stars">0</span></span>
+            <span><i data-lucide="git-fork" style="width:12px;height:12px"></i> <span id="preview-forks">0</span></span>
+            <span id="preview-lang"></span>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;justify-content:center;margin-top:16px" id="submit-btn" disabled>Submit Project</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    // ============================================================
+    // FIREBASE CONFIG — replace with your credentials
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDq4iZ6y90S9KOsPRP0774iYGu4fXzH-4s",
+      authDomain: "ai-digital-crew.firebaseapp.com",
+      projectId: "ai-digital-crew",
+      storageBucket: "ai-digital-crew.firebasestorage.app",
+      messagingSenderId: "67125394484",
+      appId: "1:67125394484:web:85f3da113a0b09aeb39e61",
+      measurementId: "G-4VHGMK995P"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const LANG_COLORS = {TypeScript:'#3178c6',JavaScript:'#f1e05a',Python:'#3572A5',Rust:'#dea584',Go:'#00ADD8',Java:'#b07219',Ruby:'#701516',C:'#555555','C++':'#f34b7d','C#':'#178600',Swift:'#F05138',Kotlin:'#A97BFF',Shell:'#89e051'};
+
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null };
+
+    const navRight = document.getElementById('nav-right');
+    const hamburgerBtn = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const avatarDropdown = document.getElementById('avatar-dropdown');
+    const loginModal = document.getElementById('login-modal');
+    const submitModal = document.getElementById('submit-modal');
+    const projectGrid = document.getElementById('project-grid');
+    const toastContainer = document.getElementById('toast-container');
+    const repoUrlInput = document.getElementById('repo-url');
+    const repoPreview = document.getElementById('repo-preview');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // ── GitHub API ──────────────────────────────────────
+    function parseRepoUrl(url) {
+      const m = url.trim().match(/github\.com\/([^/]+)\/([^/\s#?]+)/);
+      if (!m) return null;
+      return { owner: m[1], repo: m[2].replace(/\.git$/, '') };
+    }
+
+    async function fetchRepoData(owner, repo) {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+      if (!res.ok) return null;
+      const d = await res.json();
+      return {
+        fullName: d.full_name,
+        name: d.name,
+        owner: d.owner.login,
+        ownerAvatar: d.owner.avatar_url,
+        description: d.description || 'No description provided.',
+        stars: d.stargazers_count,
+        forks: d.forks_count,
+        language: d.language,
+        topics: d.topics || [],
+        url: d.html_url
+      };
+    }
+
+    // ── Render ──────────────────────────────────────────
+    function renderNavbar() {
+      if (state.isLoggedIn) {
+        const photo = state.user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.user.uid}`;
+        navRight.innerHTML = `
+          <button class="btn-primary btn-small" id="nav-submit-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> Submit</button>
+          <img src="${photo}" alt="Avatar" class="nav-avatar" id="nav-avatar" referrerpolicy="no-referrer">
+        `;
+        avatarDropdown.innerHTML = `
+          <a href="#"><i data-lucide="user" style="width:16px;height:16px"></i>${state.user.displayName || 'Profile'}</a>
+          <div class="dropdown-divider"></div>
+          <button id="logout-btn"><i data-lucide="log-out" style="width:16px;height:16px"></i>Logout</button>
+        `;
+        document.getElementById('nav-submit-btn').addEventListener('click', openSubmitModal);
+        document.getElementById('nav-avatar').addEventListener('click', (e) => { e.stopPropagation(); avatarDropdown.classList.toggle('open'); });
+        document.getElementById('logout-btn').addEventListener('click', logout);
+      } else {
+        navRight.innerHTML = `<button class="btn-outlined btn-small" id="nav-login-btn">Login / Join</button>`;
+        avatarDropdown.innerHTML = '';
+        avatarDropdown.classList.remove('open');
+        document.getElementById('nav-login-btn').addEventListener('click', openLoginModal);
+      }
+      mobileMenu.innerHTML = `
+        <a href="#home">Home</a><a href="#projects">Projects</a>
+        ${state.isLoggedIn
+          ? `<button id="mobile-logout">Logout</button>`
+          : `<button id="mobile-login">Login / Join</button>`}
+      `;
+      const ml = document.getElementById('mobile-login');
+      if (ml) ml.addEventListener('click', openLoginModal);
+      const mlo = document.getElementById('mobile-logout');
+      if (mlo) mlo.addEventListener('click', logout);
+      requestAnimationFrame(() => lucide.createIcons());
+    }
+
+    function renderSkeletons() {
+      let h = '';
+      for (let i = 0; i < 3; i++) h += `<div class="skeleton-card glass visible"><div class="skeleton-banner"></div><div class="skeleton-body"><div class="skeleton-line title"></div><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div></div></div>`;
+      projectGrid.innerHTML = h;
+    }
+
+    function renderProjects() {
+      if (state.isLoading) { renderSkeletons(); return; }
+      if (state.projects.length === 0) {
+        projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="folder-open" style="width:48px;height:48px"></i><p>No projects yet. Be the first to submit one!</p><button class="btn-primary" id="empty-submit">Submit a Project</button></div>`;
+        document.getElementById('empty-submit').addEventListener('click', () => { state.isLoggedIn ? openSubmitModal() : openLoginModal(); });
+        requestAnimationFrame(() => lucide.createIcons());
+        return;
+      }
+
+      projectGrid.innerHTML = state.projects.map(p => {
+        const langColor = LANG_COLORS[p.language] || '#888';
+        const topics = (p.topics || []).slice(0, 5);
+        return `
+          <div class="project-card glass">
+            <div class="project-banner">
+              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
+            </div>
+            <div class="project-body">
+              <div class="project-name"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a></div>
+              <div class="project-owner">${esc(p.owner)}</div>
+              <p class="project-desc">${esc(p.description)}</p>
+              <div class="project-topics">${topics.map(t => `<span class="project-topic">${esc(t)}</span>`).join('')}</div>
+              <div class="project-stats">
+                <span><i data-lucide="star" style="width:14px;height:14px"></i> ${p.stars.toLocaleString()}</span>
+                <span><i data-lucide="git-fork" style="width:14px;height:14px"></i> ${p.forks.toLocaleString()}</span>
+                ${p.language ? `<span><span class="project-lang-dot" style="background:${langColor}"></span> ${esc(p.language)}</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      requestAnimationFrame(() => lucide.createIcons());
+      observeCards();
+      updateStats();
+    }
+
+    function updateStats() {
+      const projEl = document.getElementById('stat-projects');
+      const starEl = document.getElementById('stat-stars');
+      projEl.dataset.target = state.projects.length;
+      starEl.dataset.target = state.projects.reduce((s, p) => s + (p.stars || 0), 0);
+      animateStats();
+    }
+
+    // ── Modals ──────────────────────────────────────────
+    function openLoginModal() { loginModal.classList.add('open'); }
+    function closeLoginModal() { loginModal.classList.remove('open'); enableOAuthButtons(); }
+    function openSubmitModal() {
+      if (!state.isLoggedIn) { openLoginModal(); return; }
+      submitModal.classList.add('open');
+      repoUrlInput.value = '';
+      repoPreview.classList.remove('show');
+      submitBtn.disabled = true;
+      state.repoPreview = null;
+      document.getElementById('repo-error').classList.remove('show');
+    }
+    function closeSubmitModal() { submitModal.classList.remove('open'); }
+
+    // ── Auth ────────────────────────────────────────────
+    function enableOAuthButtons() {
+      loginModal.querySelectorAll('.oauth-btn').forEach(b => { b.disabled = false; if (b.dataset.label) b.innerHTML = b.dataset.label; });
+    }
+    function setLoading(btn) {
+      loginModal.querySelectorAll('.oauth-btn').forEach(b => b.disabled = true);
+      btn.dataset.label = btn.innerHTML;
+      btn.innerHTML = `<div class="oauth-spinner"></div> Connecting...`;
+    }
+
+    async function loginWithGitHub() {
+      const btn = document.getElementById('btn-github');
+      setLoading(btn);
+      try { await signInWithPopup(auth, new GithubAuthProvider()); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
+      catch { showToast('Sign-in cancelled.', 'error'); enableOAuthButtons(); }
+    }
+    async function loginWithGoogle() {
+      const btn = document.getElementById('btn-google');
+      setLoading(btn);
+      try { await signInWithPopup(auth, new GoogleAuthProvider()); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
+      catch { showToast('Sign-in cancelled.', 'error'); enableOAuthButtons(); }
+    }
+    async function loginWithApple() {
+      const btn = document.getElementById('btn-apple');
+      setLoading(btn);
+      try { await signInWithPopup(auth, new OAuthProvider('apple.com')); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
+      catch { showToast('Sign-in cancelled.', 'error'); enableOAuthButtons(); }
+    }
+    async function logout() {
+      avatarDropdown.classList.remove('open');
+      await signOut(auth);
+      showToast('Signed out.', 'info');
+    }
+
+    // ── Repo URL validation ─────────────────────────────
+    let debounceTimer = null;
+    repoUrlInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      repoPreview.classList.remove('show');
+      submitBtn.disabled = true;
+      state.repoPreview = null;
+      document.getElementById('repo-error').classList.remove('show');
+
+      debounceTimer = setTimeout(async () => {
+        const parsed = parseRepoUrl(repoUrlInput.value);
+        if (!parsed) {
+          if (repoUrlInput.value.trim()) document.getElementById('repo-error').classList.add('show');
+          return;
+        }
+        repoUrlInput.style.borderColor = 'var(--primary)';
+        const data = await fetchRepoData(parsed.owner, parsed.repo);
+        repoUrlInput.style.borderColor = '';
+        if (!data) { document.getElementById('repo-error').classList.add('show'); document.getElementById('repo-error').textContent = 'Repository not found or is private.'; return; }
+
+        state.repoPreview = data;
+        document.getElementById('preview-name').textContent = data.fullName;
+        document.getElementById('preview-desc').textContent = data.description;
+        document.getElementById('preview-stars').textContent = data.stars.toLocaleString();
+        document.getElementById('preview-forks').textContent = data.forks.toLocaleString();
+        document.getElementById('preview-lang').textContent = data.language || '';
+        repoPreview.classList.add('show');
+        submitBtn.disabled = false;
+        requestAnimationFrame(() => lucide.createIcons());
+      }, 600);
+    });
+
+    // ── Submit project ──────────────────────────────────
+    document.getElementById('submit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.repoPreview || !state.isLoggedIn) return;
+      const data = state.repoPreview;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<div class="oauth-spinner"></div> Submitting...';
+
+      try {
+        // Check for duplicate
+        const q = query(collection(db, 'projects'), where('fullName', '==', data.fullName));
+        const existing = await getDocs(q);
+        if (!existing.empty) {
+          showToast('This project has already been submitted.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Project';
+          return;
+        }
+
+        await addDoc(collection(db, 'projects'), {
+          ...data,
+          submittedBy: state.user.uid,
+          submittedByName: state.user.displayName || 'Anonymous',
+          createdAt: serverTimestamp()
+        });
+
+        state.projects.unshift(data);
+        closeSubmitModal();
+        renderProjects();
+
+        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'] });
+        showToast('Project submitted!', 'success');
+      } catch (err) {
+        showToast('Failed to submit. Try again.', 'error');
+      }
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Project';
+    });
+
+    // ── Load projects from Firestore ────────────────────
+    async function loadProjects() {
+      state.isLoading = true;
+      renderProjects();
+      try {
+        const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        const stored = snap.docs.map(d => d.data());
+
+        // Refresh each from GitHub API (in parallel, non-blocking)
+        const refreshed = await Promise.all(stored.map(async (p) => {
+          try {
+            const fresh = await fetchRepoData(p.owner, p.name);
+            return fresh || p;
+          } catch { return p; }
+        }));
+
+        state.projects = refreshed;
+      } catch {
+        state.projects = [];
+      }
+      state.isLoading = false;
+      renderProjects();
+    }
+
+    // ── Utilities ───────────────────────────────────────
+    function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+    function showToast(message, type = 'success') {
+      const icons = { success: 'check-circle', error: 'x-circle', info: 'info' };
+      const t = document.createElement('div');
+      t.className = `toast glass ${type}`;
+      t.innerHTML = `<i data-lucide="${icons[type]}" style="width:18px;height:18px"></i><span>${message}</span>`;
+      toastContainer.appendChild(t);
+      requestAnimationFrame(() => lucide.createIcons());
+      setTimeout(() => { t.classList.add('removing'); t.addEventListener('animationend', () => t.remove()); }, 3000);
+    }
+
+    function observeCards() {
+      const obs = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }), { threshold: 0.1 });
+      projectGrid.querySelectorAll('.project-card').forEach(c => obs.observe(c));
+    }
+
+    function animateStats() {
+      document.querySelectorAll('.stat-number').forEach(el => {
+        const target = parseInt(el.dataset.target, 10);
+        const dur = 1200, start = performance.now();
+        (function update(now) {
+          const p = Math.min((now - start) / dur, 1);
+          el.textContent = Math.floor((1 - Math.pow(1 - p, 3)) * target).toLocaleString();
+          if (p < 1) requestAnimationFrame(update);
+        })(start);
+      });
+    }
+
+    // ── Events ──────────────────────────────────────────
+    document.getElementById('login-close').addEventListener('click', closeLoginModal);
+    document.getElementById('submit-close').addEventListener('click', closeSubmitModal);
+    document.getElementById('btn-github').addEventListener('click', loginWithGitHub);
+    document.getElementById('btn-google').addEventListener('click', loginWithGoogle);
+    document.getElementById('btn-apple').addEventListener('click', loginWithApple);
+    document.getElementById('hero-submit-btn').addEventListener('click', () => state.isLoggedIn ? openSubmitModal() : openLoginModal());
+    document.getElementById('section-submit-btn').addEventListener('click', () => state.isLoggedIn ? openSubmitModal() : openLoginModal());
+    loginModal.addEventListener('click', e => { if (e.target === loginModal) closeLoginModal(); });
+    submitModal.addEventListener('click', e => { if (e.target === submitModal) closeSubmitModal(); });
+    loginModal.addEventListener('keydown', e => { if (e.key === 'Escape') closeLoginModal(); });
+    submitModal.addEventListener('keydown', e => { if (e.key === 'Escape') closeSubmitModal(); });
+    hamburgerBtn.addEventListener('click', () => mobileMenu.classList.toggle('open'));
+    document.addEventListener('click', e => {
+      if (!hamburgerBtn.contains(e.target) && !mobileMenu.contains(e.target)) mobileMenu.classList.remove('open');
+      if (!avatarDropdown.contains(e.target) && !e.target.classList.contains('nav-avatar')) avatarDropdown.classList.remove('open');
+    });
+    window.addEventListener('scroll', () => document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60));
+
+    onAuthStateChanged(auth, user => {
+      state.user = user || null;
+      state.isLoggedIn = !!user;
+      renderNavbar();
+    });
+
+    // ── Init ────────────────────────────────────────────
+    renderNavbar();
+    animateStats();
+    loadProjects();
+    requestAnimationFrame(() => lucide.createIcons());
+  </script>
+</body>
+</html>
