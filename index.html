@@ -216,7 +216,6 @@
       <p class="subtitle">Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.</p>
       <div class="hero-ctas">
         <a href="#projects" class="btn-primary">Browse Projects</a>
-        <button class="btn-outlined" id="hero-submit-btn"><i data-lucide="plus" style="width:18px;height:18px"></i> Submit Your Project</button>
       </div>
       <div class="stats-bar" id="stats-bar">
         <div class="stat-pill glass"><span class="stat-number" id="stat-projects" data-target="0">0</span><span class="stat-label"> Projects</span></div>
@@ -728,7 +727,6 @@
     document.getElementById('btn-github').addEventListener('click', loginWithGitHub);
     document.getElementById('btn-google').addEventListener('click', loginWithGoogle);
     document.getElementById('btn-apple').addEventListener('click', loginWithApple);
-    document.getElementById('hero-submit-btn').addEventListener('click', () => state.isLoggedIn ? openSubmitModal() : openLoginModal());
     document.getElementById('section-submit-btn').addEventListener('click', () => state.isLoggedIn ? openSubmitModal() : openLoginModal());
     loginModal.addEventListener('click', e => { if (e.target === loginModal) closeLoginModal(); });
     submitModal.addEventListener('click', e => { if (e.target === submitModal) closeSubmitModal(); });
