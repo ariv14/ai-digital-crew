@@ -487,19 +487,19 @@
       const btn = document.getElementById('btn-github');
       setLoading(btn);
       try { await signInWithPopup(auth, new GithubAuthProvider()); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
-      catch { showToast('Sign-in cancelled.', 'error'); enableOAuthButtons(); }
+      catch (err) { console.error('GitHub auth error:', err); showToast(`Auth error: ${err.code || err.message}`, 'error'); enableOAuthButtons(); }
     }
     async function loginWithGoogle() {
       const btn = document.getElementById('btn-google');
       setLoading(btn);
       try { await signInWithPopup(auth, new GoogleAuthProvider()); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
-      catch { showToast('Sign-in cancelled.', 'error'); enableOAuthButtons(); }
+      catch (err) { console.error('Google auth error:', err); showToast(`Auth error: ${err.code || err.message}`, 'error'); enableOAuthButtons(); }
     }
     async function loginWithApple() {
       const btn = document.getElementById('btn-apple');
       setLoading(btn);
       try { await signInWithPopup(auth, new OAuthProvider('apple.com')); closeLoginModal(); showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success'); }
-      catch { showToast('Sign-in cancelled.', 'error'); enableOAuthButtons(); }
+      catch (err) { console.error('Apple auth error:', err); showToast(`Auth error: ${err.code || err.message}`, 'error'); enableOAuthButtons(); }
     }
     async function logout() {
       avatarDropdown.classList.remove('open');
