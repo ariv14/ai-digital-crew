@@ -72,7 +72,7 @@ async function loginWithCredentials(page) {
     throw new Error('SUBSTACK_EMAIL and SUBSTACK_PASSWORD are required when cookies are expired');
   }
   console.log('Logging in with credentials...');
-  await page.goto('https://substack.com/sign-in', { waitUntil: 'networkidle', timeout: 30000 });
+  await page.goto('https://substack.com/sign-in', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
   await page.fill('input[name="email"], input[type="email"]', SUBSTACK_EMAIL);
   await page.click('button[type="submit"], button:has-text("Continue")');
@@ -148,7 +148,7 @@ export async function publishToSubstack({ repoMeta, writeup, quickStart }) {
 
     // Navigate to new post editor
     console.log(`Navigating to ${newPostUrl}`);
-    await page.goto(newPostUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(newPostUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     // Fill title
     const titleSel = '[data-testid="post-title-input"], h1.post-title, [placeholder*="Title"]';
