@@ -687,7 +687,8 @@
         }));
 
         state.projects = refreshed;
-      } catch {
+      } catch (err) {
+        console.error('loadProjects error:', err);
         state.projects = [];
       }
       state.isLoading = false;
