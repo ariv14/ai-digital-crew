@@ -13,6 +13,13 @@ const PIPEDREAM_WEBHOOK_URL = process.env.PIPEDREAM_WEBHOOK_URL;
 function buildProseMirrorDoc(writeup, quickStart, repoUrl, repoFullName) {
   const content = [];
 
+  // Inbox prompt — helps Gmail deliver to Primary
+  content.push({
+    type: 'paragraph',
+    content: [{ type: 'text', text: '📥 Found this in Promotions? Move it to Primary so you never miss a pick.', marks: [{ type: 'italic' }] }],
+  });
+  content.push({ type: 'paragraph' });
+
   for (const line of writeup.split('\n')) {
     if (line.trim()) {
       content.push({ type: 'paragraph', content: [{ type: 'text', text: line }] });
