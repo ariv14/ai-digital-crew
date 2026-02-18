@@ -191,6 +191,14 @@
     @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
     @keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
 
+    /* Category Tabs */
+    .category-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:32px;scrollbar-width:none}
+    .category-tabs::-webkit-scrollbar{display:none}
+    .category-tab{flex-shrink:0;padding:7px 16px;font-size:13px;font-weight:600;border-radius:20px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .category-tab:hover{border-color:var(--primary);color:var(--text)}
+    .category-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+    .category-badge{display:inline-block;margin-top:6px;padding:2px 9px;font-size:11px;font-weight:600;border-radius:6px;background:rgba(139,92,246,.15);color:#a78bfa}
+
     /* Footer */
     footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:60px 24px 32px}
     .footer-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-bottom:40px}
@@ -259,11 +267,12 @@
       <div class="section-container">
         <div class="section-header">
           <div>
-            <h2 class="section-title">Community Projects</h2>
+            <h2 class="section-title">Projects by Category</h2>
             <p class="section-subtitle">Live from GitHub — stars, descriptions, and topics update automatically</p>
           </div>
           <button class="btn-primary btn-small" id="section-submit-btn"><i data-lucide="plus" style="width:16px;height:16px"></i> Submit Project</button>
         </div>
+        <div class="category-tabs" id="category-tabs"></div>
         <div class="project-grid" id="project-grid"></div>
       </div>
     </section>
@@ -275,7 +284,6 @@
         <h4>AI Digital Crew</h4>
         <a href="#projects">Projects</a>
         <a href="https://github.com/ariv14" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://moltbook.com" target="_blank" rel="noopener">Moltbook</a>
       </div>
       <div class="footer-col" id="footer-featured-col">
         <h4>🤖 Today's Pick</h4>
@@ -283,13 +291,13 @@
       </div>
       <div class="footer-col">
         <h4>Support</h4>
-        <a href="https://github.com/ariv14/moltmind/issues" target="_blank" rel="noopener">Report an Issue</a>
-        <a href="https://github.com/ariv14/moltmind#readme" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/ariv14/ai-digital-crew/issues" target="_blank" rel="noopener">Report an Issue</a>
+        <a href="https://github.com/ariv14/ai-digital-crew#readme" target="_blank" rel="noopener">Documentation</a>
+        <a href="mailto:support@aidigitalcrew.com">support@aidigitalcrew.com</a>
       </div>
     </div>
     <div class="footer-social">
       <a href="https://github.com/ariv14" target="_blank" rel="noopener" aria-label="GitHub"><i data-lucide="github" style="width:20px;height:20px"></i></a>
-      <a href="https://moltbook.com" target="_blank" rel="noopener" aria-label="Moltbook"><i data-lucide="message-square" style="width:20px;height:20px"></i></a>
     </div>
     <div class="footer-bottom">
       <a href="https://aidigitalcrew.substack.com" target="_blank" rel="noopener" style="color:var(--primary);font-weight:500">📬 Subscribe to Project of the Day →</a>
@@ -368,7 +376,33 @@
 
     const LANG_COLORS = {TypeScript:'#3178c6',JavaScript:'#f1e05a',Python:'#3572A5',Rust:'#dea584',Go:'#00ADD8',Java:'#b07219',Ruby:'#701516',C:'#555555','C++':'#f34b7d','C#':'#178600',Swift:'#F05138',Kotlin:'#A97BFF',Shell:'#89e051'};
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null };
+    const CATEGORY_TOPICS = {
+      'AI Agents':         ['ai-agents', 'llm-agent', 'autonomous-agents', 'multi-agent', 'mcp', 'computer-use'],
+      'LLM / GenAI':       ['llm', 'generative-ai', 'large-language-model', 'rag', 'fine-tuning', 'prompt-engineering'],
+      'Data Science':      ['data-science', 'machine-learning', 'deep-learning', 'neural-network', 'mlops'],
+      'Big Data':          ['big-data', 'data-engineering', 'data-pipeline', 'apache-spark', 'dbt', 'streaming'],
+      'DevTools':          ['developer-tools', 'cli', 'devops', 'platform-engineering', 'observability'],
+      'Web / Frontend':    ['react', 'nextjs', 'svelte', 'vue', 'typescript', 'tailwindcss', 'webassembly'],
+      'Backend / APIs':    ['fastapi', 'rest-api', 'graphql', 'microservices', 'nodejs', 'grpc', 'api'],
+      'Mobile':            ['react-native', 'flutter', 'ios', 'android', 'swift', 'kotlin'],
+      'Security':          ['security', 'cybersecurity', 'privacy', 'zero-trust', 'pentesting', 'devsecops'],
+      'Cloud / Infra':     ['kubernetes', 'docker', 'terraform', 'cloud-native', 'serverless', 'infrastructure'],
+      'Blockchain / Web3': ['blockchain', 'web3', 'defi', 'smart-contracts', 'ethereum', 'solidity'],
+      'Database':          ['postgresql', 'mongodb', 'redis', 'vector-database', 'sqlite', 'nosql'],
+    };
+    const CATEGORY_ORDER = ['All', 'AI Agents', 'LLM / GenAI', 'Data Science', 'Big Data', 'DevTools',
+      'Web / Frontend', 'Backend / APIs', 'Mobile', 'Security', 'Cloud / Infra', 'Blockchain / Web3', 'Database', 'Other'];
+
+    function inferCategory(project) {
+      if (project.category) return project.category;
+      const topics = (project.topics || []).map(t => t.toLowerCase());
+      for (const [cat, keywords] of Object.entries(CATEGORY_TOPICS)) {
+        if (keywords.some(kw => topics.includes(kw))) return cat;
+      }
+      return 'Other';
+    }
+
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All' };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -459,9 +493,20 @@
         return;
       }
 
-      projectGrid.innerHTML = state.projects.map(p => {
+      const filtered = state.activeCategory === 'All'
+        ? state.projects
+        : state.projects.filter(p => inferCategory(p) === state.activeCategory);
+
+      if (filtered.length === 0) {
+        projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="folder-open" style="width:48px;height:48px"></i><p>No projects in this category yet.</p></div>`;
+        refreshIcons();
+        return;
+      }
+
+      projectGrid.innerHTML = filtered.map(p => {
         const langColor = LANG_COLORS[p.language] || '#888';
         const topics = (p.topics || []).slice(0, 5);
+        const cat = inferCategory(p);
         return `
           <div class="project-card glass">
             <div class="project-banner">
@@ -474,6 +519,7 @@
               <p class="project-desc">${esc(p.writeup || p.description)}</p>
               ${p.quickStart && p.quickStart.length ? `<details class="quick-start"><summary>Quick Start</summary><ol>${p.quickStart.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>` : ''}
               <div class="project-topics">${topics.map(t => `<span class="project-topic">${esc(t)}</span>`).join('')}</div>
+              <span class="category-badge">${esc(cat)}</span>
               <div class="project-stats">
                 <span><i data-lucide="star" style="width:14px;height:14px"></i> ${p.stars.toLocaleString()}</span>
                 <span><i data-lucide="git-fork" style="width:14px;height:14px"></i> ${p.forks.toLocaleString()}</span>
@@ -534,6 +580,35 @@
         <a href="https://aidigitalcrew.substack.com" target="_blank" rel="noopener">📬 Subscribe</a>`;
 
       refreshIcons();
+    }
+
+    function renderCategoryTabs() {
+      const tabsEl = document.getElementById('category-tabs');
+      if (!tabsEl) return;
+
+      // Count projects per category
+      const counts = {};
+      for (const p of state.projects) {
+        const cat = inferCategory(p);
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+      counts['All'] = state.projects.length;
+
+      const visibleCategories = CATEGORY_ORDER.filter(cat => cat === 'All' || (counts[cat] || 0) > 0);
+
+      tabsEl.innerHTML = visibleCategories.map(cat => {
+        const count = counts[cat] || 0;
+        const isActive = state.activeCategory === cat;
+        return `<button class="category-tab${isActive ? ' active' : ''}" data-cat="${esc(cat)}">${esc(cat)} ${count}</button>`;
+      }).join('');
+
+      tabsEl.querySelectorAll('.category-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeCategory = btn.dataset.cat;
+          renderCategoryTabs();
+          renderProjects();
+        });
+      });
     }
 
     function updateStats() {
@@ -757,7 +832,7 @@
         const refreshed = await Promise.all(stored.map(async (p) => {
           try {
             const fresh = await fetchRepoData(p.owner, p.name);
-            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName };
+            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName, category: p.category || '' };
           } catch {}
           return p;
         }));
@@ -768,6 +843,7 @@
         state.projects = [];
       }
       state.isLoading = false;
+      renderCategoryTabs();
       renderProjects();
       renderFeatured();
     }

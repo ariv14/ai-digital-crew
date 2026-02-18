@@ -28,8 +28,21 @@ if (!GITHUB_TOKEN || !GEMINI_API_KEY || !FIREBASE_SERVICE_ACCOUNT) {
   process.exit(1);
 }
 
-const SEARCH_TOPICS = ['ai-agents', 'llm-agent', 'autonomous-agents', 'multi-agent'];
-const MIN_STARS = 20;
+const CATEGORY_TOPICS = {
+  'AI Agents':         ['ai-agents', 'llm-agent', 'autonomous-agents', 'multi-agent', 'mcp', 'computer-use'],
+  'LLM / GenAI':       ['llm', 'generative-ai', 'large-language-model', 'rag', 'fine-tuning', 'prompt-engineering'],
+  'Data Science':      ['data-science', 'machine-learning', 'deep-learning', 'neural-network', 'mlops'],
+  'Big Data':          ['big-data', 'data-engineering', 'data-pipeline', 'apache-spark', 'dbt', 'streaming'],
+  'DevTools':          ['developer-tools', 'cli', 'devops', 'platform-engineering', 'observability'],
+  'Web / Frontend':    ['react', 'nextjs', 'svelte', 'vue', 'typescript', 'tailwindcss', 'webassembly'],
+  'Backend / APIs':    ['fastapi', 'rest-api', 'graphql', 'microservices', 'nodejs', 'grpc', 'api'],
+  'Mobile':            ['react-native', 'flutter', 'ios', 'android', 'swift', 'kotlin'],
+  'Security':          ['security', 'cybersecurity', 'privacy', 'zero-trust', 'pentesting', 'devsecops'],
+  'Cloud / Infra':     ['kubernetes', 'docker', 'terraform', 'cloud-native', 'serverless', 'infrastructure'],
+  'Blockchain / Web3': ['blockchain', 'web3', 'defi', 'smart-contracts', 'ethereum', 'solidity'],
+  'Database':          ['postgresql', 'mongodb', 'redis', 'vector-database', 'sqlite', 'nosql'],
+};
+const MIN_STARS = 30;
 const README_MAX_CHARS = 4000;
 const TODAY = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -46,7 +59,7 @@ async function searchRepos(topic) {
     .toISOString()
     .slice(0, 10);
   const q = `topic:${topic}+created:>${sevenDaysAgo}+stars:>${MIN_STARS}`;
-  const url = `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=5`;
+  const url = `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=10`;
 
   const res = await fetch(url, { headers: ghHeaders });
   if (!res.ok) {
@@ -196,15 +209,20 @@ async function notifyOwner(owner, repo, repoFullName) {
 async function main() {
   console.log(`=== AI Project of the Day — ${TODAY} ===`);
 
-  // 1. Search GitHub across all topics, deduplicate by full_name
+  // 1. Search GitHub across all categories/topics, deduplicate by full_name
   const seen = new Set();
   const candidates = [];
-  for (const topic of SEARCH_TOPICS) {
-    const repos = await searchRepos(topic);
-    for (const r of repos) {
-      if (!seen.has(r.full_name)) {
-        seen.add(r.full_name);
-        candidates.push(r);
+  const topicCategory = {};
+  for (const [category, topics] of Object.entries(CATEGORY_TOPICS)) {
+    for (const topic of topics) {
+      const repos = await searchRepos(topic);
+      for (const r of repos) {
+        if (r.fork || !r.description) continue;
+        if (!seen.has(r.full_name)) {
+          seen.add(r.full_name);
+          topicCategory[r.full_name] = category;
+          candidates.push(r);
+        }
       }
     }
   }
@@ -235,7 +253,7 @@ async function main() {
     return;
   }
 
-  console.log(`Selected: ${chosen.full_name} (⭐ ${chosen.stargazers_count})`);
+  console.log(`Selected: ${chosen.full_name} (⭐ ${chosen.stargazers_count}) [${topicCategory[chosen.full_name] || 'AI Agents'}]`);
 
   // 3. Fetch README
   const [owner, repo] = chosen.full_name.split('/');
@@ -260,6 +278,7 @@ async function main() {
     language: chosen.language || '',
     topics: chosen.topics || [],
     url: chosen.html_url,
+    category: topicCategory[chosen.full_name] || 'AI Agents',
     submittedBy: 'auto',
     submittedByName: 'AI Digital Crew Bot',
     source: 'auto',
