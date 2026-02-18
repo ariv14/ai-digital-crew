@@ -100,7 +100,7 @@ async function writeProjectToFirestore(db, project) {
 
 async function generateWriteup(repoMeta, readme) {
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const prompt = `You are a technical writer for AI developers. Given a GitHub repository, produce a JSON response with exactly two fields:
 - "writeup": 2-3 paragraph summary for AI developers explaining what the project does and why it matters
