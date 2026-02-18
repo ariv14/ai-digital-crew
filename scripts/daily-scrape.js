@@ -141,7 +141,7 @@ async function notifyOwner(owner, repo, repoFullName) {
   const body = [
     `Hi @${owner} 👋`,
     '',
-    `I wanted to personally let you know — **${repo}** was hand-picked as today's **AI Project of the Day** by [AI Digital Crew](https://aidigitalcrew.com).`,
+    `I wanted to personally let you know — **${repo}** was hand-picked as today's **Project of the Day** by [AI Digital Crew](https://aidigitalcrew.com).`,
     '',
     'We think what you\'ve built is genuinely cool and worth sharing with the community.',
     '',
