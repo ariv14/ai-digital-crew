@@ -19,6 +19,7 @@ import { publishToSubstack } from './substack-publish.js';
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const NOTIFY_TOKEN = process.env.NOTIFY_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
 
@@ -155,9 +156,15 @@ async function notifyOwner(owner, repo, repoFullName) {
   ].join('\n');
 
   const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
+  const token = NOTIFY_TOKEN || GITHUB_TOKEN;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
       title: '🤖 Your project was featured on AI Digital Crew!',
       body,
