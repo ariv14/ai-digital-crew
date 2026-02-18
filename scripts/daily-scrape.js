@@ -262,9 +262,8 @@ async function main() {
 
   await writeProjectToFirestore(db, projectDoc);
 
-  // 6. Notify the repo owner via a GitHub issue
-  console.log('Notifying repo owner...');
-  await notifyOwner(owner, repo, chosen.full_name);
+  // 6. Notify the repo owner via a GitHub issue (disabled during development)
+  // await notifyOwner(owner, repo, chosen.full_name);
 
   // 7. Publish to Substack
   console.log('Publishing to Substack...');
