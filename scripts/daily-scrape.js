@@ -157,7 +157,7 @@ async function notifyOwner(owner, repo, repoFullName) {
     'You\'re welcome to list them directly at [aidigitalcrew.com](https://aidigitalcrew.com) — it\'s free and open to the community.',
     '',
     '**Stay in the loop?**',
-    'We feature a new AI project every day. If you\'d like to follow along, subscribe to the newsletter at [aidigitalcrew.substack.com](https://aidigitalcrew.substack.com) — free, no spam.',
+    'We feature a new innovative, high-momentum open-source project every day. If you\'d like to follow along, subscribe at [aidigitalcrew.substack.com](https://aidigitalcrew.substack.com) — free, no spam.',
     '',
     'Feel free to close this issue — it\'s just a heads-up, not a support request.',
     '',
