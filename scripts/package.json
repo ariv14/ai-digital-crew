@@ -1,0 +1,9 @@
+{
+  "name": "ai-digital-crew-scraper",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "@google/generative-ai": "^0.21.0",
+    "playwright": "^1.49.0"
+  }
+}

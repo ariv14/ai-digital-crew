@@ -1,0 +1,51 @@
+name: Daily AI Project of the Day
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies & Playwright browsers
+        working-directory: scripts
+        run: npm install && npx playwright install chromium --with-deps
+
+      - name: Run daily scraper
+        working-directory: scripts
+        run: node daily-scrape.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUBSTACK_EMAIL: ${{ secrets.SUBSTACK_EMAIL }}
+          SUBSTACK_PASSWORD: ${{ secrets.SUBSTACK_PASSWORD }}
+          SUBSTACK_URL: ${{ secrets.SUBSTACK_URL }}
+          SUBSTACK_COOKIES: ${{ secrets.SUBSTACK_COOKIES }}
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: scripts/*.png
+          retention-days: 7
+
+      - name: Upload updated Substack cookies
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: substack-cookies
+          path: scripts/substack-cookies.json
+          retention-days: 1

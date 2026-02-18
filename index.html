@@ -96,15 +96,20 @@
     .project-card{overflow:hidden;transition:transform .3s ease,opacity .4s ease;opacity:0;transform:translateY(20px)}
     .project-card.visible{opacity:1;transform:translateY(0)}
     .project-card:hover{transform:translateY(-4px);box-shadow:0 0 24px rgba(59,130,246,.15)}
-    .project-banner{height:100px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius) var(--radius) 0 0;background:linear-gradient(135deg,var(--primary),var(--primary-end))}
+    .project-banner{height:100px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius) var(--radius) 0 0;background:linear-gradient(135deg,var(--primary),var(--primary-end));position:relative}
     .project-banner img{width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
     .project-banner .initial{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;color:rgba(255,255,255,.9)}
+    .auto-badge{position:absolute;top:10px;right:10px;padding:3px 8px;font-size:11px;font-weight:600;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:20px;white-space:nowrap;letter-spacing:.3px}
     .project-body{padding:20px}
     .project-name{font-size:18px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
     .project-name a{color:var(--text);transition:color .2s}
     .project-name a:hover{color:var(--primary)}
     .project-owner{font-size:13px;color:var(--text-muted);margin-bottom:10px}
     .project-desc{font-size:14px;color:var(--text-muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:14px}
+    .quick-start{margin-bottom:14px;font-size:13px}
+    .quick-start summary{color:var(--primary);cursor:pointer;font-weight:500;user-select:none;margin-bottom:6px}
+    .quick-start ol{padding-left:18px;color:var(--text-muted);line-height:1.6}
+    .quick-start ol li{margin-bottom:4px}
     .project-topics{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
     .project-topic{padding:3px 10px;font-size:11px;color:var(--primary);background:rgba(59,130,246,.1);border-radius:6px}
     .project-stats{display:flex;gap:16px;font-size:13px;color:var(--text-muted)}
@@ -262,7 +267,11 @@
       <a href="https://github.com/ariv14" target="_blank" rel="noopener" aria-label="GitHub"><i data-lucide="github" style="width:20px;height:20px"></i></a>
       <a href="https://moltbook.com" target="_blank" rel="noopener" aria-label="Moltbook"><i data-lucide="message-square" style="width:20px;height:20px"></i></a>
     </div>
-    <div class="footer-bottom">AI Digital Crew &copy; 2026 — Open source, community driven</div>
+    <div class="footer-bottom">
+      <a href="https://aidigitalcrew.substack.com" target="_blank" rel="noopener" style="color:var(--primary);font-weight:500">📬 Subscribe to Project of the Day →</a>
+      <span style="margin:0 12px;opacity:.4">|</span>
+      AI Digital Crew &copy; 2026 — Open source, community driven
+    </div>
   </footer>
 
   <div id="toast-container"></div>
@@ -433,11 +442,13 @@
           <div class="project-card glass">
             <div class="project-banner">
               ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
+              ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
             </div>
             <div class="project-body">
               <div class="project-name"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a></div>
               <div class="project-owner">${esc(p.owner)}</div>
-              <p class="project-desc">${esc(p.description)}</p>
+              <p class="project-desc">${esc(p.writeup || p.description)}</p>
+              ${p.quickStart && p.quickStart.length ? `<details class="quick-start"><summary>Quick Start</summary><ol>${p.quickStart.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>` : ''}
               <div class="project-topics">${topics.map(t => `<span class="project-topic">${esc(t)}</span>`).join('')}</div>
               <div class="project-stats">
                 <span><i data-lucide="star" style="width:14px;height:14px"></i> ${p.stars.toLocaleString()}</span>
