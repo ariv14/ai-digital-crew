@@ -149,7 +149,7 @@ async function notifyOwner(owner, repo, repoFullName) {
     '- An AI-generated writeup and quick-start guide was published for it',
     '- A newsletter post about your project was sent to our Substack subscribers',
     '',
-    'Feel free to close this issue — it's just a notification. If you have questions or want your project removed, just let us know!',
+    "Feel free to close this issue — it's just a notification. If you have questions or want your project removed, just let us know!",
     '',
     '— The AI Digital Crew Bot',
   ].join('\n');
