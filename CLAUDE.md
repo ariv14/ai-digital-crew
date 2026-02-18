@@ -1,0 +1,60 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+**AI Digital Crew** (`aidigitalcrew.com`) is a community showcase for AI-powered GitHub projects. Users authenticate via OAuth, submit GitHub repositories, and browse curated projects.
+
+## Architecture
+
+This is a **single-file vanilla JS SPA** — all source code lives in `index.html`. There is no build step, no package.json, and no framework. Changes to `index.html` are the deployed changes.
+
+**Backend:** Firebase (Auth + Firestore) — no server-side code in this repo.
+
+## Deployment
+
+```bash
+# Deploy to Firebase Hosting
+firebase deploy
+
+# Deploy Firestore rules only
+firebase deploy --only firestore:rules
+```
+
+There is no dev server. Open `index.html` directly in a browser for local testing, or use:
+```bash
+firebase serve
+```
+
+## Key File Map
+
+| File | Purpose |
+|------|---------|
+| `index.html` | Entire application (HTML + CSS + JS in one file) |
+| `firebase.json` | Firebase hosting + Firestore config |
+| `firestore.rules` | Firestore security rules |
+| `_headers` | HTTP security headers (CSP, cache, etc.) |
+
+## Application Architecture (inside index.html)
+
+**State management:** Single `state` object — `{ user, isLoggedIn, projects, isLoading, repoPreview }`. All UI updates flow from state mutations.
+
+**Firestore collections:**
+- `projects/` — submitted repos. Fields: `fullName`, `name`, `owner`, `ownerAvatar`, `description`, `stars`, `forks`, `language`, `topics`, `url`, `submittedBy` (uid), `submittedByName`, `createdAt`
+
+**Auth flow:** OAuth (GitHub / Google / Apple) → account linking if email collision → account deletion removes user + their projects.
+
+**GitHub API:** `GET /repos/{owner}/{repo}` — called on URL input (600ms debounce) to preview repo metadata before submission.
+
+**Key JS patterns in the file:**
+- `esc()` — HTML escape helper, used everywhere to prevent XSS
+- Intersection Observer — lazy-animates project cards on scroll
+- `Promise.all` — parallel GitHub API fetches
+- Event delegation — used for dynamically rendered project cards
+
+## Firestore Rules Summary
+
+- `projects`: public read, authenticated write only
+- Duplicate detection: query by `fullName` before insert
+- User's projects: query by `submittedBy == uid`
