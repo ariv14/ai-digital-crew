@@ -110,6 +110,26 @@
     .quick-start summary{color:var(--primary);cursor:pointer;font-weight:500;user-select:none;margin-bottom:6px}
     .quick-start ol{padding-left:18px;color:var(--text-muted);line-height:1.6}
     .quick-start ol li{margin-bottom:4px}
+
+    /* Featured Spotlight */
+    .featured-section{padding-top:0}
+    .featured-spotlight{border-radius:var(--radius);overflow:hidden;border:1px solid rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(239,68,68,.04));position:relative}
+    .featured-label{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1.2px}
+    .featured-label span{margin-left:auto;font-size:11px;font-weight:400;opacity:.6;text-transform:none;letter-spacing:0}
+    .featured-body{padding:20px 28px 28px;display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
+    .featured-avatar{width:72px;height:72px;border-radius:14px;border:2px solid rgba(255,255,255,.15);object-fit:cover}
+    .featured-avatar-initial{width:72px;height:72px;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary-end));display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:rgba(255,255,255,.9)}
+    .featured-name{font-size:26px;font-weight:700;margin-bottom:2px}
+    .featured-name a{color:var(--text);transition:color .2s}
+    .featured-name a:hover{color:#f59e0b}
+    .featured-owner{font-size:13px;color:var(--text-muted);margin-bottom:14px}
+    .featured-writeup{font-size:14px;color:var(--text-muted);line-height:1.7;margin-bottom:18px}
+    .featured-qs{margin-bottom:18px;background:rgba(255,255,255,.03);border-radius:10px;padding:14px 18px;border:1px solid var(--border)}
+    .featured-qs h4{font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:10px}
+    .featured-qs ol{padding-left:18px;color:var(--text-muted);font-size:13px;line-height:1.7}
+    .featured-qs ol li{margin-bottom:4px}
+    .featured-footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    @media(max-width:600px){.featured-body{grid-template-columns:1fr}.featured-avatar,.featured-avatar-initial{display:none}}
     .project-topics{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
     .project-topic{padding:3px 10px;font-size:11px;color:var(--primary);background:rgba(59,130,246,.1);border-radius:6px}
     .project-stats{display:flex;gap:16px;font-size:13px;color:var(--text-muted)}
@@ -229,6 +249,12 @@
       </div>
     </section>
 
+    <section id="featured-section" class="featured-section" style="display:none">
+      <div class="section-container">
+        <div id="featured-spotlight" class="featured-spotlight glass"></div>
+      </div>
+    </section>
+
     <section id="projects">
       <div class="section-container">
         <div class="section-header">
@@ -251,11 +277,9 @@
         <a href="https://github.com/ariv14" target="_blank" rel="noopener">GitHub</a>
         <a href="https://moltbook.com" target="_blank" rel="noopener">Moltbook</a>
       </div>
-      <div class="footer-col">
-        <h4>Featured</h4>
-        <a href="https://github.com/ariv14/moltmind" target="_blank" rel="noopener">MoltMind</a>
-        <a href="https://www.npmjs.com/package/moltmind" target="_blank" rel="noopener">npm: moltmind</a>
-        <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Protocol</a>
+      <div class="footer-col" id="footer-featured-col">
+        <h4>🤖 Today's Pick</h4>
+        <span style="color:var(--text-muted);font-size:14px">Loading...</span>
       </div>
       <div class="footer-col">
         <h4>Support</h4>
@@ -462,6 +486,54 @@
       refreshIcons();
       observeCards();
       updateStats();
+    }
+
+    function renderFeatured() {
+      const section = document.getElementById('featured-section');
+      const spotlight = document.getElementById('featured-spotlight');
+      const footerCol = document.getElementById('footer-featured-col');
+
+      const featured = state.projects.find(p => p.source === 'auto');
+      if (!featured) {
+        section.style.display = 'none';
+        if (footerCol) footerCol.innerHTML = `<h4>🤖 Today's Pick</h4><span style="color:var(--text-muted);font-size:14px">Coming soon</span>`;
+        return;
+      }
+
+      section.style.display = '';
+      const langColor = LANG_COLORS[featured.language] || '#888';
+      const topics = (featured.topics || []).slice(0, 5);
+      const avatar = featured.ownerAvatar
+        ? `<img src="${featured.ownerAvatar}" alt="${esc(featured.owner)}" class="featured-avatar">`
+        : `<div class="featured-avatar-initial">${(featured.name||'P').charAt(0).toUpperCase()}</div>`;
+
+      spotlight.innerHTML = `
+        <div class="featured-label">
+          <i data-lucide="sparkles" style="width:14px;height:14px"></i> Today's AI Project of the Day
+          <span>${featured.autoAddedDate || ''}</span>
+        </div>
+        <div class="featured-body">
+          <div>${avatar}</div>
+          <div>
+            <div class="featured-name"><a href="${esc(featured.url)}" target="_blank" rel="noopener">${esc(featured.name)}</a></div>
+            <div class="featured-owner">by ${esc(featured.owner)}</div>
+            <p class="featured-writeup">${esc(featured.writeup || featured.description)}</p>
+            ${featured.quickStart && featured.quickStart.length ? `<div class="featured-qs"><h4>⚡ Quick Start</h4><ol>${featured.quickStart.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>` : ''}
+            <div class="featured-footer">
+              ${topics.map(t => `<span class="project-topic">${esc(t)}</span>`).join('')}
+              <a href="${esc(featured.url)}" target="_blank" rel="noopener" class="btn-primary btn-small" style="margin-left:auto"><i data-lucide="github" style="width:14px;height:14px"></i> View on GitHub</a>
+              <span style="display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text-muted)"><i data-lucide="star" style="width:13px;height:13px"></i> ${(featured.stars||0).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>`;
+
+      if (footerCol) footerCol.innerHTML = `
+        <h4>🤖 Today's Pick</h4>
+        <a href="${esc(featured.url)}" target="_blank" rel="noopener">${esc(featured.name)}</a>
+        <a href="${esc(featured.url)}" target="_blank" rel="noopener" style="color:var(--text-muted);font-size:13px">⭐ ${(featured.stars||0).toLocaleString()} stars</a>
+        <a href="https://arimatch1.substack.com" target="_blank" rel="noopener">📬 Subscribe</a>`;
+
+      refreshIcons();
     }
 
     function updateStats() {
@@ -674,16 +746,20 @@
       state.isLoading = true;
       renderProjects();
       try {
-        const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
-        const snap = await getDocs(q);
-        const stored = snap.docs.map(d => d.data());
+        const snap = await getDocs(collection(db, 'projects'));
+        const stored = snap.docs.map(d => d.data()).sort((a, b) => {
+          const ta = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+          const tb = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+          return tb - ta;
+        });
 
-        // Refresh each from GitHub API (in parallel, non-blocking)
+        // Refresh live stats from GitHub but preserve stored-only fields
         const refreshed = await Promise.all(stored.map(async (p) => {
           try {
             const fresh = await fetchRepoData(p.owner, p.name);
-            return fresh || p;
-          } catch { return p; }
+            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName };
+          } catch {}
+          return p;
         }));
 
         state.projects = refreshed;
@@ -693,6 +769,7 @@
       }
       state.isLoading = false;
       renderProjects();
+      renderFeatured();
     }
 
     // ── Utilities ───────────────────────────────────────
