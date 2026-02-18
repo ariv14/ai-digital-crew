@@ -29,7 +29,6 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SUBSTACK_URL: ${{ secrets.SUBSTACK_URL }}
-          SUBSTACK_SID: ${{ secrets.SUBSTACK_SID }}
+          PIPEDREAM_WEBHOOK_URL: ${{ secrets.PIPEDREAM_WEBHOOK_URL }}
 
 
