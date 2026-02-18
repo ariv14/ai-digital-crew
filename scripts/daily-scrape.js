@@ -142,7 +142,7 @@ async function notifyOwner(owner, repo, repoFullName) {
     '',
     `Your project **${repoFullName}** was automatically featured as today's **AI Project of the Day** on [AI Digital Crew](https://aidigitalcrew.com)! 🎉`,
     '',
-    'AI Digital Crew is a community showcase for AI-powered GitHub projects. Your repo was selected because it's trending in the AI/LLM agent space.',
+    "AI Digital Crew is a community showcase for AI-powered GitHub projects. Your repo was selected because it's trending in the AI/LLM agent space.",
     '',
     '**What this means:**',
     '- Your project is displayed on aidigitalcrew.com with a "🤖 Daily Pick" badge',
