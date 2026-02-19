@@ -361,6 +361,25 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 Static assets cached for 7 days (`Cache-Control: public, max-age=604800`).
 
+### 9.4 `.gitignore` Protection
+
+Prevents accidental commit of secrets and vendor files:
+
+| Pattern | Protects Against |
+|---------|-----------------|
+| `ai-digital-crew-firebase-adminsdk-*.json` | Firebase Admin SDK service account keys |
+| `scripts/node_modules/` | Vendor dependencies |
+| `.env` / `.env.*` | Environment variable files |
+| `.DS_Store`, `Thumbs.db` | OS artifacts |
+| `.idea/`, `.vscode/`, `*.swp` | Editor artifacts |
+
+### 9.5 API Key Hardening (Cloud Console)
+
+The Firebase Web API key in `index.html` is public by design but should be restricted:
+
+- **Application restrictions:** HTTP referrers limited to `aidigitalcrew.com/*` and `localhost/*`
+- **API restrictions:** Only Identity Toolkit API, Cloud Firestore API, Firebase Auth API
+
 ---
 
 ## 10. Project Structure
@@ -375,6 +394,7 @@ ai-digital-crew/
 ├── CLAUDE.md                   # AI assistant project guidelines
 ├── ROADMAP.md                  # Future feature directions
 ├── ARCHITECTURE.md             # This file
+├── .gitignore                  # Protects secrets & vendor files from commit
 │
 ├── scripts/
 │   ├── daily-scrape.js         # Daily pipeline orchestrator
@@ -396,3 +416,4 @@ ai-digital-crew/
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-02-19 | 1.0.0 | Initial architecture document |
+| 2026-02-20 | 1.1.0 | Added `.gitignore`, API key hardening, security sections 9.4–9.5 |
