@@ -1,0 +1,19 @@
+# Firebase Admin SDK service account keys — NEVER commit these
+ai-digital-crew-firebase-adminsdk-*.json
+
+# Node dependencies
+scripts/node_modules/
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
