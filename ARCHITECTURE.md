@@ -380,6 +380,27 @@ The Firebase Web API key in `index.html` is public by design but should be restr
 - **Application restrictions:** HTTP referrers limited to `aidigitalcrew.com/*` and `localhost/*`
 - **API restrictions:** Only Identity Toolkit API, Cloud Firestore API, Firebase Auth API
 
+### 9.6 Security Audit (2026-02-20)
+
+Full git history audit performed to check for leaked secrets.
+
+**Findings:**
+
+| Item | In Source | In Git History | Risk | Action |
+|------|----------|---------------|------|--------|
+| Firebase Web API key (`AIzaSy...`) | Yes (`index.html`) | Yes | **None** — public by design | Keep in source; lock down via Cloud Console (see 9.5) |
+| Firebase Admin SDK JSON (`*adminsdk*.json`) | No (local only) | Never committed | **Mitigated** | Protected by `.gitignore` |
+| `.env` files | No | Never committed | **Mitigated** | Protected by `.gitignore` |
+| `private_key` in any file | No | Never committed | **None** | N/A |
+| GitHub / Gemini / Pipedream tokens | No | Never committed | **None** | Stored in GitHub Actions Secrets only |
+
+**Decision:** No git history rewrite needed — no real secrets were ever committed. The Firebase Web API key is a public project identifier (like a project ID), not a secret. Security is enforced by Firestore rules, Firebase Auth, and Cloud Console API restrictions.
+
+**Ongoing safeguards:**
+- `.gitignore` blocks service account keys, `.env` files, and `node_modules`
+- Cloud Console API key restrictions (domain + API scope) limit abuse surface
+- All sensitive tokens live exclusively in GitHub Actions Secrets
+
 ---
 
 ## 10. Project Structure
@@ -417,3 +438,4 @@ ai-digital-crew/
 |------|---------|---------|
 | 2026-02-19 | 1.0.0 | Initial architecture document |
 | 2026-02-20 | 1.1.0 | Added `.gitignore`, API key hardening, security sections 9.4–9.5 |
+| 2026-02-20 | 1.2.0 | Added security audit findings (section 9.6) — no secrets in git history |
