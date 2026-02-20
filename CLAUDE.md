@@ -58,7 +58,7 @@ firebase serve
 **Firestore collections:**
 - `projects/` — submitted repos. Fields: `fullName`, `name`, `owner`, `ownerAvatar`, `description`, `stars`, `forks`, `language`, `topics`, `url`, `submittedBy` (uid), `submittedByName`, `createdAt`
 
-**Auth flow:** OAuth (GitHub / Google / Apple) → account linking if email collision → account deletion removes user + their projects.
+**Auth flow:** OAuth (GitHub / Google / Facebook) → account linking if email collision → account deletion removes user + their projects.
 
 **GitHub API:** `GET /repos/{owner}/{repo}` — called on URL input (600ms debounce) to preview repo metadata before submission.
 

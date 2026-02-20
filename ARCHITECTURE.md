@@ -29,7 +29,7 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 │   │   Auth            │   │   Firestore                        │    │
 │   │ - GitHub OAuth    │   │   projects/ collection             │    │
 │   │ - Google OAuth    │   │   (public read, auth write)        │    │
-│   │ - Apple OAuth     │   │                                    │    │
+│   │ - Facebook OAuth  │   │                                    │    │
 │   └──────────────────┘   └────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
          │                             ▲
@@ -73,7 +73,7 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 | Frontend | Vanilla JS + HTML + CSS | Single-file SPA (`index.html`), no framework, no build step |
 | Hosting (prod) | GitHub Pages | Auto-deploys on push to `main` via GitHub Actions |
 | Hosting (staging) | Firebase Hosting | Auto-deploys on push to `staging` via `deploy-staging.yml` |
-| Auth | Firebase Auth v10.12 | GitHub, Google, Apple OAuth providers |
+| Auth | Firebase Auth v10.12 | GitHub, Google, Facebook OAuth providers |
 | Database | Cloud Firestore | Single `projects` collection |
 | Automation | GitHub Actions | Cron job (`daily-scrape.yml`) at 6 AM UTC |
 | AI Content | Google Gemini 2.5 Flash | Generates project writeups + quick-start guides |
@@ -290,7 +290,7 @@ Browser loads index.html
 |----------|---------------|-------|
 | GitHub | `GithubAuthProvider()` | Primary, aligns with project theme |
 | Google | `GoogleAuthProvider()` | Broad reach fallback |
-| Apple | `OAuthProvider('apple.com')` | iOS/Safari users |
+| Facebook | `FacebookAuthProvider()` | Social login users |
 
 ### 6.2 Account Linking
 
@@ -341,7 +341,7 @@ state = {
 | Featured | "Today's Pick" spotlight card with writeup + quick start (conditional — only if daily pick exists) |
 | Project Grid | 3-col responsive grid, category filter tabs (only populated categories shown), lazy animation |
 | Submit Modal | URL input → 600ms debounced preview → submit with confetti |
-| Login Modal | OAuth provider buttons (GitHub, Google, Apple) |
+| Login Modal | OAuth provider buttons (GitHub, Google, Facebook) |
 | Footer | 3-column: About, Today's Pick (link to featured project), Support. Newsletter CTA linking to Substack |
 
 **Empty states:**
