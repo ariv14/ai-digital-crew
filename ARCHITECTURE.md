@@ -1,7 +1,9 @@
 # AI Digital Crew — Architecture Document
 
 > **Domain:** [aidigitalcrew.com](https://aidigitalcrew.com)
-> **Last updated:** 2026-02-19 | **Version:** 1.0.0
+> **Last updated:** 2026-02-20 | **Version:** 2.0.0
+>
+> **Related docs:** [ROADMAP.md](./ROADMAP.md) (future feature directions) | [CLAUDE.md](./CLAUDE.md) (AI assistant guidelines)
 
 ---
 
@@ -77,8 +79,9 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 | Newsletter | Substack | Published via Pipedream webhook bridge |
 | Webhook Proxy | Pipedream | Bypasses Cloudflare restrictions on Substack API |
 | Icons | Lucide Icons (CDN) | SVG icon library |
-| Fonts | Google Fonts | Inter (body), Space Grotesk (headings) |
-| Animations | canvas-confetti (CDN) | Submission success animation |
+| Fonts | Google Fonts | Inter (body, weights 400/500/600), Space Grotesk (headings, weight 700) |
+| Animations | canvas-confetti v1.6.0 (CDN) | Submission success animation |
+| Avatars | DiceBear v7.x (API) | Fallback avatar generation when Firebase doesn't provide one |
 
 ---
 
@@ -101,26 +104,44 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 | `GET /repos/{owner}/{repo}/readme` | Scraper | Raw README for AI summarization |
 | `POST /repos/{owner}/{repo}/issues` | Scraper | Notify owners of featured projects |
 
+**API configuration:**
+- **API version:** `X-GitHub-Api-Version: 2022-11-28` (explicit header)
+- **Accept headers:** `application/vnd.github+json` (metadata), `application/vnd.github.raw` (README)
+- **Auth:** Bearer token (personal access token)
+- **Rate limits:** 5,000 req/hour (authenticated), Search API: 30 req/minute
+- **Current usage:** ~15-20 requests per pipeline run (well within limits)
+
 ### 3.3 Google Gemini
 
 - **Model:** `gemini-2.5-flash`
 - **SDK:** `@google/generative-ai ^0.21.0`
-- **Input:** Repo metadata + README (max 4000 chars)
+- **Input:** Repo metadata + README (truncated to 4000 chars via `.slice(0, 4000)`)
 - **Output:** JSON `{ writeup: string, quickStart: string[] }`
+- **Edge case:** Gemini sometimes wraps JSON in markdown fences — stripped via regex: `text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')`
 
 ### 3.4 Pipedream
 
 - **Role:** Webhook proxy between GitHub Actions and Substack API
 - **Why needed:** Substack API sits behind Cloudflare; Pipedream runs from trusted IPs
 - **Flow:** `daily-scrape.js` → POST payload → Pipedream webhook → Substack draft → publish
-- **Pipedream script:** `pipenode.txt` (creates draft via `/api/v1/drafts`, publishes via `/api/v1/drafts/{id}/publish`)
+- **Script format:** `pipenode.txt` uses Pipedream SDK (`defineComponent` + `export default`)
+- **Auth:** The webhook URL itself is the only authentication — no additional headers sent
+- **Idempotency:** None — duplicate webhook calls create duplicate Substack drafts
 
 ### 3.5 Substack
 
 - **Publication:** `aidigitalcrew.substack.com`
-- **Post format:** ProseMirror JSON (rich text)
-- **Auth:** Session cookie (`substack.sid`) stored in Pipedream environment
-- **Audience:** Public posts sent to all subscribers + email
+- **Post format:** ProseMirror JSON (rich text, not HTML or markdown)
+- **Auth:** Session cookie (`substack.sid`) stored in Pipedream environment variables — requires periodic refresh when cookie expires
+- **Audience:** `everyone` — public posts sent to all subscribers + email
+- **API endpoints:** `/api/v1/drafts` (create), `/api/v1/drafts/{id}/publish` (publish)
+- **Payload fields:** `draft_title`, `draft_subtitle`, `draft_body` (ProseMirror JSON string), `draft_bylines` (empty array), `audience`, `type` ("newsletter")
+
+### 3.6 DiceBear
+
+- **Role:** Fallback avatar generation for users without a Firebase photo URL
+- **Endpoint:** `https://api.dicebear.com/7.x/avataaars/svg?seed={uid}`
+- **Behavior:** Seed-based — same UID always generates the same avatar
 
 ---
 
@@ -160,6 +181,16 @@ projects: public read, authenticated create only
 
 No update/delete rules exposed — defaults to deny. Daily bot writes via Firebase Admin SDK (bypasses rules).
 
+### 4.3 Quotas & Limits
+
+| Resource | Limit | Current Usage |
+|----------|-------|---------------|
+| Firestore reads | 50,000/day (free tier) | ~200-500/day (page loads + pipeline) |
+| Firestore writes | 20,000/day (free tier) | 1-2/day (pipeline + user submissions) |
+| GitHub API | 5,000 req/hour | ~15-20 per pipeline run |
+| GitHub Search API | 30 req/minute | ~5 per pipeline run (one per category) |
+| Gemini API | Varies by plan | 1 call per pipeline run |
+
 ---
 
 ## 5. Data Flows
@@ -173,35 +204,64 @@ User → OAuth Login → Enter GitHub URL
   → Write to Firestore → Confetti + success toast → Re-render grid
 ```
 
+**Debounce details:**
+- Timer stored in `let debounceTimer`, cleared on each keystroke
+- Input border turns `var(--primary)` during fetch, resets after
+- Preview shows: name, stars, forks, language, description
+- Submit button only enabled if preview fetch succeeds
+
+**Error states:**
+- Repo not found / private → shows "Repository not found or is private."
+- Duplicate detected → toast error "This project has already been submitted"
+- Network failure → silent catch (preview simply doesn't render)
+
 ### 5.2 Daily "Project of the Day" Pipeline
 
 ```
 GitHub Actions cron (6 AM UTC)
   │
   ├─ 1. Search GitHub API
-  │     For each topic in CATEGORY_TOPICS:
+  │     For each topic in CATEGORY_TOPICS (5 categories):
   │       query: "topic:{t} created:>7daysAgo stars:>30"
-  │     Merge, dedup, sort by stars desc
+  │       per_page=10, sorted by stars desc
+  │     Merge all results, dedup by full_name using Set
+  │     Track topicCategory mapping alongside dedup
   │
   ├─ 2. Find new repo (not already in Firestore)
-  │     Loop candidates, query Firestore WHERE fullName == candidate
+  │     Loop candidates in star-count order
+  │     For each: query Firestore WHERE fullName == candidate
+  │     Skip repos that are forks or have no description
   │     Pick first unmatched repo
+  │     If all candidates exist → exit (no pick today)
   │
-  ├─ 3. Fetch README (raw, truncate to 4000 chars)
+  ├─ 3. Fetch README
+  │     GET /repos/{owner}/{repo}/readme (raw format)
+  │     Truncate to 4000 chars via .slice(0, 4000)
   │
   ├─ 4. Generate writeup via Gemini 2.5 Flash
-  │     Input: metadata + README → Output: { writeup, quickStart }
+  │     Input: metadata + README
+  │     Output: { writeup, quickStart }
+  │     Strip markdown code fences if present
   │
-  ├─ 5. Write to Firestore (source: "auto", submittedBy: "auto")
+  ├─ 5. Write to Firestore
+  │     source: "auto", submittedBy: "auto"
+  │     submittedByName: "AI Digital Crew Bot"
   │
   ├─ 6. Notify repo owner via GitHub Issue
-  │     "Your project was featured on AI Digital Crew"
+  │     Title: "Your project was featured on AI Digital Crew"
+  │     Uses NOTIFY_TOKEN if set, falls back to GITHUB_TOKEN
+  │     Non-fatal: silently continues if notification fails
+  │     (e.g., issues disabled, token lacks permission, repo deleted)
   │
   └─ 7. Publish to Substack
-        substack-publish.js → Build ProseMirror payload
-          → POST to Pipedream webhook
-          → Pipedream: create draft + publish
-          → Return published post URL
+        substack-publish.js builds ProseMirror payload:
+          ├─ Italic inbox hint (Gmail Primary delivery workaround)
+          ├─ Writeup paragraphs
+          ├─ "Quick Start" ordered list
+          ├─ GitHub repo link
+          └─ Footer: "— Auto-discovered by AI Digital Crew"
+        POST to Pipedream webhook → create draft → publish
+        Return published post URL
 ```
 
 ### 5.3 Page Load & Display
@@ -210,11 +270,13 @@ GitHub Actions cron (6 AM UTC)
 Browser loads index.html
   → Firebase Auth state listener fires
   → Firestore query: get all projects
-  → For each project: fetch live stats from GitHub API (parallel)
+  → For each project: fetch live stats from GitHub API (parallel via Promise.all)
   → Merge live stats with stored data (writeup, quickStart preserved)
+  → If GitHub API fails for a repo, silently preserve old stats
   → Infer categories from topics
   → Render grid with category filter tabs
   → Intersection Observer animates cards on scroll
+  → Stat pills animate from 0 to target count (1200ms, cubic-out easing)
 ```
 
 ---
@@ -234,16 +296,19 @@ Browser loads index.html
 When a user signs in with Provider A but the email already exists on Provider B:
 
 1. `signInWithPopup()` throws `auth/account-exists-with-different-credential`
-2. Store pending credential in `state.pendingLinkCred`
-3. Prompt user to sign in with existing provider
-4. On success, call `linkWithCredential()` to merge accounts
+2. Store pending credential in `state.pendingLinkCred` and provider name in `state.pendingLinkProvider`
+3. Show toast (6000ms duration) prompting user to sign in with existing provider
+4. User signs in with existing provider
+5. On success, call `linkWithCredential(user, pendingCred)` to merge accounts
+6. Non-fatal if linking fails — user remains signed in with existing provider
 
 ### 6.3 Account Deletion
 
 1. Confirmation dialog
-2. Delete all user's projects from Firestore (`WHERE submittedBy == uid`)
-3. `deleteUser(auth.currentUser)`
-4. Handle `auth/requires-recent-login` by prompting re-auth
+2. Query Firestore for all user's projects (`WHERE submittedBy == uid`)
+3. Delete all user's projects from Firestore
+4. Call `deleteUser(auth.currentUser)`
+5. If `auth/requires-recent-login` error → show toast directing user to sign out and back in (no auto re-auth)
 
 ---
 
@@ -255,14 +320,14 @@ Single global object — all UI updates flow from state mutations:
 
 ```js
 state = {
-  user,             // FirebaseUser | null
-  isLoggedIn,       // boolean
-  projects,         // array of project objects
-  isLoading,        // boolean
-  repoPreview,      // temp preview data during submission
-  activeCategory,   // current filter tab
-  pendingLinkCred,  // for OAuth account linking
-  pendingLinkProvider
+  user,                // FirebaseUser | null
+  isLoggedIn,          // boolean
+  projects,            // array of project objects
+  isLoading,           // boolean
+  repoPreview,         // temp preview data during submission
+  activeCategory,      // current filter tab ("All", "AI Agents", etc.)
+  pendingLinkCred,     // OAuthCredential for account linking
+  pendingLinkProvider  // string: which provider is pending
 }
 ```
 
@@ -270,23 +335,36 @@ state = {
 
 | Section | Description |
 |---------|-------------|
-| Navbar | Sticky, blur-on-scroll, avatar dropdown, mobile hamburger |
-| Hero | Headline, CTA, animated stats pills (project count, total stars) |
-| Featured | "Today's Pick" spotlight card with writeup + quick start |
-| Project Grid | 3-col responsive grid, category filter tabs, lazy animation |
-| Submit Modal | URL input → debounced preview → submit |
+| Navbar | Sticky, blur-on-scroll (threshold: 60px), avatar dropdown with click-outside close, mobile hamburger |
+| Hero | Headline, CTA, animated stat pills (project count, total stars, % open source), 3 animated background orbs |
+| Featured | "Today's Pick" spotlight card with writeup + quick start (conditional — only if daily pick exists) |
+| Project Grid | 3-col responsive grid, category filter tabs (only populated categories shown), lazy animation |
+| Submit Modal | URL input → 600ms debounced preview → submit with confetti |
 | Login Modal | OAuth provider buttons (GitHub, Google, Apple) |
-| Footer | About, newsletter CTA (Substack link), social links |
+| Footer | 3-column: About, Today's Pick (link to featured project), Support. Newsletter CTA linking to Substack |
+
+**Empty states:**
+- No projects at all: "No projects yet. Be the first to submit one!"
+- No projects in filtered category: "No projects in this category yet."
 
 ### 7.3 Key Patterns
 
 - **`esc()`** — HTML escape helper, prevents XSS in all dynamic content
-- **Intersection Observer** — lazy-animates project cards on scroll
-- **Event delegation** — handles clicks on dynamically rendered cards
-- **600ms debounce** — on GitHub URL input for preview fetching
-- **`Promise.all`** — parallel GitHub API fetches for live stats
+- **Intersection Observer** — threshold `0.1` (10% visible), adds `.visible` class for fade-in + slide-up. Previous observer disconnected before creating new one to prevent memory leaks
+- **Event delegation** — handles clicks on dynamically rendered project cards
+- **600ms debounce** — on GitHub URL input; timer stored in `let debounceTimer`, cleared per keystroke
+- **`Promise.all`** — parallel GitHub API fetches for live stats on page load
+- **Stat pill animation** — `requestAnimationFrame` loop, 1200ms duration, cubic-out easing (`Math.pow`), `.toLocaleString()` for thousands separators
 
-### 7.4 Category System
+### 7.4 Toast Notification System
+
+- **Position:** Fixed bottom-right, `z-index: 9999`
+- **Types:** `success` (green, check-circle icon), `error` (red, x-circle icon), `info` (blue, info icon)
+- **Default duration:** 3000ms (configurable per call, e.g., 6000ms for account linking prompts)
+- **Animation:** `slideIn` on appear, `slideOut` on dismiss (CSS keyframes)
+- **Icons:** Lucide SVG icons matched to toast type
+
+### 7.5 Category System
 
 Categories are inferred from GitHub topics at render time:
 
@@ -296,7 +374,44 @@ Web / Frontend, Backend / APIs, Mobile, Security,
 Cloud / Infra, Blockchain / Web3, Database, Other
 ```
 
+**Mapping logic:** For each project, iterate through `CATEGORY_TOPICS` keyword map. First match wins (order matters — AI Agents checked first). If no topic matches → "Other". Falls back to stored `project.category` field if present.
+
 Only categories with matching projects appear as filter tabs.
+
+### 7.6 CSS Architecture
+
+**Custom properties (`:root`):**
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--bg` | `#0a0a0f` | Page background |
+| `--surface` | `rgba(255,255,255,0.03)` | Card/modal background |
+| `--border` | `rgba(255,255,255,0.08)` | Borders |
+| `--primary` | `#3b82f6` | Primary blue |
+| `--primary-end` | `#8b5cf6` | Gradient end (purple) |
+| `--text` | `#f1f5f9` | Primary text |
+| `--text-muted` | `rgba(255,255,255,0.5)` | Secondary text |
+| `--success` | `#10b981` | Success states |
+| `--error` | `#ef4444` | Error states |
+| `--radius` | `16px` | Border radius |
+
+**Key visual patterns:**
+- **Glass morphism:** `.glass` class with `backdrop-filter: blur(12px)` (includes `-webkit-` prefix for Safari)
+- **Background orbs:** 3 animated blur orbs (`filter: blur(80px)`, `will-change: transform`) with infinite 20-25s animations. Colors: blue, purple, cyan
+- **Gradient buttons:** `background-size: 200% 200%` with animated `background-position` on hover
+- **Skeleton loading:** Shimmer animation — `background-size: 200% 100%`, moves position over 1.5s
+
+### 7.7 Responsive Breakpoints
+
+| Breakpoint | Grid | Hero Font | Nav | Footer |
+|-----------|------|-----------|-----|--------|
+| > 768px | 3 columns | 64px | Desktop links + avatar | 3 columns |
+| <= 768px | 2 columns | 36px | Hamburger menu, hide nav-links/nav-right | 2 columns |
+| <= 480px | 1 column | 28px | Reduced padding, vertical CTAs | 1 column |
+
+**Mobile menu:** Absolute-positioned panel with glass morphism. Click-outside handler closes menu. No touch-specific event handling.
+
+**Avatar dropdown:** Toggle on click, auto-close on outside click via `event.stopPropagation()`.
 
 ---
 
@@ -307,6 +422,7 @@ Only categories with matching projects appear as filter tabs.
 - **Provider:** GitHub Pages (auto-deploys on push to `main`)
 - **Domain:** `aidigitalcrew.com` (via CNAME)
 - **No build step** — `index.html` is the deployed artifact
+- **Caching:** `index.html` uses GitHub Pages defaults (no explicit `Cache-Control`), `/assets/*` cached 7 days
 
 ### 8.2 Firestore Rules
 
@@ -320,17 +436,28 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `daily-scrape.yml` | Cron `0 6 * * *` + manual | Daily project discovery + newsletter |
+| `daily-scrape.yml` | Cron `0 6 * * *` + `workflow_dispatch` | Daily project discovery + newsletter |
+
+**Workflow details:**
+- **Node version:** 20 (via `actions/setup-node@v4`)
+- **Working directory:** `scripts/` for both `npm install` and `node daily-scrape.js`
+- **Permissions:** `contents: read` (minimal — only needs to read repo files)
+- **Caching:** None — `npm install` runs fresh every time (no `actions/cache` or setup-node cache param)
+- **Manual trigger:** Supports `workflow_dispatch` but no custom input parameters (no dry-run, skip-notify, etc.)
+- **Failure handling:** No retry logic — if the job fails, it fails silently (GitHub sends default failure email to repo owner)
 
 ### 8.4 Environment Variables (GitHub Secrets)
 
-| Secret | Used By | Purpose |
-|--------|---------|---------|
-| `FIREBASE_SERVICE_ACCOUNT` | daily-scrape.js | Admin Firestore access |
-| `GITHUB_TOKEN` | daily-scrape.js | Search repos, fetch README |
-| `NOTIFY_TOKEN` | daily-scrape.js | Create GitHub issues (owner notification) |
-| `GEMINI_API_KEY` | daily-scrape.js | AI writeup generation |
-| `PIPEDREAM_WEBHOOK_URL` | substack-publish.js | Trigger Substack publication |
+| Secret | Used By | Purpose | Notes |
+|--------|---------|---------|-------|
+| `FIREBASE_SERVICE_ACCOUNT` | daily-scrape.js | Admin Firestore access | JSON service account key |
+| `GITHUB_TOKEN` | daily-scrape.js | Search repos, fetch README | PAT with repo access |
+| `NOTIFY_TOKEN` | daily-scrape.js | Create GitHub issues (owner notification) | Optional — falls back to `GITHUB_TOKEN` if unset. Separate token allows different permission scope |
+| `GEMINI_API_KEY` | daily-scrape.js | AI writeup generation | Google AI Studio key |
+| `PIPEDREAM_WEBHOOK_URL` | substack-publish.js | Trigger Substack publication | URL is the auth mechanism |
+
+**Frontend (hardcoded in `index.html`):**
+- `firebaseConfig` object (API key, authDomain, projectId, etc.) — public by design, security enforced by Firestore rules and Cloud Console restrictions
 
 ---
 
@@ -339,8 +466,9 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 ### 9.1 Frontend
 
 - All dynamic content escaped via `esc()` helper (XSS prevention)
-- GitHub URL validated via regex before API call
+- GitHub URL validated via regex (`/github\.com\/([^/]+)\/([^/\s#?]+)/`) before API call
 - Firebase config is public (safe by design — security enforced by rules)
+- Modal overlays prevent accidental clicks on background content
 
 ### 9.2 Firestore Rules
 
@@ -359,7 +487,8 @@ Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
 
-Static assets cached for 7 days (`Cache-Control: public, max-age=604800`).
+- Static assets (`/assets/*`) cached 7 days: `Cache-Control: public, max-age=604800`
+- `index.html` has no explicit cache header — relies on GitHub Pages defaults
 
 ### 9.4 `.gitignore` Protection
 
@@ -403,7 +532,102 @@ Full git history audit performed to check for leaked secrets.
 
 ---
 
-## 10. Project Structure
+## 10. Error Handling & Resilience
+
+### 10.1 Frontend Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| GitHub API fails during live stats refresh | Silent catch — preserves previously stored stats |
+| Repo not found during submission preview | Shows "Repository not found or is private." (does not distinguish 404 vs 403 vs timeout vs rate limit) |
+| Firestore duplicate check query fails | Error not surfaced — may allow duplicate submission |
+| Account deletion needs re-auth | Shows toast directing user to sign out/in manually (no auto re-auth flow) |
+| Network offline | No explicit offline handling — Firebase SDK may cache reads |
+
+### 10.2 Pipeline Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| GitHub search fails for a category | `console.warn()` + continues to next category |
+| All candidates already in Firestore | Exits gracefully with log message (no pick today) |
+| README fetch fails | Pipeline continues without README context |
+| Gemini returns invalid JSON | Strips markdown fences, then `JSON.parse()` — if still invalid, pipeline throws |
+| Gemini API timeout/error | No retry — pipeline aborts |
+| Firestore write fails | No retry — pipeline aborts |
+| Owner notification fails | Non-fatal — `console.warn()` and continues to Substack publish |
+| Pipedream webhook fails | Pipeline logs error — no retry |
+| Substack draft/publish fails | Pipedream throws raw `res.text()` error (not parsed as JSON) |
+
+### 10.3 Known Gaps
+
+- **No retry logic anywhere** — transient failures (network blips, rate limits) cause full pipeline failure
+- **No rate limit header checking** — doesn't inspect `X-RateLimit-Remaining` from GitHub
+- **No idempotency** — duplicate Pipedream webhook calls create duplicate Substack drafts
+- **README truncation is naive** — `.slice(0, 4000)` may cut mid-word or mid-sentence
+
+---
+
+## 11. Observability & Monitoring
+
+### 11.1 Current State
+
+| Aspect | Status |
+|--------|--------|
+| Logging | `console.log/warn/error` only — visible in GitHub Actions run logs |
+| Log persistence | GitHub Actions UI only — no external log aggregation |
+| Error tracking | None (no Sentry, Datadog, etc.) |
+| Pipeline metrics | None — no success/failure rate tracking |
+| Alerting | GitHub Actions default failure email to repo owner only |
+| Uptime monitoring | None — no health checks on `aidigitalcrew.com` |
+| Analytics | Firebase `measurementId` configured (`G-4VHGMK995P`) but no explicit event tracking |
+
+### 11.2 Troubleshooting Guide
+
+| Symptom | Check |
+|---------|-------|
+| "Daily scrape didn't run" | GitHub Actions → `daily-scrape.yml` run history. Check for cron skip or job failure |
+| "Newsletter not published" | Check Pipedream webhook logs. Verify `substack.sid` cookie hasn't expired |
+| "Projects not appearing" | Check Firestore console for documents. Check browser console for API errors |
+| "User can't log in" | Check Firebase Auth console for provider config. Check for account-exists-with-different-credential |
+| "Stats show old numbers" | GitHub API rate limit may be hit — check browser Network tab for 403 responses |
+
+---
+
+## 12. Substack Newsletter Details
+
+### 12.1 ProseMirror Document Structure
+
+Every newsletter post follows this structure:
+
+```
+doc
+├── paragraph (italic)     → Gmail inbox hint: "Move to Primary..."
+├── paragraph (empty)      → spacer
+├── paragraph[]            → writeup (one paragraph node per text block)
+├── paragraph (empty)      → spacer
+├── paragraph (bold)       → "Quick Start" heading
+├── orderedList            → quick-start steps
+│   └── listItem[]
+│       └── paragraph      → step text
+├── paragraph (empty)      → spacer
+├── paragraph (bold+link)  → "View on GitHub →" with repo URL
+├── paragraph (empty)      → spacer
+└── paragraph (italic)     → footer: "— Auto-discovered by AI Digital Crew"
+```
+
+**Text node marks:** `bold`, `italic`, `link` (with `attrs: { href, target: "_blank" }`)
+
+### 12.2 Pipedream Script (`pipenode.txt`)
+
+- **Format:** Pipedream SDK component (`defineComponent` + `export default`)
+- **Runs on:** Pipedream infrastructure (not in this repo's CI)
+- **Environment vars (Pipedream):** `SUBSTACK_SID` (session cookie), `SUBSTACK_URL` (publication URL)
+- **Steps:** Create draft → Publish draft
+- **Error handling:** Throws raw response text on non-OK status (no JSON parsing of errors)
+
+---
+
+## 13. Project Structure
 
 ```
 ai-digital-crew/
@@ -420,6 +644,7 @@ ai-digital-crew/
 ├── scripts/
 │   ├── daily-scrape.js         # Daily pipeline orchestrator
 │   ├── substack-publish.js     # Pipedream/Substack payload builder
+│   ├── capture_console.py      # Debug tool: Playwright browser console capture (not used in prod)
 │   ├── package.json            # Node deps (firebase-admin, generative-ai)
 │   └── package-lock.json
 │
@@ -427,8 +652,10 @@ ai-digital-crew/
 │   └── workflows/
 │       └── daily-scrape.yml    # Cron + manual trigger
 │
-└── pipenode.txt                # Pipedream script (Substack API calls)
+└── pipenode.txt                # Pipedream Node.js script (Substack API calls, runs on Pipedream infra)
 ```
+
+**Note:** `scripts/capture_console.py` is a Playwright-based debugging utility that loads the site in a headless browser and captures console logs, page errors, and request failures. It waits 15 seconds for async operations and checks project count / DOM state. Not part of the production pipeline.
 
 ---
 
@@ -437,5 +664,6 @@ ai-digital-crew/
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-02-19 | 1.0.0 | Initial architecture document |
-| 2026-02-20 | 1.1.0 | Added `.gitignore`, API key hardening, security sections 9.4–9.5 |
+| 2026-02-20 | 1.1.0 | Added `.gitignore`, API key hardening, security sections 9.4-9.5 |
 | 2026-02-20 | 1.2.0 | Added security audit findings (section 9.6) — no secrets in git history |
+| 2026-02-20 | 2.0.0 | Comprehensive update: added DiceBear, toast system, CSS architecture, responsive breakpoints, error handling & resilience (section 10), observability & monitoring (section 11), Substack newsletter details (section 12), troubleshooting guide, rate limits & quotas, pipeline implementation details, known gaps, related doc links |
