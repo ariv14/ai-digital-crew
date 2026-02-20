@@ -457,6 +457,16 @@ A staging environment allows testing UI changes, new features, and pipeline beha
 
 Staging reuses `GITHUB_TOKEN` and `GEMINI_API_KEY` from production. It does not need `NOTIFY_TOKEN` or `PIPEDREAM_WEBHOOK_URL`.
 
+### 8.5 Firestore Rules (Staging)
+
+Firestore rules must be deployed separately to the staging project. The daily scrape writes via the Admin SDK (bypasses rules), but the frontend reads via the client SDK and requires `allow read: if true` to be in place.
+
+```bash
+firebase deploy --only firestore:rules --project ai-digital-crew-staging
+```
+
+This is a one-time setup step. Re-deploy to staging whenever `firestore.rules` changes.
+
 ---
 
 ## 9. Deployment & CI/CD
@@ -716,4 +726,4 @@ ai-digital-crew/
 | 2026-02-20 | 1.1.0 | Added `.gitignore`, API key hardening, security sections 9.4-9.5 |
 | 2026-02-20 | 1.2.0 | Added security audit findings (section 9.6) — no secrets in git history |
 | 2026-02-20 | 2.0.0 | Comprehensive update: added DiceBear, toast system, CSS architecture, responsive breakpoints, error handling & resilience, observability & monitoring, Substack newsletter details, troubleshooting guide, rate limits & quotas, pipeline implementation details, known gaps, related doc links |
-| 2026-02-20 | 2.1.0 | Added staging environment (section 8): hostname-based config detection, pipeline skip flags, deploy-staging + daily-scrape-staging workflows, staging secrets |
+| 2026-02-20 | 2.1.0 | Added staging environment (section 8): hostname-based config detection, pipeline skip flags, deploy-staging + daily-scrape-staging workflows, staging secrets, Firestore rules deployment |
