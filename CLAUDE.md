@@ -8,9 +8,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-This is a **single-file vanilla JS SPA** — all source code lives in `index.html`. There is no build step, no package.json, and no framework. Changes to `index.html` are the deployed changes.
+> **Full details:** See [ARCHITECTURE.md](./ARCHITECTURE.md) for system diagrams, data flows, external services, error handling, security model, and observability.
+
+This is a **single-file vanilla JS SPA** — all source code lives in `index.html`. There is no build step and no framework. Changes to `index.html` are the deployed changes. The `scripts/` directory contains a Node.js automation pipeline (daily scrape + Substack newsletter) with its own `package.json`.
 
 **Backend:** Firebase (Auth + Firestore) — no server-side code in this repo.
+
+**Daily pipeline:** GitHub Actions cron → `daily-scrape.js` → GitHub API + Gemini AI + Firestore + Pipedream → Substack newsletter.
 
 ## Deployment
 
@@ -35,6 +39,12 @@ firebase serve
 | `firebase.json` | Firebase hosting + Firestore config |
 | `firestore.rules` | Firestore security rules |
 | `_headers` | HTTP security headers (CSP, cache, etc.) |
+| `ARCHITECTURE.md` | Full system architecture, data flows, security, observability |
+| `ROADMAP.md` | Future feature directions |
+| `.gitignore` | Protects secrets & vendor files from accidental commit |
+| `scripts/daily-scrape.js` | Daily pipeline orchestrator (GitHub → Gemini → Firestore → Substack) |
+| `scripts/substack-publish.js` | Builds ProseMirror payload, POSTs to Pipedream webhook |
+| `pipenode.txt` | Pipedream script for Substack API calls (runs on Pipedream, not in CI) |
 
 ## Application Architecture (inside index.html)
 
