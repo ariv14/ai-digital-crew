@@ -291,12 +291,20 @@ async function main() {
   await writeProjectToFirestore(db, projectDoc);
 
   // 6. Notify the repo owner via a GitHub issue
-  console.log('Notifying repo owner...');
-  await notifyOwner(owner, repo, chosen.full_name);
+  if (process.env.SKIP_NOTIFY === 'true') {
+    console.log('Skipping owner notification (SKIP_NOTIFY=true)');
+  } else {
+    console.log('Notifying repo owner...');
+    await notifyOwner(owner, repo, chosen.full_name);
+  }
 
   // 7. Publish to Substack
-  console.log('Publishing to Substack...');
-  await publishToSubstack({ repoMeta: chosen, writeup, quickStart });
+  if (process.env.SKIP_PUBLISH === 'true') {
+    console.log('Skipping Substack publish (SKIP_PUBLISH=true)');
+  } else {
+    console.log('Publishing to Substack...');
+    await publishToSubstack({ repoMeta: chosen, writeup, quickStart });
+  }
   console.log('Done!');
 }
 

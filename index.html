@@ -357,17 +357,33 @@
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     // ============================================================
-    // FIREBASE CONFIG — replace with your credentials
+    // FIREBASE CONFIG — environment detection by hostname
     // ============================================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyDq4iZ6y90S9KOsPRP0774iYGu4fXzH-4s",
-      authDomain: "ai-digital-crew.firebaseapp.com",
-      projectId: "ai-digital-crew",
-      storageBucket: "ai-digital-crew.firebasestorage.app",
-      messagingSenderId: "67125394484",
-      appId: "1:67125394484:web:85f3da113a0b09aeb39e61",
-      measurementId: "G-4VHGMK995P"
-    };
+    const STAGING_HOSTS = ['ai-digital-crew-staging.web.app', 'localhost', '127.0.0.1'];
+    const isStaging = STAGING_HOSTS.includes(location.hostname);
+
+    const firebaseConfig = isStaging
+      ? {
+          // TODO: Replace with real staging Firebase project values
+          apiKey: "STAGING_API_KEY",
+          authDomain: "ai-digital-crew-staging.firebaseapp.com",
+          projectId: "ai-digital-crew-staging",
+          storageBucket: "ai-digital-crew-staging.firebasestorage.app",
+          messagingSenderId: "STAGING_SENDER_ID",
+          appId: "STAGING_APP_ID",
+          measurementId: "STAGING_MEASUREMENT_ID"
+        }
+      : {
+          apiKey: "AIzaSyDq4iZ6y90S9KOsPRP0774iYGu4fXzH-4s",
+          authDomain: "ai-digital-crew.firebaseapp.com",
+          projectId: "ai-digital-crew",
+          storageBucket: "ai-digital-crew.firebasestorage.app",
+          messagingSenderId: "67125394484",
+          appId: "1:67125394484:web:85f3da113a0b09aeb39e61",
+          measurementId: "G-4VHGMK995P"
+        };
+
+    if (isStaging) document.title = '[STAGING] ' + document.title;
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);

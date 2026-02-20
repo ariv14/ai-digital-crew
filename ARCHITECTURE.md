@@ -71,7 +71,8 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | Frontend | Vanilla JS + HTML + CSS | Single-file SPA (`index.html`), no framework, no build step |
-| Hosting | GitHub Pages | Auto-deploys on push to `main` via GitHub Actions |
+| Hosting (prod) | GitHub Pages | Auto-deploys on push to `main` via GitHub Actions |
+| Hosting (staging) | Firebase Hosting | Auto-deploys on push to `staging` via `deploy-staging.yml` |
 | Auth | Firebase Auth v10.12 | GitHub, Google, Apple OAuth providers |
 | Database | Cloud Firestore | Single `projects` collection |
 | Automation | GitHub Actions | Cron job (`daily-scrape.yml`) at 6 AM UTC |
@@ -415,16 +416,59 @@ Only categories with matching projects appear as filter tabs.
 
 ---
 
-## 8. Deployment & CI/CD
+## 8. Staging Environment
 
-### 8.1 Web Hosting
+### 8.1 Overview
 
-- **Provider:** GitHub Pages (auto-deploys on push to `main`)
-- **Domain:** `aidigitalcrew.com` (via CNAME)
+A staging environment allows testing UI changes, new features, and pipeline behavior before promoting to production. GitHub Pages only supports one site per repo, so staging uses Firebase Hosting.
+
+| Aspect | Production | Staging |
+|--------|-----------|---------|
+| Branch | `main` | `staging` |
+| URL | `aidigitalcrew.com` (GitHub Pages) | `ai-digital-crew-staging.web.app` (Firebase Hosting) |
+| Firebase project | `ai-digital-crew` | `ai-digital-crew-staging` |
+| Scrape schedule | 6 AM UTC | 12 PM UTC |
+| Owner notification | Yes | **No** (`SKIP_NOTIFY=true`) |
+| Substack publishing | Yes | **No** (`SKIP_PUBLISH=true`) |
+| Local dev (`localhost`) | — | Points to staging Firebase |
+
+### 8.2 Environment Detection
+
+`index.html` detects the environment at runtime by hostname:
+
+- **Staging hosts:** `ai-digital-crew-staging.web.app`, `localhost`, `127.0.0.1` → uses staging Firebase config
+- **All other hosts** (including `aidigitalcrew.com`) → uses production Firebase config
+- When on staging, `document.title` is prefixed with `[STAGING]`
+
+### 8.3 Pipeline Skip Flags
+
+`daily-scrape.js` supports two environment variables:
+
+| Env Var | Effect | Default |
+|---------|--------|---------|
+| `SKIP_NOTIFY=true` | Skips GitHub Issue creation (owner notification) | Unset (notify) |
+| `SKIP_PUBLISH=true` | Skips Substack newsletter publishing | Unset (publish) |
+
+### 8.4 Required Secrets (Staging)
+
+| Secret | Purpose |
+|--------|---------|
+| `STAGING_FIREBASE_SERVICE_ACCOUNT` | Service account JSON for `ai-digital-crew-staging` project |
+
+Staging reuses `GITHUB_TOKEN` and `GEMINI_API_KEY` from production. It does not need `NOTIFY_TOKEN` or `PIPEDREAM_WEBHOOK_URL`.
+
+---
+
+## 9. Deployment & CI/CD
+
+### 9.1 Web Hosting
+
+- **Production:** GitHub Pages (auto-deploys on push to `main`), domain `aidigitalcrew.com` (via CNAME)
+- **Staging:** Firebase Hosting (auto-deploys on push to `staging`), URL `ai-digital-crew-staging.web.app`
 - **No build step** — `index.html` is the deployed artifact
 - **Caching:** `index.html` uses GitHub Pages defaults (no explicit `Cache-Control`), `/assets/*` cached 7 days
 
-### 8.2 Firestore Rules
+### 9.2 Firestore Rules
 
 Deployed manually only when `firestore.rules` changes:
 
@@ -432,11 +476,13 @@ Deployed manually only when `firestore.rules` changes:
 firebase deploy --only firestore:rules --project ai-digital-crew
 ```
 
-### 8.3 GitHub Actions Workflows
+### 9.3 GitHub Actions Workflows
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `daily-scrape.yml` | Cron `0 6 * * *` + `workflow_dispatch` | Daily project discovery + newsletter |
+| `daily-scrape.yml` | Cron `0 6 * * *` + `workflow_dispatch` | Daily project discovery + newsletter (production) |
+| `deploy-staging.yml` | Push to `staging` | Deploy to Firebase Hosting staging |
+| `daily-scrape-staging.yml` | Cron `0 12 * * *` + `workflow_dispatch` | Daily scrape on staging (no notify/publish) |
 
 **Workflow details:**
 - **Node version:** 20 (via `actions/setup-node@v4`)
@@ -446,7 +492,7 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 - **Manual trigger:** Supports `workflow_dispatch` but no custom input parameters (no dry-run, skip-notify, etc.)
 - **Failure handling:** No retry logic — if the job fails, it fails silently (GitHub sends default failure email to repo owner)
 
-### 8.4 Environment Variables (GitHub Secrets)
+### 9.4 Environment Variables (GitHub Secrets)
 
 | Secret | Used By | Purpose | Notes |
 |--------|---------|---------|-------|
@@ -455,29 +501,30 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 | `NOTIFY_TOKEN` | daily-scrape.js | Create GitHub issues (owner notification) | Optional — falls back to `GITHUB_TOKEN` if unset. Separate token allows different permission scope |
 | `GEMINI_API_KEY` | daily-scrape.js | AI writeup generation | Google AI Studio key |
 | `PIPEDREAM_WEBHOOK_URL` | substack-publish.js | Trigger Substack publication | URL is the auth mechanism |
+| `STAGING_FIREBASE_SERVICE_ACCOUNT` | deploy-staging.yml, daily-scrape-staging.yml | Admin access to staging Firebase project | JSON service account key for `ai-digital-crew-staging` |
 
 **Frontend (hardcoded in `index.html`):**
 - `firebaseConfig` object (API key, authDomain, projectId, etc.) — public by design, security enforced by Firestore rules and Cloud Console restrictions
 
 ---
 
-## 9. Security
+## 10. Security
 
-### 9.1 Frontend
+### 10.1 Frontend
 
 - All dynamic content escaped via `esc()` helper (XSS prevention)
 - GitHub URL validated via regex (`/github\.com\/([^/]+)\/([^/\s#?]+)/`) before API call
 - Firebase config is public (safe by design — security enforced by rules)
 - Modal overlays prevent accidental clicks on background content
 
-### 9.2 Firestore Rules
+### 10.2 Firestore Rules
 
 - Public read on `projects` — intentional, it's a public showcase
 - Authenticated create only — prevents anonymous spam
 - No update/delete — users cannot modify or remove submissions via client
 - Admin operations (daily bot) use Firebase Admin SDK (bypasses rules)
 
-### 9.3 HTTP Headers (`_headers`)
+### 10.3 HTTP Headers (`_headers`)
 
 ```
 X-Content-Type-Options: nosniff
@@ -490,7 +537,7 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 - Static assets (`/assets/*`) cached 7 days: `Cache-Control: public, max-age=604800`
 - `index.html` has no explicit cache header — relies on GitHub Pages defaults
 
-### 9.4 `.gitignore` Protection
+### 10.4 `.gitignore` Protection
 
 Prevents accidental commit of secrets and vendor files:
 
@@ -502,14 +549,14 @@ Prevents accidental commit of secrets and vendor files:
 | `.DS_Store`, `Thumbs.db` | OS artifacts |
 | `.idea/`, `.vscode/`, `*.swp` | Editor artifacts |
 
-### 9.5 API Key Hardening (Cloud Console)
+### 10.5 API Key Hardening (Cloud Console)
 
 The Firebase Web API key in `index.html` is public by design but should be restricted:
 
 - **Application restrictions:** HTTP referrers limited to `aidigitalcrew.com/*` and `localhost/*`
 - **API restrictions:** Only Identity Toolkit API, Cloud Firestore API, Firebase Auth API
 
-### 9.6 Security Audit (2026-02-20)
+### 10.6 Security Audit (2026-02-20)
 
 Full git history audit performed to check for leaked secrets.
 
@@ -532,9 +579,9 @@ Full git history audit performed to check for leaked secrets.
 
 ---
 
-## 10. Error Handling & Resilience
+## 11. Error Handling & Resilience
 
-### 10.1 Frontend Error Handling
+### 11.1 Frontend Error Handling
 
 | Scenario | Behavior |
 |----------|----------|
@@ -544,7 +591,7 @@ Full git history audit performed to check for leaked secrets.
 | Account deletion needs re-auth | Shows toast directing user to sign out/in manually (no auto re-auth flow) |
 | Network offline | No explicit offline handling — Firebase SDK may cache reads |
 
-### 10.2 Pipeline Error Handling
+### 11.2 Pipeline Error Handling
 
 | Scenario | Behavior |
 |----------|----------|
@@ -558,7 +605,7 @@ Full git history audit performed to check for leaked secrets.
 | Pipedream webhook fails | Pipeline logs error — no retry |
 | Substack draft/publish fails | Pipedream throws raw `res.text()` error (not parsed as JSON) |
 
-### 10.3 Known Gaps
+### 11.3 Known Gaps
 
 - **No retry logic anywhere** — transient failures (network blips, rate limits) cause full pipeline failure
 - **No rate limit header checking** — doesn't inspect `X-RateLimit-Remaining` from GitHub
@@ -567,9 +614,9 @@ Full git history audit performed to check for leaked secrets.
 
 ---
 
-## 11. Observability & Monitoring
+## 12. Observability & Monitoring
 
-### 11.1 Current State
+### 12.1 Current State
 
 | Aspect | Status |
 |--------|--------|
@@ -581,7 +628,7 @@ Full git history audit performed to check for leaked secrets.
 | Uptime monitoring | None — no health checks on `aidigitalcrew.com` |
 | Analytics | Firebase `measurementId` configured (`G-4VHGMK995P`) but no explicit event tracking |
 
-### 11.2 Troubleshooting Guide
+### 12.2 Troubleshooting Guide
 
 | Symptom | Check |
 |---------|-------|
@@ -593,9 +640,9 @@ Full git history audit performed to check for leaked secrets.
 
 ---
 
-## 12. Substack Newsletter Details
+## 13. Substack Newsletter Details
 
-### 12.1 ProseMirror Document Structure
+### 13.1 ProseMirror Document Structure
 
 Every newsletter post follows this structure:
 
@@ -617,7 +664,7 @@ doc
 
 **Text node marks:** `bold`, `italic`, `link` (with `attrs: { href, target: "_blank" }`)
 
-### 12.2 Pipedream Script (`pipenode.txt`)
+### 13.2 Pipedream Script (`pipenode.txt`)
 
 - **Format:** Pipedream SDK component (`defineComponent` + `export default`)
 - **Runs on:** Pipedream infrastructure (not in this repo's CI)
@@ -627,7 +674,7 @@ doc
 
 ---
 
-## 13. Project Structure
+## 14. Project Structure
 
 ```
 ai-digital-crew/
@@ -650,7 +697,9 @@ ai-digital-crew/
 │
 ├── .github/
 │   └── workflows/
-│       └── daily-scrape.yml    # Cron + manual trigger
+│       ├── daily-scrape.yml          # Production cron + manual trigger
+│       ├── deploy-staging.yml        # Deploy staging branch to Firebase Hosting
+│       └── daily-scrape-staging.yml  # Staging cron (no notify/publish)
 │
 └── pipenode.txt                # Pipedream Node.js script (Substack API calls, runs on Pipedream infra)
 ```
@@ -666,4 +715,5 @@ ai-digital-crew/
 | 2026-02-19 | 1.0.0 | Initial architecture document |
 | 2026-02-20 | 1.1.0 | Added `.gitignore`, API key hardening, security sections 9.4-9.5 |
 | 2026-02-20 | 1.2.0 | Added security audit findings (section 9.6) — no secrets in git history |
-| 2026-02-20 | 2.0.0 | Comprehensive update: added DiceBear, toast system, CSS architecture, responsive breakpoints, error handling & resilience (section 10), observability & monitoring (section 11), Substack newsletter details (section 12), troubleshooting guide, rate limits & quotas, pipeline implementation details, known gaps, related doc links |
+| 2026-02-20 | 2.0.0 | Comprehensive update: added DiceBear, toast system, CSS architecture, responsive breakpoints, error handling & resilience, observability & monitoring, Substack newsletter details, troubleshooting guide, rate limits & quotas, pipeline implementation details, known gaps, related doc links |
+| 2026-02-20 | 2.1.0 | Added staging environment (section 8): hostname-based config detection, pipeline skip flags, deploy-staging + daily-scrape-staging workflows, staging secrets |
