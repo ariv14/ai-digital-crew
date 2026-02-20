@@ -16,17 +16,22 @@ This is a **single-file vanilla JS SPA** — all source code lives in `index.htm
 
 **Daily pipeline:** GitHub Actions cron → `daily-scrape.js` → GitHub API + Gemini AI + Firestore + Pipedream → Substack newsletter.
 
+## Branching
+
+- **`staging`** — default branch. All development happens here. Auto-deploys to `ai-digital-crew-staging.web.app` via Firebase Hosting.
+- **`main`** — production branch. Auto-deploys to `aidigitalcrew.com` via GitHub Pages. Only merge from `staging` when changes are tested and ready.
+
 ## Deployment
 
 ```bash
-# Deploy to Firebase Hosting
-firebase deploy
+# Deploy Firestore rules to production
+firebase deploy --only firestore:rules --project ai-digital-crew
 
-# Deploy Firestore rules only
-firebase deploy --only firestore:rules
+# Deploy Firestore rules to staging
+firebase deploy --only firestore:rules --project ai-digital-crew-staging
 ```
 
-There is no dev server. Open `index.html` directly in a browser for local testing, or use:
+There is no dev server. Open `index.html` directly in a browser for local testing (connects to staging Firebase), or use:
 ```bash
 firebase serve
 ```
