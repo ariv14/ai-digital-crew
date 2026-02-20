@@ -356,7 +356,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, signInWithPopup, signInWithCredential, linkWithCredential, fetchSignInMethodsForEmail, deleteUser, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     // ============================================================
@@ -668,21 +668,15 @@
       if (err.code === 'auth/account-exists-with-different-credential') {
         const email = err.customData?.email;
         const pendingCred = OAuthProvider.credentialFromError(err);
-        if (email) {
-          const methods = await fetchSignInMethodsForEmail(auth, email);
-          if (methods.length > 0) {
-            const existingProvider = methods[0];
-            const existingName = providerNames[existingProvider] || existingProvider;
-            // Store pending credential so we can link after sign-in
-            state.pendingLinkCred = pendingCred;
-            state.pendingLinkProvider = providerName;
-            showToast(`${email} already uses ${existingName}. Sign in with ${existingName} to link your ${providerName} account.`, 'info', 6000);
-          } else {
-            showToast(`${email} is registered with a different method. Try another sign-in option.`, 'error');
-          }
-        } else {
-          showToast('This email is already linked to another sign-in method. Try a different option.', 'error');
-        }
+        // Store pending credential so we can link after sign-in with existing provider
+        state.pendingLinkCred = pendingCred;
+        state.pendingLinkProvider = providerName;
+        // Determine which providers the user could try (exclude the one that just failed)
+        const otherProviders = Object.values(providerNames).filter(n => n !== providerName);
+        const suggestion = email
+          ? `${email} is already registered. Sign in with ${otherProviders.join(' or ')} to link your ${providerName} account.`
+          : `This email is already registered. Sign in with ${otherProviders.join(' or ')} to link your ${providerName} account.`;
+        showToast(suggestion, 'info', 6000);
       } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
         // User closed popup — no error needed
       } else {
