@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Deletion — AI Digital Crew</title>
+  <meta name="description" content="How to delete your account and data from AI Digital Crew.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0f1c;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+      --primary: #3b82f6;
+      --primary-end: #8b5cf6;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --radius: 16px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+    h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+    a{color:var(--primary);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.4;z-index:0;pointer-events:none}
+    #orb-1{width:500px;height:500px;background:#3b82f6;top:-10%;left:-5%}
+    #orb-2{width:400px;height:400px;background:#8b5cf6;top:40%;right:-10%}
+
+    nav{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:32px 24px 0}
+    nav a{color:var(--text-muted);font-size:14px;font-weight:500;transition:color .2s}
+    nav a:hover{color:var(--text);text-decoration:none}
+
+    .container{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:24px 24px 80px}
+    h1{font-size:2rem;margin-bottom:8px}
+    .subtitle{color:var(--text-muted);font-size:14px;margin-bottom:40px}
+    h2{font-size:1.25rem;margin:32px 0 12px;color:var(--text)}
+    p,ol,ul{color:var(--text-muted);margin-bottom:16px}
+    ol,ul{padding-left:24px}
+    li{margin-bottom:8px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:24px 0}
+  </style>
+</head>
+<body>
+  <div class="orb" id="orb-1"></div>
+  <div class="orb" id="orb-2"></div>
+
+  <nav>&larr; <a href="/">Back to AI Digital Crew</a></nav>
+
+  <div class="container">
+    <h1>Data Deletion</h1>
+    <p class="subtitle">How to delete your account and all associated data</p>
+
+    <h2>Option 1: Delete From the App</h2>
+    <p>The fastest way to delete your data is through the app itself:</p>
+    <div class="card">
+      <ol>
+        <li>Go to <a href="https://aidigitalcrew.com">aidigitalcrew.com</a> and sign in to your account</li>
+        <li>Click the <strong>"Delete Account"</strong> button in the account section</li>
+        <li>Confirm the deletion when prompted</li>
+      </ol>
+    </div>
+    <p>This immediately and permanently deletes:</p>
+    <ul>
+      <li>Your Firebase Authentication account</li>
+      <li>All projects you submitted</li>
+      <li>Your profile information (name, email, photo URL)</li>
+    </ul>
+
+    <h2>Option 2: Contact Us</h2>
+    <p>If you cannot access your account or prefer manual assistance, email us at <a href="mailto:support@aidigitalcrew.com">support@aidigitalcrew.com</a> with the subject line "Data Deletion Request". Include the email address associated with your account so we can locate and remove your data.</p>
+    <p>We will process your request and confirm deletion within 7 days.</p>
+
+    <h2>What Gets Deleted</h2>
+    <p>When your account is deleted, we remove all data associated with it from our systems:</p>
+    <ul>
+      <li>Your authentication record (Firebase Auth)</li>
+      <li>All project submissions linked to your account (Firestore)</li>
+      <li>Your display name, email, and profile photo URL</li>
+    </ul>
+    <p>This action is permanent and cannot be undone.</p>
+
+    <h2>Questions?</h2>
+    <p>For any questions about data deletion, see our <a href="/privacy.html">Privacy Policy</a> or contact <a href="mailto:support@aidigitalcrew.com">support@aidigitalcrew.com</a>.</p>
+  </div>
+</body>
+</html>

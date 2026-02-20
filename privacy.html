@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — AI Digital Crew</title>
+  <meta name="description" content="Privacy Policy for AI Digital Crew — how we handle your data.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0f1c;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+      --primary: #3b82f6;
+      --primary-end: #8b5cf6;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --radius: 16px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+    h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+    a{color:var(--primary);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.4;z-index:0;pointer-events:none}
+    #orb-1{width:500px;height:500px;background:#3b82f6;top:-10%;left:-5%}
+    #orb-2{width:400px;height:400px;background:#8b5cf6;top:40%;right:-10%}
+
+    nav{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:32px 24px 0}
+    nav a{color:var(--text-muted);font-size:14px;font-weight:500;transition:color .2s}
+    nav a:hover{color:var(--text);text-decoration:none}
+
+    .container{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:24px 24px 80px}
+    h1{font-size:2rem;margin-bottom:8px}
+    .subtitle{color:var(--text-muted);font-size:14px;margin-bottom:40px}
+    h2{font-size:1.25rem;margin:32px 0 12px;color:var(--text)}
+    p,ul{color:var(--text-muted);margin-bottom:16px}
+    ul{padding-left:24px}
+    li{margin-bottom:8px}
+  </style>
+</head>
+<body>
+  <div class="orb" id="orb-1"></div>
+  <div class="orb" id="orb-2"></div>
+
+  <nav>&larr; <a href="/">Back to AI Digital Crew</a></nav>
+
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="subtitle">Last updated: February 20, 2026</p>
+
+    <h2>1. What We Collect</h2>
+    <p>When you sign in to AI Digital Crew using OAuth (GitHub, Google, or Facebook), we receive and store:</p>
+    <ul>
+      <li><strong>Profile information</strong> — display name, email address, and profile photo URL as provided by your OAuth provider</li>
+      <li><strong>User ID</strong> — a unique identifier from Firebase Authentication</li>
+    </ul>
+    <p>When you submit a project, we store:</p>
+    <ul>
+      <li><strong>Repository metadata</strong> — repo name, owner, description, stars, forks, language, topics, and URL (all publicly available via the GitHub API)</li>
+      <li><strong>Submission info</strong> — your user ID and display name, linked to the project</li>
+    </ul>
+
+    <h2>2. How We Use Your Data</h2>
+    <ul>
+      <li>To authenticate you and manage your account</li>
+      <li>To display your submitted projects on the site</li>
+      <li>To attribute project submissions to your account</li>
+    </ul>
+
+    <h2>3. What We Don't Do</h2>
+    <ul>
+      <li>We do <strong>not</strong> use cookies for tracking</li>
+      <li>We do <strong>not</strong> use analytics services (no Google Analytics, no tracking pixels)</li>
+      <li>We do <strong>not</strong> sell, share, or transfer your data to third parties</li>
+      <li>We do <strong>not</strong> serve advertisements</li>
+    </ul>
+
+    <h2>4. Third-Party Services</h2>
+    <p>AI Digital Crew relies on the following services:</p>
+    <ul>
+      <li><strong>Firebase Authentication</strong> — handles OAuth sign-in and stores authentication data</li>
+      <li><strong>Cloud Firestore</strong> — stores project submissions</li>
+      <li><strong>GitHub API</strong> — fetches public repository metadata when you submit a project</li>
+    </ul>
+    <p>These services have their own privacy policies. We encourage you to review them.</p>
+
+    <h2>5. Data Retention</h2>
+    <p>Your data is retained for as long as your account exists. When you delete your account, all associated data (profile and submitted projects) is permanently removed from our systems.</p>
+
+    <h2>6. Your Rights</h2>
+    <ul>
+      <li><strong>Access</strong> — you can view your submitted projects on the site at any time</li>
+      <li><strong>Deletion</strong> — you can delete your account and all associated data using the "Delete Account" button in the app, or by contacting us</li>
+      <li><strong>Data portability</strong> — all project data shown on the site is sourced from public GitHub repositories</li>
+    </ul>
+
+    <h2>7. Data Deletion</h2>
+    <p>To delete your data, see our <a href="/data-deletion.html">Data Deletion Instructions</a> page, or email us directly.</p>
+
+    <h2>8. Contact</h2>
+    <p>For privacy-related questions or requests, contact us at <a href="mailto:support@aidigitalcrew.com">support@aidigitalcrew.com</a>.</p>
+
+    <h2>9. Changes to This Policy</h2>
+    <p>We may update this policy from time to time. Changes will be reflected on this page with an updated date.</p>
+  </div>
+</body>
+</html>
