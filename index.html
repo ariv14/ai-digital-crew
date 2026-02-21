@@ -588,6 +588,8 @@
 
     function renderProjects() {
       if (state.isLoading) { renderSkeletons(); return; }
+      // If search is active, don't overwrite search results
+      if (state.searchResults !== null) return;
       if (state.projects.length === 0) {
         projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="folder-open" style="width:48px;height:48px"></i><p>No projects yet. Be the first to submit one!</p><button class="btn-primary" id="empty-submit">Submit a Project</button></div>`;
         document.getElementById('empty-submit').addEventListener('click', () => { state.isLoggedIn ? openSubmitModal() : openLoginModal(); });
@@ -1005,7 +1007,7 @@
       if (!state.projects.length) return;
       fuseProjects = new Fuse(state.projects, {
         keys: [{ name: 'name', weight: 0.3 }, { name: 'description', weight: 0.25 }, { name: 'writeup', weight: 0.2 }, { name: 'topics', weight: 0.15 }, { name: 'category', weight: 0.1 }],
-        threshold: 0.4,
+        threshold: 0.3,
         includeScore: true,
         includeMatches: true,
       });
@@ -1172,6 +1174,16 @@
       const scored = [];
       const searchTerms = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
 
+      // Compute Fuse.js keyword matches once (outside the loop)
+      const fuseMatchMap = new Map();
+      if (fuseProjects) {
+        const fuseResults = fuseProjects.search(q);
+        for (const r of fuseResults) {
+          const key = r.item.fullName || r.item.name;
+          fuseMatchMap.set(key, 1 - (r.score || 0));
+        }
+      }
+
       for (const p of state.projects) {
         let semanticScore = 0;
         let keywordScore = 0;
@@ -1184,18 +1196,15 @@
           }
         }
 
-        // Keyword score via Fuse.js
-        if (fuseProjects) {
-          const fuseResults = fuseProjects.search(q);
-          const match = fuseResults.find(r => r.item.fullName === p.fullName || r.item.name === p.name);
-          if (match) {
-            keywordScore = 1 - (match.score || 0); // Fuse score is 0=perfect, 1=worst
-          }
+        // Keyword score from pre-computed Fuse.js results
+        const fuseKey = p.fullName || p.name;
+        if (fuseMatchMap.has(fuseKey)) {
+          keywordScore = fuseMatchMap.get(fuseKey);
         }
 
         // Category boost
         if (intent.type === 'category_boost' && inferCategory(p) === intent.category) {
-          keywordScore = Math.max(keywordScore, 0.3);
+          keywordScore = Math.max(keywordScore, 0.5);
         }
 
         // Combined score
@@ -1206,7 +1215,7 @@
           combined = keywordScore;
         }
 
-        if (combined > 0.2) {
+        if (combined > 0.35) {
           scored.push({ project: p, score: combined });
         }
       }
