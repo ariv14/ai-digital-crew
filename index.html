@@ -517,7 +517,8 @@
     // FIREBASE CONFIG — environment detection by hostname
     // ============================================================
     const STAGING_HOSTS = ['ai-digital-crew-staging.web.app', 'localhost', '127.0.0.1'];
-    const isStaging = STAGING_HOSTS.includes(location.hostname);
+    const isStaging = STAGING_HOSTS.includes(location.hostname)
+      || location.hostname.endsWith('.ai-digital-crew.pages.dev');
 
     const firebaseConfig = isStaging
       ? {
