@@ -82,9 +82,9 @@
     .hero .subtitle{font-size:20px;color:var(--text-muted);max-width:600px;margin:20px auto 0}
     .hero-ctas{display:flex;gap:16px;margin-top:24px;flex-wrap:wrap;justify-content:center}
     .stats-bar{display:flex;gap:20px;margin-top:60px;flex-wrap:wrap;justify-content:center;min-height:52px}
-    .stat-pill{padding:12px 24px;font-size:15px;font-weight:600}
+    .stat-pill{padding:12px 24px;font-size:15px;font-weight:600;background:rgba(15,23,42,.85)}
     .stat-pill .stat-number{color:var(--primary);margin-right:6px}
-    .stat-pill .stat-label{color:#cbd5e1}
+    .stat-pill .stat-label{color:#e2e8f0}
 
     /* Sections */
     section{position:relative;z-index:1;padding:80px 24px}
@@ -351,7 +351,7 @@
       </div>
     </section>
 
-    <section id="featured-section" class="featured-section" style="display:none">
+    <section id="featured-section" class="featured-section" style="visibility:hidden">
       <div class="section-container">
         <div id="featured-spotlight" class="featured-spotlight glass"></div>
       </div>
@@ -719,12 +719,20 @@
 
       const featured = state.projects.find(p => p.source === 'auto');
       if (!featured) {
-        section.style.display = 'none';
+        section.style.visibility = 'hidden';
+        section.style.position = 'absolute';
+        section.style.height = '0';
+        section.style.minHeight = '0';
+        section.style.overflow = 'hidden';
         if (footerCol) footerCol.innerHTML = `<h3>🤖 Today's Pick</h3><span style="color:var(--text-muted);font-size:14px">Coming soon</span>`;
         return;
       }
 
-      section.style.display = '';
+      section.style.visibility = 'visible';
+      section.style.position = '';
+      section.style.height = '';
+      section.style.minHeight = '';
+      section.style.overflow = '';
       const langColor = LANG_COLORS[featured.language] || '#888';
       const topics = (featured.topics || []).slice(0, 5);
       const avatar = featured.ownerAvatar
