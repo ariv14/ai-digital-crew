@@ -49,9 +49,10 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <!-- identitytoolkit preconnect removed: unused, exceeded 4-preconnect limit -->
   <link rel="dns-prefetch" href="https://firestore.googleapis.com">
   <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
+  <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
   <style>
     :root {
       --bg: #0a0f1c;
@@ -114,7 +115,7 @@
     /* Hero */
     .hero{position:relative;z-index:1;min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px}
     .hero h1{font-size:64px;font-weight:700;line-height:1.1;max-width:800px;background:linear-gradient(135deg,var(--text),var(--text-muted));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .hero .subtitle{font-size:20px;color:var(--text-muted);max-width:600px;margin:20px auto 0}
+    .hero .subtitle{font-size:20px;color:#b0bec5;max-width:600px;margin:20px auto 0}
     .hero-ctas{display:flex;gap:16px;margin-top:24px;flex-wrap:wrap;justify-content:center}
     .stats-bar{display:flex;gap:20px;margin-top:60px;flex-wrap:wrap;justify-content:center;min-height:52px}
     .stat-pill{padding:12px 24px;font-size:15px;font-weight:600;background:rgba(15,23,42,.85)}
@@ -162,7 +163,7 @@
     .featured-owner{font-size:13px;color:var(--text-muted);margin-bottom:14px}
     .featured-writeup{font-size:14px;color:var(--text-muted);line-height:1.7;margin-bottom:18px}
     .featured-qs{margin-bottom:18px;background:rgba(255,255,255,.03);border-radius:10px;padding:14px 18px;border:1px solid var(--border)}
-    .featured-qs h4{font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:10px}
+    .featured-qs h3{font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:10px}
     .featured-qs ol{padding-left:18px;color:var(--text-muted);font-size:13px;line-height:1.7}
     .featured-qs ol li{margin-bottom:4px}
     .featured-footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -355,9 +356,9 @@
   </style>
 </head>
 <body>
-  <div class="orb" id="orb-1"></div>
-  <div class="orb" id="orb-2"></div>
-  <div class="orb" id="orb-3"></div>
+  <div class="orb" id="orb-1" aria-hidden="true"></div>
+  <div class="orb" id="orb-2" aria-hidden="true"></div>
+  <div class="orb" id="orb-3" aria-hidden="true"></div>
 
   <nav id="navbar">
     <div class="nav-logo"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></div>
@@ -729,7 +730,7 @@
         return `
           <div class="project-card glass">
             <div class="project-banner">
-              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
+              ${p.ownerAvatar ? `<img src="${avatarSized(p.ownerAvatar, 96)}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
               ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
             </div>
             <div class="project-body">
@@ -769,7 +770,7 @@
       const langColor = LANG_COLORS[featured.language] || '#888';
       const topics = (featured.topics || []).slice(0, 5);
       const avatar = featured.ownerAvatar
-        ? `<img src="${featured.ownerAvatar}" alt="${esc(featured.owner)}" class="featured-avatar" width="72" height="72" loading="lazy">`
+        ? `<img src="${avatarSized(featured.ownerAvatar, 144)}" alt="${esc(featured.owner)}" class="featured-avatar" width="72" height="72" loading="lazy">`
         : `<div class="featured-avatar-initial">${(featured.name||'P').charAt(0).toUpperCase()}</div>`;
 
       spotlight.innerHTML = `
@@ -783,7 +784,7 @@
             <div class="featured-name"><a href="${esc(featured.url)}" target="_blank" rel="noopener">${esc(featured.name)}</a></div>
             <div class="featured-owner">by ${esc(featured.owner)}</div>
             <p class="featured-writeup">${esc(featured.writeup || featured.description)}</p>
-            ${featured.quickStart && featured.quickStart.length ? `<div class="featured-qs"><h4>⚡ Quick Start</h4><ol>${featured.quickStart.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>` : ''}
+            ${featured.quickStart && featured.quickStart.length ? `<div class="featured-qs"><h3>⚡ Quick Start</h3><ol>${featured.quickStart.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>` : ''}
             <div class="featured-footer">
               ${topics.map(t => `<span class="project-topic">${esc(t)}</span>`).join('')}
               <a href="${esc(featured.url)}" target="_blank" rel="noopener" class="btn-primary btn-small" style="margin-left:auto"><i data-lucide="github" style="width:14px;height:14px"></i> View on GitHub</a>
@@ -1070,6 +1071,7 @@
 
     // ── Utilities ───────────────────────────────────────
     function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function avatarSized(url, size) { if (!url) return url; return url + (url.includes('?') ? '&' : '?') + 's=' + size; }
 
     let iconsTimer = null;
     const scheduleIdle = window.requestIdleCallback || (cb => setTimeout(cb, 50));
@@ -1430,7 +1432,7 @@
         return `
           <div class="project-card glass visible" data-fullname="${esc(p.fullName || '')}" data-score="${score}">
             <div class="project-banner">
-              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
+              ${p.ownerAvatar ? `<img src="${avatarSized(p.ownerAvatar, 96)}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
               ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
             </div>
             <div class="project-body">
