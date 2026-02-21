@@ -291,17 +291,20 @@
 
     /* GitHub discovery section */
     .github-discovery{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
-    .github-discovery h3{font-size:18px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-    .github-discovery-btn{margin-top:16px}
+    .github-discovery h3{font-size:18px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+    .github-discovery .gh-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:16px}
     .gh-result-card{padding:16px;margin-bottom:12px}
     .gh-result-card h4{font-size:15px;font-weight:600;margin-bottom:4px}
     .gh-result-card h4 a{color:var(--text);transition:color .2s}
     .gh-result-card h4 a:hover{color:var(--primary)}
     .gh-result-card p{font-size:13px;color:var(--text-muted);margin-bottom:8px}
-    .gh-result-meta{display:flex;gap:12px;font-size:12px;color:var(--text-muted);align-items:center}
+    .gh-result-meta{display:flex;gap:12px;font-size:12px;color:var(--text-muted);align-items:center;flex-wrap:wrap}
     .gh-result-meta span{display:flex;align-items:center;gap:4px}
     .gh-submit-btn{margin-left:auto;padding:4px 12px;font-size:12px;font-weight:600;color:var(--primary);border:1px solid var(--primary);border-radius:8px;background:transparent;cursor:pointer;transition:all .2s}
     .gh-submit-btn:hover{background:rgba(59,130,246,.1)}
+    .gh-skeleton{display:flex;flex-direction:column;gap:12px}
+    .gh-skeleton-card{height:80px;border-radius:12px;background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:ghShimmer 1.5s infinite}
+    @keyframes ghShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
   </style>
 </head>
 <body>
@@ -513,7 +516,7 @@
       return 'Other';
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map() };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0 };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -1333,57 +1336,92 @@
     }
 
     // ── Search: GitHub discovery ─────────────────────────
-    async function renderGitHubDiscovery(queryText, container) {
-      if (!queryText) { container.innerHTML = ''; return; }
+    function renderGitHubDiscoveryResults(filtered, container, hasLocalResults) {
+      const heading = hasLocalResults ? 'More from GitHub' : 'Found on GitHub';
+      const subtitle = hasLocalResults ? 'Not in our catalog yet' : '';
+      const resultsHtml = filtered.map(r => `
+        <div class="gh-result-card glass">
+          <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a></h4>
+          <p>${esc(r.description || 'No description')}</p>
+          <div class="gh-result-meta">
+            <span><i data-lucide="star" style="width:12px;height:12px"></i> ${(r.stargazers_count||0).toLocaleString()}</span>
+            <span><i data-lucide="git-fork" style="width:12px;height:12px"></i> ${(r.forks_count||0).toLocaleString()}</span>
+            ${r.language ? `<span>${esc(r.language)}</span>` : ''}
+            <button class="gh-submit-btn" onclick="submitGhProject('${esc(r.full_name)}')">+ Submit to AI Digital Crew</button>
+          </div>
+        </div>`).join('');
+
       container.innerHTML = `
         <div class="github-discovery">
-          <h3><i data-lucide="github" style="width:18px;height:18px"></i> Discover More on GitHub</h3>
-          <button class="btn-outlined btn-small github-discovery-btn" id="gh-search-btn">Search GitHub for "${esc(queryText)}"</button>
+          <h3><i data-lucide="github" style="width:18px;height:18px"></i> ${heading}</h3>
+          ${subtitle ? `<p class="gh-subtitle">${subtitle}</p>` : ''}
+          ${resultsHtml}
+        </div>`;
+      refreshIcons();
+    }
+
+    async function renderGitHubDiscovery(queryText, container) {
+      if (!queryText) { container.innerHTML = ''; return; }
+
+      const hasLocalResults = state.searchResults && state.searchResults.length > 0;
+      const cacheKey = queryText.toLowerCase();
+
+      // Check cache first
+      if (state.githubResultsCache.has(cacheKey)) {
+        const cached = state.githubResultsCache.get(cacheKey);
+        state.githubResults = cached;
+        if (cached.length > 0) {
+          renderGitHubDiscoveryResults(cached, container, hasLocalResults);
+        } else {
+          container.innerHTML = '';
+        }
+        return;
+      }
+
+      // Rate limit: skip if last call was < 2 seconds ago
+      const now = Date.now();
+      if (now - state.lastGitHubApiCall < 2000) {
+        container.innerHTML = '';
+        return;
+      }
+
+      // Show loading skeleton
+      container.innerHTML = `
+        <div class="github-discovery">
+          <h3><i data-lucide="github" style="width:18px;height:18px"></i> ${hasLocalResults ? 'More from GitHub' : 'Found on GitHub'}</h3>
+          <div class="gh-skeleton">
+            <div class="gh-skeleton-card"></div>
+            <div class="gh-skeleton-card"></div>
+          </div>
         </div>`;
       refreshIcons();
 
-      document.getElementById('gh-search-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('gh-search-btn');
-        btn.disabled = true;
-        btn.textContent = 'Searching...';
+      try {
+        state.lastGitHubApiCall = Date.now();
+        const res = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(queryText)}+topic:ai+stars:>10&sort=stars&per_page=5`);
+        if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+        const data = await res.json();
+        const existingNames = new Set(state.projects.map(p => (p.fullName || '').toLowerCase()));
+        const filtered = (data.items || []).filter(r => !existingNames.has(r.full_name.toLowerCase()));
 
-        try {
-          const res = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(queryText)}+topic:ai+stars:>10&sort=stars&per_page=5`);
-          if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-          const data = await res.json();
-          const existingNames = new Set(state.projects.map(p => (p.fullName || '').toLowerCase()));
-          const filtered = (data.items || []).filter(r => !existingNames.has(r.full_name.toLowerCase()));
+        state.githubResults = filtered;
+        state.githubResultsCache.set(cacheKey, filtered);
 
-          state.githubResults = filtered;
+        // If the search query changed while we were fetching, don't render stale results
+        if (state.searchQuery.toLowerCase() !== cacheKey) return;
 
-          if (filtered.length === 0) {
-            container.querySelector('.github-discovery').innerHTML += '<p style="color:var(--text-muted);font-size:14px;margin-top:12px">No additional repos found on GitHub.</p>';
-            return;
-          }
-
-          btn.style.display = 'none';
-          const resultsHtml = filtered.map(r => `
-            <div class="gh-result-card glass">
-              <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a></h4>
-              <p>${esc(r.description || 'No description')}</p>
-              <div class="gh-result-meta">
-                <span><i data-lucide="star" style="width:12px;height:12px"></i> ${(r.stargazers_count||0).toLocaleString()}</span>
-                <span><i data-lucide="git-fork" style="width:12px;height:12px"></i> ${(r.forks_count||0).toLocaleString()}</span>
-                ${r.language ? `<span>${esc(r.language)}</span>` : ''}
-                <button class="gh-submit-btn" onclick="submitGhProject('${esc(r.full_name)}')">+ Submit to AI Digital Crew</button>
-              </div>
-            </div>`).join('');
-
-          container.querySelector('.github-discovery').innerHTML = `
-            <h3><i data-lucide="github" style="width:18px;height:18px"></i> From GitHub</h3>
-            ${resultsHtml}`;
-          refreshIcons();
-        } catch (err) {
-          console.error('GitHub search error:', err);
-          btn.textContent = 'Search failed. Try again.';
-          btn.disabled = false;
+        if (filtered.length === 0) {
+          container.innerHTML = '';
+          return;
         }
-      });
+
+        // Re-check hasLocalResults since it may have changed
+        const currentHasLocal = state.searchResults && state.searchResults.length > 0;
+        renderGitHubDiscoveryResults(filtered, container, currentHasLocal);
+      } catch (err) {
+        console.error('GitHub search error:', err);
+        container.innerHTML = '';
+      }
     }
 
     // Helper to auto-fill submit modal with a GitHub repo from discovery
