@@ -1378,13 +1378,6 @@
         return;
       }
 
-      // Rate limit: skip if last call was < 2 seconds ago
-      const now = Date.now();
-      if (now - state.lastGitHubApiCall < 2000) {
-        container.innerHTML = '';
-        return;
-      }
-
       // Show loading skeleton
       container.innerHTML = `
         <div class="github-discovery">
@@ -1395,6 +1388,14 @@
           </div>
         </div>`;
       refreshIcons();
+
+      // Rate limit: defer if last call was < 2 seconds ago
+      const elapsed = Date.now() - state.lastGitHubApiCall;
+      if (elapsed < 2000) {
+        await new Promise(r => setTimeout(r, 2000 - elapsed));
+        // If query changed while waiting, abort
+        if (state.searchQuery.toLowerCase() !== cacheKey) return;
+      }
 
       try {
         state.lastGitHubApiCall = Date.now();
