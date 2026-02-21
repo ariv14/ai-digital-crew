@@ -235,7 +235,7 @@
     .search-input::placeholder{color:var(--text-muted)}
 
     /* Trending pills (always visible below hero search) */
-    .hero-trending{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center;max-width:640px}
+    .hero-trending{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center;max-width:640px;margin-left:auto;margin-right:auto}
     .hero-trending-label{font-size:13px;color:var(--text-muted);font-weight:500;white-space:nowrap}
     .hero-trending-pill{padding:5px 14px;font-size:13px;color:var(--text-muted);background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:all .2s;white-space:nowrap}
     .hero-trending-pill:hover{border-color:var(--primary);color:var(--primary);background:rgba(59,130,246,.08)}
@@ -290,7 +290,7 @@
     .similar-card .similar-score{font-size:11px;color:var(--text-muted);margin-left:auto}
 
     /* GitHub discovery section */
-    .github-discovery{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+    .github-discovery{margin-top:32px;padding-top:24px;border-top:1px solid var(--border);grid-column:1/-1}
     .github-discovery-primary{margin-top:0;padding-top:0;border-top:none}
     .github-discovery h3{font-size:18px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
     .github-discovery .gh-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:16px}
@@ -310,6 +310,12 @@
     .gh-skeleton{display:flex;flex-direction:column;gap:12px}
     .gh-skeleton-card{height:90px;border-radius:var(--radius);background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:ghShimmer 1.5s infinite}
     @keyframes ghShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    /* Nav active state */
+    .nav-links a.nav-active{color:var(--text)}
+    /* Search page header */
+    .search-page-header{text-align:center;margin-bottom:8px}
+    .search-page-header .section-subtitle{margin-top:8px}
   </style>
 </head>
 <body>
@@ -320,8 +326,9 @@
   <nav id="navbar">
     <div class="nav-logo"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></div>
     <div class="nav-links">
-      <a href="#home">Home</a>
-      <a href="#projects">Projects</a>
+      <a href="#home" data-nav="home">Home</a>
+      <a href="#projects" data-nav="home">Projects</a>
+      <a href="#" data-nav="search" id="nav-search-link">Search</a>
     </div>
     <div class="nav-right" id="nav-right"></div>
     <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
@@ -333,17 +340,6 @@
     <section id="home" class="hero">
       <h1>AI Tools Built by the Community</h1>
       <p class="subtitle">Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.</p>
-      <div class="search-container" id="search-container" style="margin-top:32px">
-        <div class="search-input-wrap">
-          <i data-lucide="search" class="search-icon"></i>
-          <input type="text" class="search-input" id="search-input" placeholder="Describe what you're looking for..." autocomplete="off">
-          <div class="search-spinner" id="search-spinner"></div>
-          <button class="search-clear" id="search-clear" aria-label="Clear search"><i data-lucide="x" style="width:16px;height:16px"></i></button>
-        </div>
-        <div class="search-discovery glass" id="search-discovery"></div>
-        <div class="search-autocomplete glass" id="search-autocomplete"></div>
-      </div>
-      <div class="hero-trending" id="hero-trending"></div>
       <div class="hero-ctas">
         <a href="#projects" class="btn-outlined">Browse Projects</a>
       </div>
@@ -360,6 +356,30 @@
       </div>
     </section>
 
+    <section id="search-page" style="display:none;min-height:100vh;padding-top:120px">
+      <div class="section-container">
+        <div class="search-page-header">
+          <h2 class="section-title">AI Search</h2>
+          <p class="section-subtitle">Search across our catalog and discover projects on GitHub</p>
+        </div>
+        <div class="search-container" id="search-container" style="margin-top:24px;margin-bottom:24px">
+          <div class="search-input-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" class="search-input" id="search-input" placeholder="Describe what you're looking for..." autocomplete="off">
+            <div class="search-spinner" id="search-spinner"></div>
+            <button class="search-clear" id="search-clear" aria-label="Clear search"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+          </div>
+          <div class="search-discovery glass" id="search-discovery"></div>
+          <div class="search-autocomplete glass" id="search-autocomplete"></div>
+        </div>
+        <div class="hero-trending" id="hero-trending" style="margin-bottom:32px"></div>
+        <div class="search-status" id="search-status"></div>
+        <div class="did-you-mean" id="did-you-mean"></div>
+        <div class="project-grid" id="search-result-grid"></div>
+        <div id="github-discovery-container"></div>
+      </div>
+    </section>
+
     <section id="projects">
       <div class="section-container">
         <div class="section-header">
@@ -369,11 +389,8 @@
           </div>
           <button class="btn-primary btn-small" id="section-submit-btn"><i data-lucide="plus" style="width:16px;height:16px"></i> Submit Project</button>
         </div>
-        <div class="search-status" id="search-status"></div>
-        <div class="did-you-mean" id="did-you-mean"></div>
         <div class="category-tabs" id="category-tabs"></div>
         <div class="project-grid" id="project-grid"></div>
-        <div id="github-discovery-container"></div>
       </div>
     </section>
   </main>
@@ -521,7 +538,7 @@
       return 'Other';
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0 };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home' };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -534,6 +551,45 @@
     const repoUrlInput = document.getElementById('repo-url');
     const repoPreview = document.getElementById('repo-preview');
     const submitBtn = document.getElementById('submit-btn');
+
+    // ── Navigation ───────────────────────────────────────
+    function navigateTo(view) {
+      state.currentView = view;
+      const home = document.getElementById('home');
+      const featured = document.getElementById('featured-section');
+      const projects = document.getElementById('projects');
+      const searchPage = document.getElementById('search-page');
+
+      if (view === 'search') {
+        home.style.display = 'none';
+        featured.style.display = 'none';
+        projects.style.display = 'none';
+        searchPage.style.display = '';
+        document.getElementById('search-input').focus();
+      } else {
+        searchPage.style.display = 'none';
+        home.style.display = '';
+        // featured visibility managed by renderFeatured
+        if (state.projects.find(p => p.source === 'auto')) featured.style.display = '';
+        projects.style.display = '';
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Update nav-active classes
+      document.querySelectorAll('.nav-links a, .mobile-menu a').forEach(a => {
+        a.classList.toggle('nav-active', a.dataset.nav === view);
+      });
+    }
+
+    // Wire desktop nav search link
+    document.getElementById('nav-search-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('search'); });
+
+    // Wire Home/Projects links to go back to home view
+    document.querySelectorAll('.nav-links a[data-nav="home"]').forEach(a => {
+      a.addEventListener('click', () => {
+        if (state.currentView !== 'home') navigateTo('home');
+      });
+    });
 
     // ── GitHub API ──────────────────────────────────────
     function parseRepoUrl(url) {
@@ -585,7 +641,7 @@
         document.getElementById('nav-login-btn').addEventListener('click', openLoginModal);
       }
       mobileMenu.innerHTML = `
-        <a href="#home">Home</a><a href="#projects">Projects</a>
+        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="#" data-nav="search" id="mobile-search-link">Search</a>
         ${state.isLoggedIn
           ? `<button id="mobile-logout">Logout</button>`
           : `<button id="mobile-login">Login / Join</button>`}
@@ -594,6 +650,8 @@
       if (ml) ml.addEventListener('click', openLoginModal);
       const mlo = document.getElementById('mobile-logout');
       if (mlo) mlo.addEventListener('click', logout);
+      const msl = document.getElementById('mobile-search-link');
+      if (msl) msl.addEventListener('click', (e) => { e.preventDefault(); mobileMenu.classList.remove('open'); navigateTo('search'); });
       refreshIcons();
     }
 
@@ -605,8 +663,6 @@
 
     function renderProjects() {
       if (state.isLoading) { renderSkeletons(); return; }
-      // If search is active, don't overwrite search results
-      if (state.searchResults !== null) return;
       if (state.projects.length === 0) {
         projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="folder-open" style="width:48px;height:48px"></i><p>No projects yet. Be the first to submit one!</p><button class="btn-primary" id="empty-submit">Submit a Project</button></div>`;
         document.getElementById('empty-submit').addEventListener('click', () => { state.isLoggedIn ? openSubmitModal() : openLoginModal(); });
@@ -1118,7 +1174,9 @@
       const q = queryText.trim();
       state.searchQuery = q;
 
-      // Clear search → restore normal view
+      const searchResultGrid = document.getElementById('search-result-grid');
+
+      // Clear search → clear search page results, stay on search page
       if (!q) {
         state.searchResults = null;
         state.githubResults = null;
@@ -1126,13 +1184,9 @@
         document.getElementById('search-status').classList.remove('visible');
         document.getElementById('did-you-mean').classList.remove('visible');
         document.getElementById('github-discovery-container').innerHTML = '';
-        document.getElementById('category-tabs').style.display = '';
-        renderProjects();
+        searchResultGrid.innerHTML = '';
         return;
       }
-
-      // Hide category tabs during search
-      document.getElementById('category-tabs').style.display = 'none';
 
       const intent = classifyIntent(q);
 
@@ -1270,6 +1324,7 @@
       const results = state.searchResults;
       const didYouMeanEl = document.getElementById('did-you-mean');
       const ghContainer = document.getElementById('github-discovery-container');
+      const searchResultGrid = document.getElementById('search-result-grid');
 
       if (!results || results.length === 0) {
         // "Did you mean?" suggestions
@@ -1280,7 +1335,7 @@
             didYouMeanEl.classList.add('visible');
           }
         }
-        projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="search" style="width:48px;height:48px"></i><p>No projects found for "${esc(queryText)}". Try a different search or browse categories.</p></div>`;
+        searchResultGrid.innerHTML = `<div class="empty-state"><i data-lucide="search" style="width:48px;height:48px"></i><p>No projects found for "${esc(queryText)}". Try a different search or browse categories.</p></div>`;
         refreshIcons();
         renderGitHubDiscovery(queryText, ghContainer);
         return;
@@ -1299,7 +1354,7 @@
 
       const searchTerms = queryText.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
 
-      projectGrid.innerHTML = results.map(({ project: p, score }) => {
+      searchResultGrid.innerHTML = results.map(({ project: p, score }) => {
         const langColor = LANG_COLORS[p.language] || '#888';
         const topics = (p.topics || []).slice(0, 5);
         const cat = inferCategory(p);
@@ -1335,9 +1390,6 @@
 
       refreshIcons();
       renderGitHubDiscovery(queryText, ghContainer);
-
-      // Auto-scroll to results
-      document.getElementById('projects').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ── Search: GitHub discovery ─────────────────────────
@@ -1355,7 +1407,7 @@
               <span><i data-lucide="star" style="width:12px;height:12px"></i> ${(r.stargazers_count||0).toLocaleString()}</span>
               <span><i data-lucide="git-fork" style="width:12px;height:12px"></i> ${(r.forks_count||0).toLocaleString()}</span>
               ${r.language ? `<span><span class="project-lang-dot" style="background:${langColor}"></span> ${esc(r.language)}</span>` : ''}
-              <button class="gh-submit-btn" onclick="submitGhProject('${esc(r.full_name)}')"><i data-lucide="plus" style="width:12px;height:12px"></i> Submit</button>
+              <a href="${esc(r.html_url)}" target="_blank" rel="noopener" class="gh-submit-btn"><i data-lucide="external-link" style="width:12px;height:12px"></i> View</a>
             </div>
           </div>
         </div>`;
@@ -1364,8 +1416,8 @@
 
     function renderGitHubDiscoveryResults(filtered, container, hasLocalResults) {
       if (!hasLocalResults) {
-        // 0 local results → put GitHub results right in the project grid
-        projectGrid.innerHTML = `
+        // 0 local results → put GitHub results right in the search result grid
+        document.getElementById('search-result-grid').innerHTML = `
           <div class="github-discovery github-discovery-primary">
             <h3><i data-lucide="github" style="width:18px;height:18px"></i> Found on GitHub</h3>
             <p class="gh-subtitle">Not in our catalog yet — like one? Submit it to the community.</p>
@@ -1373,7 +1425,6 @@
           </div>`;
         container.innerHTML = '';
         refreshIcons();
-        document.getElementById('projects').scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         // Has local results → secondary section below
         container.innerHTML = `
@@ -1414,7 +1465,7 @@
           </div>
         </div>`;
       if (!hasLocalResults) {
-        projectGrid.innerHTML = skeletonHtml;
+        document.getElementById('search-result-grid').innerHTML = skeletonHtml;
         container.innerHTML = '';
       } else {
         container.innerHTML = skeletonHtml;
@@ -1443,7 +1494,7 @@
 
         if (filtered.length === 0) {
           if (!hasLocalResults) {
-            projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="search" style="width:48px;height:48px"></i><p>No projects found for "${esc(queryText)}". Try a different search or browse categories.</p></div>`;
+            document.getElementById('search-result-grid').innerHTML = `<div class="empty-state"><i data-lucide="search" style="width:48px;height:48px"></i><p>No projects found for "${esc(queryText)}". Try a different search or browse categories.</p></div>`;
             refreshIcons();
           }
           container.innerHTML = '';
@@ -1520,6 +1571,9 @@
         });
       });
     }
+
+    // Make handleSearch available for inline onclick handlers
+    window.handleSearch = handleSearch;
 
     // ── Search: Discovery panel ─────────────────────────
     function renderDiscoveryPanel() {
