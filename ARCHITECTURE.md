@@ -1,7 +1,7 @@
 # AI Digital Crew — Architecture Document
 
 > **Domain:** [aidigitalcrew.com](https://aidigitalcrew.com)
-> **Last updated:** 2026-02-20 | **Version:** 2.0.0
+> **Last updated:** 2026-02-21 | **Version:** 3.0.0
 >
 > **Related docs:** [ROADMAP.md](./ROADMAP.md) (future feature directions) | [CLAUDE.md](./CLAUDE.md) (AI assistant guidelines)
 
@@ -20,17 +20,30 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 │   │ Auth UI  │  │ Submit   │  │ Project   │  │ Featured "Pick   │ │
 │   │ (OAuth)  │  │ Modal    │  │ Grid      │  │  of the Day"     │ │
 │   └────┬─────┘  └────┬─────┘  └─────┬─────┘  └───────┬──────────┘ │
-└────────┼─────────────┼───────────────┼────────────────┼─────────────┘
-         │             │               │                │
-         ▼             ▼               ▼                ▼
+│                                                                     │
+│   ┌──────────────────────────────────────────────────────────────┐  │
+│   │  Search Page (dedicated view)                                │  │
+│   │  Fuse.js (keyword) + Embedding cosine similarity (semantic)  │  │
+│   │  GitHub Discovery (live GitHub API search)                   │  │
+│   └──────────┬───────────────────────────────────────────────────┘  │
+└──────────────┼──────────────────────────────────────────────────────┘
+               │ getQueryEmbedding()
+               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        FIREBASE                                     │
 │   ┌──────────────────┐   ┌────────────────────────────────────┐    │
 │   │   Auth            │   │   Firestore                        │    │
-│   │ - GitHub OAuth    │   │   projects/ collection             │    │
-│   │ - Google OAuth    │   │   (public read, auth write)        │    │
-│   │ - Facebook OAuth  │   │                                    │    │
+│   │ - GitHub OAuth    │   │   projects/        (public read)   │    │
+│   │ - Google OAuth    │   │   searchCache/     (read-only)     │    │
+│   │ - Facebook OAuth  │   │   searchAnalytics/ (auth write)    │    │
 │   └──────────────────┘   └────────────────────────────────────┘    │
+│                                                                     │
+│   ┌──────────────────────────────────────────────────────────────┐  │
+│   │   Cloud Functions (2nd Gen, Node.js 20)                      │  │
+│   │   getQueryEmbedding — returns embedding for search query     │  │
+│   │   Gemini (primary) → Cloudflare Workers AI (fallback)        │  │
+│   │   Caches results in searchCache/ (24h TTL)                   │  │
+│   └──────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
          │                             ▲
          │                             │ writes
@@ -74,7 +87,10 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 | Hosting (prod) | GitHub Pages | Auto-deploys on push to `main` via GitHub Actions |
 | Hosting (staging) | Firebase Hosting | Auto-deploys on push to `staging` via `deploy-staging.yml` |
 | Auth | Firebase Auth v10.12 | GitHub, Google, Facebook OAuth providers |
-| Database | Cloud Firestore | Single `projects` collection |
+| Database | Cloud Firestore | `projects`, `searchCache`, `searchAnalytics` collections |
+| Cloud Functions | Firebase Functions (2nd Gen) | `getQueryEmbedding` — embedding generation with caching |
+| Search (keyword) | Fuse.js v7.0.0 (CDN) | Client-side fuzzy search with weighted fields |
+| Search (semantic) | Gemini Embeddings + Cloudflare Workers AI | Server-side embedding via Cloud Function, cosine similarity on client |
 | Automation | GitHub Actions | Cron job (`daily-scrape.yml`) at 6 AM UTC |
 | AI Content | Google Gemini 2.5 Flash | Generates project writeups + quick-start guides |
 | Newsletter | Substack | Published via Pipedream webhook bridge |
@@ -90,18 +106,18 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 
 ### 3.1 Firebase
 
-- **Project ID:** `ai-digital-crew`
+- **Project ID:** `ai-digital-crew` (Blaze plan)
 - **Auth domain:** `ai-digital-crew.firebaseapp.com`
-- **Services used:** Authentication, Cloud Firestore
-- **Frontend SDK:** Firebase JS SDK v10.12.0 (loaded via CDN)
-- **Backend SDK:** `firebase-admin ^12.0.0` (used in daily scrape)
+- **Services used:** Authentication, Cloud Firestore, Cloud Functions (2nd Gen)
+- **Frontend SDK:** Firebase JS SDK v10.12.0 (loaded via CDN, includes `firebase-functions` for callable)
+- **Backend SDK:** `firebase-admin ^12.0.0` (used in daily scrape + Cloud Functions)
 
 ### 3.2 GitHub REST API
 
 | Endpoint | Used By | Purpose |
 |----------|---------|---------|
 | `GET /repos/{owner}/{repo}` | Frontend + scraper | Fetch repo metadata, live stats |
-| `GET /search/repositories` | Scraper | Discover trending AI repos |
+| `GET /search/repositories` | Frontend (search page) + scraper | GitHub discovery (stars:>100, 10 per page) + daily trending |
 | `GET /repos/{owner}/{repo}/readme` | Scraper | Raw README for AI summarization |
 | `POST /repos/{owner}/{repo}/issues` | Scraper | Notify owners of featured projects |
 
@@ -171,16 +187,49 @@ projects/{projectId}
 │  (Auto-featured projects only)
 ├── writeup: string           # Gemini-generated summary
 ├── quickStart: string[]      # Gemini-generated steps
-└── autoAddedDate: string     # "YYYY-MM-DD"
+├── autoAddedDate: string     # "YYYY-MM-DD"
+│
+│  (Embedding vectors for semantic search)
+├── embedding_gemini: number[]     # Gemini embedding (3072 dimensions)
+└── embedding_cloudflare: number[] # Cloudflare BGE embedding (1024 dimensions)
 ```
 
-### 4.2 Security Rules
+### 4.2 Firestore Collection: `searchCache`
 
 ```
-projects: public read, authenticated create only
+searchCache/{sha256Hash}
+├── query: string              # normalized lowercase query
+├── embedding: number[]        # embedding vector (3072 for Gemini, 1024 for Cloudflare)
+├── provider: string           # "gemini" | "cloudflare"
+├── dimensions: number         # vector dimensionality
+└── createdAt: timestamp       # server timestamp (24h TTL)
 ```
 
-No update/delete rules exposed — defaults to deny. Daily bot writes via Firebase Admin SDK (bypasses rules).
+Written by Cloud Functions only (Admin SDK). Client has read-only access.
+
+### 4.3 Firestore Collection: `searchAnalytics`
+
+```
+searchAnalytics/{docId}
+├── query: string              # search query text
+├── resultCount: number        # number of results returned
+├── clickedProject: string     # (optional) project that was clicked
+├── clickPosition: number      # (optional) position in results list
+├── timestamp: timestamp       # server timestamp
+└── uid: string                # Firebase UID of searcher
+```
+
+Write-only from authenticated clients. No client reads (analytics are backend-only).
+
+### 4.4 Security Rules
+
+```
+projects:        public read, authenticated create only
+searchCache:     public read, no client write (Cloud Functions only)
+searchAnalytics: authenticated create/update, no read
+```
+
+No update/delete rules on projects — defaults to deny. Daily bot writes via Firebase Admin SDK (bypasses rules).
 
 ### 4.3 Quotas & Limits
 
@@ -327,6 +376,14 @@ state = {
   isLoading,           // boolean
   repoPreview,         // temp preview data during submission
   activeCategory,      // current filter tab ("All", "AI Agents", etc.)
+  currentView,         // "home" | "search" — controls which page is visible
+  searchQuery,         // current search query string
+  searchResults,       // scored results array | null
+  isSearching,         // boolean — true while embedding API call in progress
+  githubResults,       // GitHub discovery results | null
+  searchCache,         // Map — in-memory cache of search results (per session)
+  githubResultsCache,  // Map — in-memory cache of GitHub API results (per session)
+  lastGitHubApiCall,   // timestamp — rate limiting for GitHub search API
   pendingLinkCred,     // OAuthCredential for account linking
   pendingLinkProvider  // string: which provider is pending
 }
@@ -336,9 +393,10 @@ state = {
 
 | Section | Description |
 |---------|-------------|
-| Navbar | Sticky, blur-on-scroll (threshold: 60px), avatar dropdown with click-outside close, mobile hamburger |
-| Hero | Headline, CTA, animated stat pills (project count, total stars, % open source), 3 animated background orbs |
+| Navbar | Sticky, blur-on-scroll (threshold: 60px), Home/Projects/Search links, avatar dropdown, mobile hamburger. Active link highlighted via `.nav-active` |
+| Hero | Headline, "Browse Projects" CTA, animated stat pills (project count, total stars, % open source), 3 animated background orbs. No search bar (search is on its own page) |
 | Featured | "Today's Pick" spotlight card with writeup + quick start (conditional — only if daily pick exists) |
+| Search Page | Dedicated page (hidden by default). AI Search title, search input with autocomplete + discovery panel, trending pills, search result grid, GitHub discovery section. Accessed via "Search" nav link |
 | Project Grid | 3-col responsive grid, category filter tabs (only populated categories shown), lazy animation |
 | Submit Modal | URL input → 600ms debounced preview → submit with confetti |
 | Login Modal | OAuth provider buttons (GitHub, Google, Facebook) |
@@ -357,7 +415,69 @@ state = {
 - **`Promise.all`** — parallel GitHub API fetches for live stats on page load
 - **Stat pill animation** — `requestAnimationFrame` loop, 1200ms duration, cubic-out easing (`Math.pow`), `.toLocaleString()` for thousands separators
 
-### 7.4 Toast Notification System
+### 7.4 Navigation & View System
+
+The SPA has two views controlled by `navigateTo(view)`:
+
+| View | Visible Sections | Trigger |
+|------|-----------------|---------|
+| `home` | Hero, Featured, Projects (with category tabs) | "Home" or "Projects" nav link |
+| `search` | Search Page (full-screen) | "Search" nav link |
+
+`navigateTo()` toggles `display` on sections, scrolls to top, updates `.nav-active` on nav links, and sets `state.currentView`.
+
+### 7.5 Search System
+
+Search is a hybrid of keyword matching (Fuse.js) and semantic similarity (embeddings):
+
+```
+User types query
+  → 300ms debounce
+  → Intent classification:
+      exact match → instant result
+      "similar to X" → embedding-based similarity
+      category keyword → category-boosted search
+      default → full hybrid search
+  → Fuse.js keyword search (client-side, weighted fields)
+  → getQueryEmbedding Cloud Function (server-side)
+      → Check Firestore searchCache (24h TTL)
+      → Gemini embedding (primary) or Cloudflare Workers AI (fallback)
+  → Cosine similarity: query embedding vs project embeddings
+  → Combined score: 0.7 * semantic + 0.3 * keyword (when both present)
+  → Render results in #search-result-grid (capped at 12)
+  → GitHub Discovery: parallel GitHub API search (stars:>100, 10 results)
+      → Filter out projects already in catalog
+      → Show as secondary section (or primary if 0 local results)
+```
+
+**Autocomplete:** Fuse.js over project names + topics, shown on input (min 2 chars), keyboard navigation (arrow keys + Enter).
+
+**Discovery panel:** Shown on search input focus (when empty). Contains recent searches (localStorage), trending queries, category chips.
+
+**Trending pills:** 5 pre-set queries displayed below search input.
+
+**Match badges:** "Best Match" (score >= 0.6), "Good Match" (>= 0.4), "Related" (< 0.4).
+
+**Similar projects:** Collapsible section on each result card showing top 3 similar projects by embedding distance.
+
+**Caching layers:**
+1. `state.searchCache` — in-memory Map, per browser session
+2. `state.githubResultsCache` — in-memory Map, per browser session
+3. Firestore `searchCache` — server-side embedding cache, 24h TTL
+
+### 7.6 Cloud Functions
+
+**`getQueryEmbedding`** (2nd Gen, `us-central1`, Node.js 20):
+
+- **Trigger:** Callable from frontend via `httpsCallable(functions, 'getQueryEmbedding')`
+- **Input:** `{ query: string }`
+- **Output:** `{ embedding: number[], provider: string, dimensions: number, cached: boolean }`
+- **Provider chain:** Gemini `gemini-embedding-001` (3072 dims) → Cloudflare Workers AI `bge-large-en-v1.5` (1024 dims)
+- **Caching:** SHA-256 hash of normalized query → Firestore `searchCache` doc (24h TTL)
+- **Secrets:** `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (via Secret Manager)
+- **Max instances:** 10
+
+### 7.7 Toast Notification System
 
 - **Position:** Fixed bottom-right, `z-index: 9999`
 - **Types:** `success` (green, check-circle icon), `error` (red, x-circle icon), `info` (blue, info icon)
@@ -365,7 +485,7 @@ state = {
 - **Animation:** `slideIn` on appear, `slideOut` on dismiss (CSS keyframes)
 - **Icons:** Lucide SVG icons matched to toast type
 
-### 7.5 Category System
+### 7.8 Category System
 
 Categories are inferred from GitHub topics at render time:
 
@@ -379,7 +499,7 @@ Cloud / Infra, Blockchain / Web3, Database, Other
 
 Only categories with matching projects appear as filter tabs.
 
-### 7.6 CSS Architecture
+### 7.9 CSS Architecture
 
 **Custom properties (`:root`):**
 
@@ -402,7 +522,7 @@ Only categories with matching projects appear as filter tabs.
 - **Gradient buttons:** `background-size: 200% 200%` with animated `background-position` on hover
 - **Skeleton loading:** Shimmer animation — `background-size: 200% 100%`, moves position over 1.5s
 
-### 7.7 Responsive Breakpoints
+### 7.10 Responsive Breakpoints
 
 | Breakpoint | Grid | Hero Font | Nav | Footer |
 |-----------|------|-----------|-----|--------|
@@ -478,7 +598,16 @@ This is a one-time setup step. Re-deploy to staging whenever `firestore.rules` c
 - **No build step** — `index.html` is the deployed artifact
 - **Caching:** `index.html` uses GitHub Pages defaults (no explicit `Cache-Control`), `/assets/*` cached 7 days
 
-### 9.2 Firestore Rules
+### 9.2 Cloud Functions
+
+Deployed manually when `functions/` code changes:
+
+```bash
+firebase deploy --only functions --project ai-digital-crew
+firebase deploy --only functions --project ai-digital-crew-staging
+```
+
+### 9.3 Firestore Rules
 
 Deployed manually only when `firestore.rules` changes:
 
@@ -486,7 +615,7 @@ Deployed manually only when `firestore.rules` changes:
 firebase deploy --only firestore:rules --project ai-digital-crew
 ```
 
-### 9.3 GitHub Actions Workflows
+### 9.4 GitHub Actions Workflows
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
@@ -502,7 +631,7 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 - **Manual trigger:** Supports `workflow_dispatch` but no custom input parameters (no dry-run, skip-notify, etc.)
 - **Failure handling:** No retry logic — if the job fails, it fails silently (GitHub sends default failure email to repo owner)
 
-### 9.4 Environment Variables (GitHub Secrets)
+### 9.5 Environment Variables (GitHub Secrets)
 
 | Secret | Used By | Purpose | Notes |
 |--------|---------|---------|-------|
@@ -512,6 +641,16 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 | `GEMINI_API_KEY` | daily-scrape.js | AI writeup generation | Google AI Studio key |
 | `PIPEDREAM_WEBHOOK_URL` | substack-publish.js | Trigger Substack publication | URL is the auth mechanism |
 | `STAGING_FIREBASE_SERVICE_ACCOUNT` | deploy-staging.yml, daily-scrape-staging.yml | Admin access to staging Firebase project | JSON service account key for `ai-digital-crew-staging` |
+
+**Cloud Function Secrets (Firebase Secret Manager):**
+
+| Secret | Used By | Purpose |
+|--------|---------|---------|
+| `GEMINI_API_KEY` | `getQueryEmbedding` function | Gemini embedding API (primary provider) |
+| `CLOUDFLARE_ACCOUNT_ID` | `getQueryEmbedding` function | Cloudflare Workers AI account |
+| `CLOUDFLARE_API_TOKEN` | `getQueryEmbedding` function | Cloudflare Workers AI auth token |
+
+These are set on both `ai-digital-crew` (prod) and `ai-digital-crew-staging` projects via `firebase functions:secrets:set`.
 
 **Frontend (hardcoded in `index.html`):**
 - `firebaseConfig` object (API key, authDomain, projectId, etc.) — public by design, security enforced by Firestore rules and Cloud Console restrictions
@@ -689,7 +828,7 @@ doc
 ```
 ai-digital-crew/
 ├── index.html                  # Entire SPA (HTML + CSS + JS)
-├── firebase.json               # Firebase project config
+├── firebase.json               # Firebase project config (hosting + functions + Firestore)
 ├── firestore.rules             # Firestore security rules
 ├── _headers                    # HTTP security headers
 ├── CNAME                       # Custom domain: aidigitalcrew.com
@@ -698,9 +837,16 @@ ai-digital-crew/
 ├── ARCHITECTURE.md             # This file
 ├── .gitignore                  # Protects secrets & vendor files from commit
 │
+├── functions/
+│   ├── index.js                # Cloud Functions: getQueryEmbedding (Gemini + Cloudflare fallback)
+│   ├── package.json            # Node deps (firebase-admin, firebase-functions, generative-ai)
+│   └── package-lock.json
+│
 ├── scripts/
 │   ├── daily-scrape.js         # Daily pipeline orchestrator
 │   ├── substack-publish.js     # Pipedream/Substack payload builder
+│   ├── embedding-provider.js   # Shared embedding logic (Gemini + Cloudflare) for backfill
+│   ├── backfill-embeddings.js  # One-time script to generate embeddings for existing projects
 │   ├── capture_console.py      # Debug tool: Playwright browser console capture (not used in prod)
 │   ├── package.json            # Node deps (firebase-admin, generative-ai)
 │   └── package-lock.json
@@ -727,3 +873,4 @@ ai-digital-crew/
 | 2026-02-20 | 1.2.0 | Added security audit findings (section 9.6) — no secrets in git history |
 | 2026-02-20 | 2.0.0 | Comprehensive update: added DiceBear, toast system, CSS architecture, responsive breakpoints, error handling & resilience, observability & monitoring, Substack newsletter details, troubleshooting guide, rate limits & quotas, pipeline implementation details, known gaps, related doc links |
 | 2026-02-20 | 2.1.0 | Added staging environment (section 8): hostname-based config detection, pipeline skip flags, deploy-staging + daily-scrape-staging workflows, staging secrets, Firestore rules deployment |
+| 2026-02-21 | 3.0.0 | Added AI-powered semantic search system: dedicated search page, Cloud Functions (getQueryEmbedding), Fuse.js keyword search, embedding providers (Gemini + Cloudflare), new Firestore collections (searchCache, searchAnalytics), GitHub discovery, navigation/view system, updated system diagram and project structure |

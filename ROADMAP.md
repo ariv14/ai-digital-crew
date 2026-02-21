@@ -1,17 +1,21 @@
 # AI Digital Crew — Roadmap
 
 > Ideas to evolve from a passive showcase into an actively useful platform.
-> Status: research phase — not yet prioritised or scheduled.
 
 ---
 
-## Direction 1: AI Tool Finder (Semantic Search)
-Turn the site into a search engine for AI tools. Users describe what they want to do, and we return matching open-source projects using semantic/embedding-based search.
+## Direction 1: AI Tool Finder (Semantic Search) — SHIPPED
 
-- Replace keyword filter with natural language search
-- Embed project descriptions using Gemini embeddings
-- Store vectors in Firestore or a lightweight vector DB
-- "I need to do X" → ranked list of relevant projects
+> **Status:** Shipped 2026-02-21. Dedicated search page at `/` → "Search" nav link.
+
+Implemented as a hybrid keyword + semantic search system:
+
+- **Keyword search:** Fuse.js fuzzy matching across project name, description, writeup, topics, category
+- **Semantic search:** Gemini embeddings (3072 dims) with Cloudflare Workers AI fallback (1024 dims), cosine similarity scoring
+- **Cloud Function:** `getQueryEmbedding` generates and caches query embeddings (24h TTL in Firestore)
+- **GitHub Discovery:** Live GitHub API search (stars:>100, 10 results) for projects not yet in the catalog
+- **Features:** autocomplete, "did you mean?" suggestions, trending queries, recent searches, match badges, similar projects
+- **Architecture:** Dedicated search page (separate from landing hero), results in own grid (`#search-result-grid`)
 
 ---
 
@@ -54,7 +58,8 @@ Connect developers who want to contribute with projects that need help.
 ---
 
 ## Notes
-- Directions 1 + 2 are the strongest near-term bets — data pipeline already exists
+- Direction 1 is shipped — semantic search is live with dedicated search page
+- Direction 2 is the strongest near-term bet — data pipeline already exists
 - Direction 3 is low effort, high compounding value (audience building)
 - Directions 4 + 5 require more UX thinking and potentially owner opt-in
 - Inspiration: openclaw.ai (active utility vs passive browsing)
