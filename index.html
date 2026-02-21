@@ -108,9 +108,10 @@
     .avatar-dropdown a:hover,.avatar-dropdown button:hover{background:rgba(255,255,255,.05);color:var(--text)}
     .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
     .hamburger{display:none}
-    .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150}
+    .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150;background:rgba(15,23,42,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius)}
     .mobile-menu.open{display:flex}
     .mobile-menu a,.mobile-menu button{color:var(--text-muted);font-size:16px;padding:10px;border-radius:8px;transition:all .2s;text-align:left}
+    .mobile-search-btn{display:none}
 
     /* Hero */
     .hero{position:relative;z-index:1;min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px}
@@ -250,7 +251,7 @@
 
     @media(max-width:768px){
       .hero h1{font-size:36px}.hero .subtitle{font-size:16px}
-      .nav-links,.nav-right{display:none}.hamburger{display:block}
+      .nav-links,.nav-right{display:none}.hamburger{display:block}.mobile-search-btn{display:block;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px}
       .project-grid{grid-template-columns:repeat(2,1fr)}
       .footer-grid{grid-template-columns:repeat(2,1fr)}
       .stat-pill{padding:10px 16px;font-size:13px}.stats-bar{gap:12px}
@@ -368,8 +369,9 @@
       <a href="#" data-nav="search" id="nav-search-link">Search</a>
     </div>
     <div class="nav-right" id="nav-right"></div>
+    <button class="mobile-search-btn" id="mobile-search-btn" aria-label="Search"><i data-lucide="search" style="width:22px;height:22px"></i></button>
     <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
-    <div class="mobile-menu glass" id="mobile-menu"></div>
+    <div class="mobile-menu" id="mobile-menu"></div>
     <div class="avatar-dropdown glass" id="avatar-dropdown"></div>
   </nav>
 
@@ -586,6 +588,8 @@
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
     const mobileMenu = document.getElementById('mobile-menu');
+    const mobileSearchBtn = document.getElementById('mobile-search-btn');
+    mobileSearchBtn.addEventListener('click', () => { mobileMenu.classList.remove('open'); navigateTo('search'); });
     const avatarDropdown = document.getElementById('avatar-dropdown');
     const loginModal = document.getElementById('login-modal');
     const submitModal = document.getElementById('submit-modal');
@@ -689,12 +693,14 @@
           ? `<button id="mobile-logout">Logout</button>`
           : `<button id="mobile-login">Login / Join</button>`}
       `;
+      // Close menu on any nav link click
+      mobileMenu.querySelectorAll('a[data-nav]').forEach(a => {
+        a.addEventListener('click', (e) => { e.preventDefault(); mobileMenu.classList.remove('open'); navigateTo(a.dataset.nav === 'search' ? 'search' : 'home'); });
+      });
       const ml = document.getElementById('mobile-login');
-      if (ml) ml.addEventListener('click', openLoginModal);
+      if (ml) ml.addEventListener('click', () => { mobileMenu.classList.remove('open'); openLoginModal(); });
       const mlo = document.getElementById('mobile-logout');
-      if (mlo) mlo.addEventListener('click', logout);
-      const msl = document.getElementById('mobile-search-link');
-      if (msl) msl.addEventListener('click', (e) => { e.preventDefault(); mobileMenu.classList.remove('open'); navigateTo('search'); });
+      if (mlo) mlo.addEventListener('click', () => { mobileMenu.classList.remove('open'); logout(); });
       refreshIcons();
     }
 
