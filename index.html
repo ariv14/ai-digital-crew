@@ -114,7 +114,7 @@
     .quick-start ol li{margin-bottom:4px}
 
     /* Featured Spotlight */
-    .featured-section{padding-top:0;min-height:200px}
+    .featured-section{padding-top:0}
     .featured-spotlight{border-radius:var(--radius);overflow:hidden;border:1px solid rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(239,68,68,.04));position:relative}
     .featured-label{padding:16px 28px 0;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1.2px}
     .featured-label span{margin-left:auto;font-size:11px;font-weight:400;opacity:.6;text-transform:none;letter-spacing:0}
@@ -351,7 +351,7 @@
       </div>
     </section>
 
-    <section id="featured-section" class="featured-section" style="visibility:hidden">
+    <section id="featured-section" class="featured-section" style="display:none">
       <div class="section-container">
         <div id="featured-spotlight" class="featured-spotlight glass"></div>
       </div>
@@ -381,7 +381,7 @@
       </div>
     </section>
 
-    <section id="projects">
+    <section id="projects" style="display:none">
       <div class="section-container">
         <div class="section-header">
           <div>
@@ -719,20 +719,12 @@
 
       const featured = state.projects.find(p => p.source === 'auto');
       if (!featured) {
-        section.style.visibility = 'hidden';
-        section.style.position = 'absolute';
-        section.style.height = '0';
-        section.style.minHeight = '0';
-        section.style.overflow = 'hidden';
+        section.style.display = 'none';
         if (footerCol) footerCol.innerHTML = `<h3>🤖 Today's Pick</h3><span style="color:var(--text-muted);font-size:14px">Coming soon</span>`;
         return;
       }
 
-      section.style.visibility = 'visible';
-      section.style.position = '';
-      section.style.height = '';
-      section.style.minHeight = '';
-      section.style.overflow = '';
+      section.style.display = '';
       const langColor = LANG_COLORS[featured.language] || '#888';
       const topics = (featured.topics || []).slice(0, 5);
       const avatar = featured.ownerAvatar
@@ -999,7 +991,6 @@
     // ── Load projects from Firestore ────────────────────
     async function loadProjects() {
       state.isLoading = true;
-      renderProjects();
       try {
         const snap = await getDocs(collection(db, 'projects'));
         const stored = snap.docs.map(d => d.data()).sort((a, b) => {
@@ -1024,9 +1015,11 @@
         state.projects = [];
       }
       state.isLoading = false;
-      renderCategoryTabs();
-      renderProjects();
+      // Render featured first, then show projects — single layout pass, no CLS
       renderFeatured();
+      renderCategoryTabs();
+      document.getElementById('projects').style.display = '';
+      renderProjects();
     }
 
     // ── Utilities ───────────────────────────────────────
