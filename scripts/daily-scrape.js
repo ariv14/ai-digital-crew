@@ -15,6 +15,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { publishToSubstack } from './substack-publish.js';
+import { generateAllEmbeddings, projectToEmbeddingText } from './embedding-provider.js';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -289,6 +290,46 @@ async function main() {
   };
 
   await writeProjectToFirestore(db, projectDoc);
+
+  // 5b. Generate embeddings for the new project
+  console.log('Generating embeddings...');
+  try {
+    const embText = projectToEmbeddingText(projectDoc);
+    const embeddings = await generateAllEmbeddings(embText);
+    if (Object.keys(embeddings).length > 0) {
+      // Find the doc we just wrote and update with embeddings
+      const newSnap = await db.collection('projects').where('fullName', '==', projectDoc.fullName).limit(1).get();
+      if (!newSnap.empty) {
+        await newSnap.docs[0].ref.update(embeddings);
+        console.log(`Embeddings stored: ${Object.keys(embeddings).join(', ')}`);
+      }
+    }
+  } catch (embErr) {
+    console.warn('Embedding generation failed (non-fatal):', embErr.message);
+  }
+
+  // 5c. Backfill embeddings for user-submitted projects missing them
+  console.log('Checking for projects missing embeddings...');
+  try {
+    const allProjects = await db.collection('projects').get();
+    let backfilled = 0;
+    for (const d of allProjects.docs) {
+      const p = d.data();
+      if (p.embedding_gemini && p.embedding_jina) continue;
+      const text = projectToEmbeddingText(p);
+      if (!text.trim()) continue;
+      try {
+        const embs = await generateAllEmbeddings(text);
+        if (Object.keys(embs).length > 0) {
+          await d.ref.update(embs);
+          backfilled++;
+        }
+      } catch {}
+    }
+    if (backfilled > 0) console.log(`Backfilled embeddings for ${backfilled} projects`);
+  } catch (bfErr) {
+    console.warn('Backfill pass failed (non-fatal):', bfErr.message);
+  }
 
   // 6. Notify the repo owner via a GitHub issue
   if (process.env.SKIP_NOTIFY === 'true') {

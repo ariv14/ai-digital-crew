@@ -3,6 +3,7 @@ ai-digital-crew-firebase-adminsdk-*.json
 
 # Node dependencies
 scripts/node_modules/
+functions/node_modules/
 
 # Environment files
 .env

@@ -2,6 +2,13 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs20"
+    }
+  ],
   "hosting": {
     "public": ".",
     "ignore": [
@@ -12,6 +19,7 @@
       "ROADMAP.md",
       "README.md",
       "scripts/**",
+      "functions/**",
       ".github/**",
       "pipenode.txt",
       "node_modules/**"

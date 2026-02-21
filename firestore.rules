@@ -5,5 +5,14 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null;
     }
+    match /searchCache/{cacheId} {
+      allow read: if true;
+      allow write: if false; // only Cloud Functions (Admin SDK) can write
+    }
+    match /searchAnalytics/{docId} {
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow read: if false; // analytics are write-only from client
+    }
   }
 }
