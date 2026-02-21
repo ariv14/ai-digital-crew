@@ -291,6 +291,7 @@
 
     /* GitHub discovery section */
     .github-discovery{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+    .github-discovery-primary{margin-top:0;padding-top:0;border-top:none}
     .github-discovery h3{font-size:18px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
     .github-discovery .gh-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:16px}
     .gh-result-card{padding:16px;margin-bottom:12px}
@@ -1336,10 +1337,8 @@
     }
 
     // ── Search: GitHub discovery ─────────────────────────
-    function renderGitHubDiscoveryResults(filtered, container, hasLocalResults) {
-      const heading = hasLocalResults ? 'More from GitHub' : 'Found on GitHub';
-      const subtitle = hasLocalResults ? 'Not in our catalog yet' : '';
-      const resultsHtml = filtered.map(r => `
+    function ghResultCards(filtered) {
+      return filtered.map(r => `
         <div class="gh-result-card glass">
           <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a></h4>
           <p>${esc(r.description || 'No description')}</p>
@@ -1350,13 +1349,27 @@
             <button class="gh-submit-btn" onclick="submitGhProject('${esc(r.full_name)}')">+ Submit to AI Digital Crew</button>
           </div>
         </div>`).join('');
+    }
 
-      container.innerHTML = `
-        <div class="github-discovery">
-          <h3><i data-lucide="github" style="width:18px;height:18px"></i> ${heading}</h3>
-          ${subtitle ? `<p class="gh-subtitle">${subtitle}</p>` : ''}
-          ${resultsHtml}
-        </div>`;
+    function renderGitHubDiscoveryResults(filtered, container, hasLocalResults) {
+      if (!hasLocalResults) {
+        // 0 local results → put GitHub results right in the project grid
+        projectGrid.innerHTML = `
+          <div class="github-discovery github-discovery-primary">
+            <h3><i data-lucide="github" style="width:18px;height:18px"></i> Found on GitHub</h3>
+            <p class="gh-subtitle">Not in our catalog yet — like one? Submit it to the community.</p>
+            ${ghResultCards(filtered)}
+          </div>`;
+        container.innerHTML = '';
+      } else {
+        // Has local results → secondary section below
+        container.innerHTML = `
+          <div class="github-discovery">
+            <h3><i data-lucide="github" style="width:18px;height:18px"></i> More from GitHub</h3>
+            <p class="gh-subtitle">Not in our catalog yet</p>
+            ${ghResultCards(filtered)}
+          </div>`;
+      }
       refreshIcons();
     }
 
@@ -1378,22 +1391,27 @@
         return;
       }
 
-      // Show loading skeleton
-      container.innerHTML = `
-        <div class="github-discovery">
-          <h3><i data-lucide="github" style="width:18px;height:18px"></i> ${hasLocalResults ? 'More from GitHub' : 'Found on GitHub'}</h3>
+      // Show loading skeleton in the right place
+      const skeletonHtml = `
+        <div class="github-discovery${hasLocalResults ? '' : ' github-discovery-primary'}">
+          <h3><i data-lucide="github" style="width:18px;height:18px"></i> ${hasLocalResults ? 'More from GitHub' : 'Searching GitHub\u2026'}</h3>
           <div class="gh-skeleton">
             <div class="gh-skeleton-card"></div>
             <div class="gh-skeleton-card"></div>
           </div>
         </div>`;
+      if (!hasLocalResults) {
+        projectGrid.innerHTML = skeletonHtml;
+        container.innerHTML = '';
+      } else {
+        container.innerHTML = skeletonHtml;
+      }
       refreshIcons();
 
       // Rate limit: defer if last call was < 2 seconds ago
       const elapsed = Date.now() - state.lastGitHubApiCall;
       if (elapsed < 2000) {
         await new Promise(r => setTimeout(r, 2000 - elapsed));
-        // If query changed while waiting, abort
         if (state.searchQuery.toLowerCase() !== cacheKey) return;
       }
 
@@ -1408,15 +1426,17 @@
         state.githubResults = filtered;
         state.githubResultsCache.set(cacheKey, filtered);
 
-        // If the search query changed while we were fetching, don't render stale results
         if (state.searchQuery.toLowerCase() !== cacheKey) return;
 
         if (filtered.length === 0) {
+          if (!hasLocalResults) {
+            projectGrid.innerHTML = `<div class="empty-state"><i data-lucide="search" style="width:48px;height:48px"></i><p>No projects found for "${esc(queryText)}". Try a different search or browse categories.</p></div>`;
+            refreshIcons();
+          }
           container.innerHTML = '';
           return;
         }
 
-        // Re-check hasLocalResults since it may have changed
         const currentHasLocal = state.searchResults && state.searchResults.length > 0;
         renderGitHubDiscoveryResults(filtered, container, currentHasLocal);
       } catch (err) {
