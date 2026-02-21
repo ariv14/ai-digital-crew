@@ -695,7 +695,12 @@
       `;
       // Close menu on any nav link click
       mobileMenu.querySelectorAll('a[data-nav]').forEach(a => {
-        a.addEventListener('click', (e) => { e.preventDefault(); mobileMenu.classList.remove('open'); navigateTo(a.dataset.nav === 'search' ? 'search' : 'home'); });
+        a.addEventListener('click', (e) => {
+          e.preventDefault(); mobileMenu.classList.remove('open');
+          const target = a.getAttribute('href');
+          if (a.dataset.nav === 'search') { navigateTo('search'); }
+          else { navigateTo('home'); if (target === '#projects') setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 50); }
+        });
       });
       const ml = document.getElementById('mobile-login');
       if (ml) ml.addEventListener('click', () => { mobileMenu.classList.remove('open'); openLoginModal(); });
