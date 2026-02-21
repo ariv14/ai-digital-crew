@@ -1186,12 +1186,15 @@
       const searchTerms = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
 
       // Compute Fuse.js keyword matches once (outside the loop)
+      // Fuse score: 0 = perfect match, 1 = no match; threshold 0.3 caps it
+      // Normalize so best Fuse match → 1.0, threshold boundary → 0.0
       const fuseMatchMap = new Map();
       if (fuseProjects) {
         const fuseResults = fuseProjects.search(q);
         for (const r of fuseResults) {
           const key = r.item.fullName || r.item.name;
-          fuseMatchMap.set(key, 1 - (r.score || 0));
+          const normalized = 1 - (r.score / 0.3);  // 0→1.0, 0.3→0.0
+          fuseMatchMap.set(key, Math.max(0, normalized));
         }
       }
 
@@ -1213,9 +1216,9 @@
           keywordScore = fuseMatchMap.get(fuseKey);
         }
 
-        // Category boost — additive, not a floor; project still needs some relevance
-        if (intent.type === 'category_boost' && inferCategory(p) === intent.category) {
-          keywordScore += 0.15;
+        // Category boost — additive, only if project already has some relevance
+        if (intent.type === 'category_boost' && inferCategory(p) === intent.category && keywordScore > 0) {
+          keywordScore = Math.min(1, keywordScore + 0.15);
         }
 
         // Combined score
@@ -1226,12 +1229,14 @@
           combined = keywordScore;
         }
 
-        if (combined > 0.35) {
+        if (combined > 0.25) {
           scored.push({ project: p, score: combined });
         }
       }
 
       scored.sort((a, b) => b.score - a.score);
+      // Cap at 12 results to avoid showing the whole catalog
+      scored.splice(12);
       state.searchResults = scored;
       state.isSearching = false;
 
