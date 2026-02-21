@@ -8,13 +8,12 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to Cloudflare Pages (preview)
+      - name: Deploy to Cloudflare Pages (staging)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=aidigitalcrew --branch=staging
+          command: pages deploy . --project-name=aidigitalcrew-staging --branch=staging
