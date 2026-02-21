@@ -48,8 +48,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0" defer></script>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
   <style>
     :root {
       --bg: #0a0f1c;
@@ -509,7 +511,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
+    // Firebase Functions loaded lazily on first search (saves ~20KB from critical path)
 
     // ============================================================
     // FIREBASE CONFIG — environment detection by hostname
@@ -541,8 +543,14 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const functions = getFunctions(app);
-    const getQueryEmbeddingFn = httpsCallable(functions, 'getQueryEmbedding');
+    let getQueryEmbeddingFn = null;
+    async function loadFunctions() {
+      if (getQueryEmbeddingFn) return getQueryEmbeddingFn;
+      const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js');
+      const functions = getFunctions(app);
+      getQueryEmbeddingFn = httpsCallable(functions, 'getQueryEmbedding');
+      return getQueryEmbeddingFn;
+    }
 
     const LANG_COLORS = {TypeScript:'#3178c6',JavaScript:'#f1e05a',Python:'#3572A5',Rust:'#dea584',Go:'#00ADD8',Java:'#b07219',Ruby:'#701516',C:'#555555','C++':'#f34b7d','C#':'#178600',Swift:'#F05138',Kotlin:'#A97BFF',Shell:'#89e051'};
 
@@ -721,7 +729,7 @@
         return `
           <div class="project-card glass">
             <div class="project-banner">
-              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}" width="48" height="48">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
+              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
               ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
             </div>
             <div class="project-body">
@@ -761,7 +769,7 @@
       const langColor = LANG_COLORS[featured.language] || '#888';
       const topics = (featured.topics || []).slice(0, 5);
       const avatar = featured.ownerAvatar
-        ? `<img src="${featured.ownerAvatar}" alt="${esc(featured.owner)}" class="featured-avatar" width="72" height="72">`
+        ? `<img src="${featured.ownerAvatar}" alt="${esc(featured.owner)}" class="featured-avatar" width="72" height="72" loading="lazy">`
         : `<div class="featured-avatar-initial">${(featured.name||'P').charAt(0).toUpperCase()}</div>`;
 
       spotlight.innerHTML = `
@@ -1010,9 +1018,14 @@
         closeSubmitModal();
         renderProjects();
 
-        setTimeout(() => {
-          confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'] });
+        setTimeout(async () => {
           showToast('Project submitted!', 'success');
+          try {
+            if (!window.confetti) {
+              await import('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/+esm');
+            }
+            confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'] });
+          } catch {}
         }, 100);
       } catch (err) {
         showToast('Failed to submit. Try again.', 'error');
@@ -1042,7 +1055,7 @@
         }));
 
         state.projects = refreshed;
-        initFuse();
+        await initFuse();
       } catch (err) {
         console.error('loadProjects error:', err);
         state.projects = [];
@@ -1059,9 +1072,10 @@
     function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
     let iconsTimer = null;
+    const scheduleIdle = window.requestIdleCallback || (cb => setTimeout(cb, 50));
     function refreshIcons() {
       clearTimeout(iconsTimer);
-      iconsTimer = setTimeout(() => lucide.createIcons(), 50);
+      iconsTimer = setTimeout(() => scheduleIdle(() => lucide.createIcons()), 0);
     }
 
     function showToast(message, type = 'success', duration = 3000) {
@@ -1111,8 +1125,20 @@
     let fuseAutocomplete = null;
     const TRENDING_QUERIES = ['RAG pipeline', 'code review agent', 'image generation', 'LLM fine-tuning', 'autonomous agent', 'vector database', 'chatbot framework', 'data pipeline', 'AI coding assistant', 'model deployment'];
 
-    function initFuse() {
+    async function ensureFuse() {
+      if (typeof Fuse !== 'undefined') return;
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/fuse.js@7.0.0';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function initFuse() {
       if (!state.projects.length) return;
+      await ensureFuse();
       fuseProjects = new Fuse(state.projects, {
         keys: [{ name: 'name', weight: 0.3 }, { name: 'description', weight: 0.25 }, { name: 'writeup', weight: 0.2 }, { name: 'topics', weight: 0.15 }, { name: 'category', weight: 0.1 }],
         threshold: 0.3,
@@ -1269,7 +1295,8 @@
       let embProvider = null;
 
       try {
-        const result = await getQueryEmbeddingFn({ query: q });
+        const fn = await loadFunctions();
+        const result = await fn({ query: q });
         queryEmbedding = result.data.embedding;
         embProvider = result.data.provider;
       } catch (err) {
@@ -1403,7 +1430,7 @@
         return `
           <div class="project-card glass visible" data-fullname="${esc(p.fullName || '')}" data-score="${score}">
             <div class="project-banner">
-              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}" width="48" height="48">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
+              ${p.ownerAvatar ? `<img src="${p.ownerAvatar}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
               ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
             </div>
             <div class="project-body">
@@ -1434,7 +1461,7 @@
         const langColor = LANG_COLORS[r.language] || '#888';
         return `
         <div class="gh-result-card glass">
-          <img class="gh-result-avatar" src="https://github.com/${esc(owner)}.png?size=72" alt="${esc(owner)}" width="36" height="36">
+          <img class="gh-result-avatar" src="https://github.com/${esc(owner)}.png?size=72" alt="${esc(owner)}" width="36" height="36" loading="lazy">
           <div class="gh-result-body">
             <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a><span class="gh-source-tag">GitHub</span></h4>
             <p>${esc((r.description || 'No description').slice(0, 160))}</p>

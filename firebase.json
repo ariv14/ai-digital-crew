@@ -24,6 +24,20 @@
       "pipenode.txt",
       "node_modules/**"
     ],
+    "headers": [
+      {
+        "source": "favicon.png",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }]
+      },
+      {
+        "source": "og-image.png",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }]
+      },
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+      }
+    ],
     "cleanUrls": true,
     "rewrites": [
       {
