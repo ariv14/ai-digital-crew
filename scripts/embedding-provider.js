@@ -14,13 +14,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const PROVIDERS = {
   gemini: {
     name: 'gemini',
-    model: 'text-embedding-004',
-    dimensions: 768,
+    model: 'gemini-embedding-001',
+    dimensions: 3072,
     async generate(text) {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error('GEMINI_API_KEY not set');
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
       const result = await model.embedContent(text);
       return result.embedding.values;
     },

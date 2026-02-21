@@ -25,9 +25,9 @@ function hashQuery(query) {
 
 async function embedWithGemini(text, apiKey) {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
   const result = await model.embedContent(text);
-  return { values: result.embedding.values, provider: 'gemini', dimensions: 768 };
+  return { values: result.embedding.values, provider: 'gemini', dimensions: 3072 };
 }
 
 async function embedWithCloudflare(text, accountId, apiToken) {
