@@ -39,7 +39,7 @@ async function main() {
     const id = docSnap.id;
 
     // Skip if already has embeddings (unless --force)
-    if (!force && project.embedding_gemini && project.embedding_jina) {
+    if (!force && project.embedding_gemini && project.embedding_cloudflare) {
       skipped++;
       continue;
     }

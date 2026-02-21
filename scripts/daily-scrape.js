@@ -315,7 +315,7 @@ async function main() {
     let backfilled = 0;
     for (const d of allProjects.docs) {
       const p = d.data();
-      if (p.embedding_gemini && p.embedding_jina) continue;
+      if (p.embedding_gemini && p.embedding_cloudflare) continue;
       const text = projectToEmbeddingText(p);
       if (!text.trim()) continue;
       try {

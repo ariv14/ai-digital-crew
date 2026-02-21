@@ -2,10 +2,10 @@
  * Cloud Functions for AI Digital Crew
  *
  * getQueryEmbedding — Callable function that returns an embedding for a search query.
- * Uses Gemini (primary) with Jina AI fallback. Checks Firestore searchCache first.
+ * Uses Gemini (primary) with Cloudflare Workers AI fallback. Checks Firestore searchCache first.
  *
  * Secrets (set via firebase functions:secrets:set):
- *   GEMINI_API_KEY, JINA_API_KEY
+ *   GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
  */
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
@@ -30,30 +30,30 @@ async function embedWithGemini(text, apiKey) {
   return { values: result.embedding.values, provider: 'gemini', dimensions: 768 };
 }
 
-async function embedWithJina(text, apiKey) {
-  const res = await fetch('https://api.jina.ai/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'jina-embeddings-v3',
-      task: 'text-matching',
-      input: [text],
-    }),
-  });
+async function embedWithCloudflare(text, accountId, apiToken) {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/baai/bge-large-en-v1.5`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({ text: [text] }),
+    }
+  );
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Jina API ${res.status}: ${body}`);
+    throw new Error(`Cloudflare AI ${res.status}: ${body}`);
   }
   const data = await res.json();
-  return { values: data.data[0].embedding, provider: 'jina', dimensions: 1024 };
+  if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors)}`);
+  return { values: data.result.data[0], provider: 'cloudflare', dimensions: 1024 };
 }
 
 export const getQueryEmbedding = onCall(
   {
-    secrets: ['GEMINI_API_KEY', 'JINA_API_KEY'],
+    secrets: ['GEMINI_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
     maxInstances: 10,
     region: 'us-central1',
   },
@@ -84,7 +84,8 @@ export const getQueryEmbedding = onCall(
     // Generate embedding with fallback chain
     let result;
     const geminiKey = process.env.GEMINI_API_KEY;
-    const jinaKey = process.env.JINA_API_KEY;
+    const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const cfToken = process.env.CLOUDFLARE_API_TOKEN;
 
     try {
       if (geminiKey) {
@@ -95,13 +96,13 @@ export const getQueryEmbedding = onCall(
     } catch (geminiErr) {
       console.warn('Gemini embedding failed:', geminiErr.message);
       try {
-        if (jinaKey) {
-          result = await embedWithJina(normalizedQuery, jinaKey);
+        if (cfAccountId && cfToken) {
+          result = await embedWithCloudflare(normalizedQuery, cfAccountId, cfToken);
         } else {
-          throw new Error('No JINA_API_KEY');
+          throw new Error('CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set');
         }
-      } catch (jinaErr) {
-        console.error('All embedding providers failed:', jinaErr.message);
+      } catch (cfErr) {
+        console.error('All embedding providers failed:', cfErr.message);
         throw new HttpsError('internal', 'All embedding providers failed');
       }
     }

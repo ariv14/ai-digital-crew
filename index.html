@@ -928,7 +928,7 @@
         const refreshed = await Promise.all(stored.map(async (p) => {
           try {
             const fresh = await fetchRepoData(p.owner, p.name);
-            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName, category: p.category || '', embedding_gemini: p.embedding_gemini || null, embedding_jina: p.embedding_jina || null };
+            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName, category: p.category || '', embedding_gemini: p.embedding_gemini || null, embedding_cloudflare: p.embedding_cloudflare || null };
           } catch {}
           return p;
         }));
@@ -1079,7 +1079,7 @@
 
     // ── Search: Similar projects ────────────────────────
     function findSimilarProjects(project, count = 3) {
-      const providerKey = project.embedding_gemini ? 'embedding_gemini' : project.embedding_jina ? 'embedding_jina' : null;
+      const providerKey = project.embedding_gemini ? 'embedding_gemini' : project.embedding_cloudflare ? 'embedding_cloudflare' : null;
       if (!providerKey || !project[providerKey]) return [];
       const results = [];
       for (const p of state.projects) {

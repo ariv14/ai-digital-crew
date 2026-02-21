@@ -1,11 +1,12 @@
 /**
  * embedding-provider.js — Shared embedding provider abstraction
  *
- * Supports Gemini (primary) and Jina AI (fallback).
+ * Supports Gemini (primary) and Cloudflare Workers AI (fallback).
  * Env vars:
- *   EMBEDDING_PROVIDER — primary provider: 'gemini' (default) or 'jina'
- *   GEMINI_API_KEY     — Google AI API key
- *   JINA_API_KEY       — Jina AI API key
+ *   EMBEDDING_PROVIDER       — primary provider: 'gemini' (default) or 'cloudflare'
+ *   GEMINI_API_KEY           — Google AI API key
+ *   CLOUDFLARE_ACCOUNT_ID    — Cloudflare account ID
+ *   CLOUDFLARE_API_TOKEN     — Cloudflare Workers AI API token
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -24,36 +25,37 @@ const PROVIDERS = {
       return result.embedding.values;
     },
   },
-  jina: {
-    name: 'jina',
-    model: 'jina-embeddings-v3',
+  cloudflare: {
+    name: 'cloudflare',
+    model: 'bge-large-en-v1.5',
     dimensions: 1024,
     async generate(text) {
-      const apiKey = process.env.JINA_API_KEY;
-      if (!apiKey) throw new Error('JINA_API_KEY not set');
-      const res = await fetch('https://api.jina.ai/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'jina-embeddings-v3',
-          task: 'text-matching',
-          input: [text],
-        }),
-      });
+      const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+      const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+      if (!accountId || !apiToken) throw new Error('CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set');
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/baai/bge-large-en-v1.5`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiToken}`,
+          },
+          body: JSON.stringify({ text: [text] }),
+        }
+      );
       if (!res.ok) {
         const body = await res.text();
-        throw new Error(`Jina API error ${res.status}: ${body}`);
+        throw new Error(`Cloudflare AI error ${res.status}: ${body}`);
       }
       const data = await res.json();
-      return data.data[0].embedding;
+      if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors)}`);
+      return data.result.data[0];
     },
   },
 };
 
-const FALLBACK_ORDER = ['gemini', 'jina'];
+const FALLBACK_ORDER = ['gemini', 'cloudflare'];
 
 /**
  * Generate an embedding using a specific provider (or primary with fallback).
@@ -88,7 +90,7 @@ export async function generateEmbedding(text, provider) {
 
 /**
  * Generate embeddings for ALL configured providers.
- * Returns an object like { embedding_gemini: [...], embedding_jina: [...] }
+ * Returns an object like { embedding_gemini: [...], embedding_cloudflare: [...] }
  * Skips providers missing API keys silently.
  * @param {string} text
  * @returns {Promise<Record<string, number[]>>}
