@@ -294,17 +294,21 @@
     .github-discovery-primary{margin-top:0;padding-top:0;border-top:none}
     .github-discovery h3{font-size:18px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
     .github-discovery .gh-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:16px}
-    .gh-result-card{padding:16px;margin-bottom:12px}
-    .gh-result-card h4{font-size:15px;font-weight:600;margin-bottom:4px}
+    .gh-result-card{padding:20px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;transition:transform .2s,box-shadow .2s}
+    .gh-result-card:hover{transform:translateY(-2px);box-shadow:0 0 20px rgba(59,130,246,.1)}
+    .gh-result-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;border:1px solid var(--border)}
+    .gh-result-body{flex:1;min-width:0}
+    .gh-result-card h4{font-size:15px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:8px}
     .gh-result-card h4 a{color:var(--text);transition:color .2s}
     .gh-result-card h4 a:hover{color:var(--primary)}
-    .gh-result-card p{font-size:13px;color:var(--text-muted);margin-bottom:8px}
-    .gh-result-meta{display:flex;gap:12px;font-size:12px;color:var(--text-muted);align-items:center;flex-wrap:wrap}
+    .gh-result-card h4 .gh-source-tag{font-size:10px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;flex-shrink:0}
+    .gh-result-card p{font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.5}
+    .gh-result-meta{display:flex;gap:14px;font-size:12px;color:var(--text-muted);align-items:center;flex-wrap:wrap}
     .gh-result-meta span{display:flex;align-items:center;gap:4px}
-    .gh-submit-btn{margin-left:auto;padding:4px 12px;font-size:12px;font-weight:600;color:var(--primary);border:1px solid var(--primary);border-radius:8px;background:transparent;cursor:pointer;transition:all .2s}
+    .gh-submit-btn{margin-left:auto;padding:6px 14px;font-size:12px;font-weight:600;color:var(--primary);border:1px solid var(--primary);border-radius:8px;background:transparent;cursor:pointer;transition:all .2s;white-space:nowrap}
     .gh-submit-btn:hover{background:rgba(59,130,246,.1)}
     .gh-skeleton{display:flex;flex-direction:column;gap:12px}
-    .gh-skeleton-card{height:80px;border-radius:12px;background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:ghShimmer 1.5s infinite}
+    .gh-skeleton-card{height:90px;border-radius:var(--radius);background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:ghShimmer 1.5s infinite}
     @keyframes ghShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
   </style>
 </head>
@@ -1338,17 +1342,24 @@
 
     // ── Search: GitHub discovery ─────────────────────────
     function ghResultCards(filtered) {
-      return filtered.map(r => `
+      return filtered.map(r => {
+        const owner = r.full_name.split('/')[0];
+        const langColor = LANG_COLORS[r.language] || '#888';
+        return `
         <div class="gh-result-card glass">
-          <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a></h4>
-          <p>${esc(r.description || 'No description')}</p>
-          <div class="gh-result-meta">
-            <span><i data-lucide="star" style="width:12px;height:12px"></i> ${(r.stargazers_count||0).toLocaleString()}</span>
-            <span><i data-lucide="git-fork" style="width:12px;height:12px"></i> ${(r.forks_count||0).toLocaleString()}</span>
-            ${r.language ? `<span>${esc(r.language)}</span>` : ''}
-            <button class="gh-submit-btn" onclick="submitGhProject('${esc(r.full_name)}')">+ Submit to AI Digital Crew</button>
+          <img class="gh-result-avatar" src="https://github.com/${esc(owner)}.png?size=72" alt="${esc(owner)}">
+          <div class="gh-result-body">
+            <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a><span class="gh-source-tag">GitHub</span></h4>
+            <p>${esc((r.description || 'No description').slice(0, 160))}</p>
+            <div class="gh-result-meta">
+              <span><i data-lucide="star" style="width:12px;height:12px"></i> ${(r.stargazers_count||0).toLocaleString()}</span>
+              <span><i data-lucide="git-fork" style="width:12px;height:12px"></i> ${(r.forks_count||0).toLocaleString()}</span>
+              ${r.language ? `<span><span class="project-lang-dot" style="background:${langColor}"></span> ${esc(r.language)}</span>` : ''}
+              <button class="gh-submit-btn" onclick="submitGhProject('${esc(r.full_name)}')"><i data-lucide="plus" style="width:12px;height:12px"></i> Submit</button>
+            </div>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     function renderGitHubDiscoveryResults(filtered, container, hasLocalResults) {
@@ -1361,6 +1372,8 @@
             ${ghResultCards(filtered)}
           </div>`;
         container.innerHTML = '';
+        refreshIcons();
+        document.getElementById('projects').scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         // Has local results → secondary section below
         container.innerHTML = `
@@ -1369,8 +1382,8 @@
             <p class="gh-subtitle">Not in our catalog yet</p>
             ${ghResultCards(filtered)}
           </div>`;
+        refreshIcons();
       }
-      refreshIcons();
     }
 
     async function renderGitHubDiscovery(queryText, container) {
