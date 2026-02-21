@@ -1221,10 +1221,16 @@
           keywordScore = Math.min(1, keywordScore + 0.15);
         }
 
-        // Combined score
+        // Combined score — require meaningful relevance
         let combined;
         if (queryEmbedding && semanticScore > 0) {
-          combined = 0.7 * semanticScore + 0.3 * keywordScore;
+          // Semantic-only results need high similarity; keyword match lowers the bar
+          if (keywordScore > 0) {
+            combined = 0.7 * semanticScore + 0.3 * keywordScore;
+          } else {
+            // No keyword match — semantic only, require stronger signal
+            combined = semanticScore >= 0.55 ? semanticScore : 0;
+          }
         } else {
           combined = keywordScore;
         }
