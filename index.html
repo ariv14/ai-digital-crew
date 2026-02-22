@@ -111,7 +111,9 @@
     .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150;background:rgba(15,23,42,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius)}
     .mobile-menu.open{display:flex}
     .mobile-menu a,.mobile-menu button{color:var(--text-muted);font-size:16px;padding:10px;border-radius:8px;transition:all .2s;text-align:left}
-    .mobile-search-btn{display:none}
+    .mobile-nav-icons{display:none;align-items:center;gap:10px}
+    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;text-decoration:none;transition:color .2s}
+    .mobile-nav-icon:hover{color:var(--text)}
 
     /* Hero */
     .hero{position:relative;z-index:1;min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px}
@@ -251,7 +253,7 @@
 
     @media(max-width:768px){
       .hero h1{font-size:36px}.hero .subtitle{font-size:16px}
-      .nav-links,.nav-right{display:none}.hamburger{display:block}.mobile-search-btn{display:block;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px}
+      .nav-links,.nav-right{display:none}.hamburger{display:block}.mobile-nav-icons{display:flex}
       .project-grid{grid-template-columns:repeat(2,1fr)}
       .footer-grid{grid-template-columns:repeat(2,1fr)}
       .stat-pill{padding:10px 16px;font-size:13px}.stats-bar{gap:12px}
@@ -366,10 +368,14 @@
     <div class="nav-links">
       <a href="#home" data-nav="home">Home</a>
       <a href="#projects" data-nav="home">Projects</a>
+      <a href="/trending">Trending</a>
       <a href="#" data-nav="search" id="nav-search-link">Search</a>
     </div>
     <div class="nav-right" id="nav-right"></div>
-    <button class="mobile-search-btn" id="mobile-search-btn" aria-label="Search"><i data-lucide="search" style="width:22px;height:22px"></i></button>
+    <div class="mobile-nav-icons">
+      <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></button>
+      <a href="/trending" class="mobile-nav-icon" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
+    </div>
     <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
     <div class="mobile-menu" id="mobile-menu"></div>
     <div class="avatar-dropdown glass" id="avatar-dropdown"></div>
@@ -631,6 +637,9 @@
     // Wire desktop nav search link
     document.getElementById('nav-search-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('search'); });
 
+    // Handle initial hash for cross-page navigation (e.g. from /trending)
+    if (location.hash === '#search') navigateTo('search');
+
     // Wire Home/Projects links to go back to home view
     document.querySelectorAll('.nav-links a[data-nav="home"]').forEach(a => {
       a.addEventListener('click', () => {
@@ -688,7 +697,7 @@
         document.getElementById('nav-login-btn').addEventListener('click', openLoginModal);
       }
       mobileMenu.innerHTML = `
-        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="#" data-nav="search" id="mobile-search-link">Search</a>
+        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="/trending">Trending</a><a href="#" data-nav="search" id="mobile-search-link">Search</a>
         ${state.isLoggedIn
           ? `<button id="mobile-logout">Logout</button>`
           : `<button id="mobile-login">Login / Join</button>`}
@@ -1051,7 +1060,7 @@
       state.isLoading = true;
       try {
         const snap = await getDocs(collection(db, 'projects'));
-        const stored = snap.docs.map(d => d.data()).sort((a, b) => {
+        const stored = snap.docs.map(d => d.data()).filter(p => p.source !== 'trending-ai' && p.source !== 'trending-global').sort((a, b) => {
           const ta = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
           const tb = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
           return tb - ta;
@@ -1061,7 +1070,7 @@
         const refreshed = await Promise.all(stored.map(async (p) => {
           try {
             const fresh = await fetchRepoData(p.owner, p.name);
-            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName, category: p.category || '', embedding_gemini: p.embedding_gemini || null, embedding_cloudflare: p.embedding_cloudflare || null };
+            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName, category: p.category || '', embedding_gemini: p.embedding_gemini || null, embedding_cloudflare: p.embedding_cloudflare || null, trend_stars7d: p.trend_stars7d, trend_starsPct7d: p.trend_starsPct7d, trend_forks7d: p.trend_forks7d, trend_momentum: p.trend_momentum, trend_label: p.trend_label, trend_sparkline: p.trend_sparkline, trend_updatedAt: p.trend_updatedAt };
           } catch {}
           return p;
         }));
@@ -1078,6 +1087,8 @@
       renderCategoryTabs();
       document.getElementById('projects').style.display = '';
       renderProjects();
+      // Handle #projects hash after data loads (cross-page nav from /trending)
+      if (location.hash === '#projects') setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 100);
     }
 
     // ── Utilities ───────────────────────────────────────

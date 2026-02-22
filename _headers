@@ -10,6 +10,12 @@
 /index.html
   Cache-Control: public, max-age=3600
 
+/trending.html
+  Cache-Control: public, max-age=3600
+
+/project.html
+  Cache-Control: public, max-age=3600
+
 /assets/*
   Cache-Control: public, max-age=604800
 

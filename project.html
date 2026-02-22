@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project — AI Digital Crew</title>
+  <meta name="description" content="Detailed project page with star history, trend data, and embeddable badges.">
+  <meta name="theme-color" content="#0a0f1c">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <style>
+    :root {
+      --bg: #0a0f1c;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+      --primary: #3b82f6;
+      --primary-end: #8b5cf6;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --radius: 16px;
+      --success: #10b981;
+      --error: #ef4444;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;min-height:100vh}
+    h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.4;z-index:0;pointer-events:none;will-change:transform;contain:strict}
+    #orb-1{width:500px;height:500px;background:#3b82f6;top:-10%;left:-5%;animation:o1 20s ease-in-out infinite}
+    #orb-2{width:400px;height:400px;background:#8b5cf6;top:40%;right:-10%;animation:o2 25s ease-in-out infinite}
+    @keyframes o1{0%,100%{transform:translate(0,0)}33%{transform:translate(60px,80px)}66%{transform:translate(-40px,50px)}}
+    @keyframes o2{0%,100%{transform:translate(0,0)}33%{transform:translate(-70px,-50px)}66%{transform:translate(50px,60px)}}
+
+    .glass{background:var(--surface);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius)}
+
+    /* Nav */
+    nav{position:sticky;top:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:all .3s ease}
+    nav.scrolled{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(10,15,28,.8);border-bottom:1px solid var(--border)}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px}
+    .nav-logo i{color:var(--primary)}
+    .nav-links{display:flex;align-items:center;gap:32px}
+    .nav-links a{color:var(--text-muted);font-size:15px;font-weight:500;transition:color .2s}
+    .nav-links a:hover{color:var(--text)}
+    .nav-right{display:flex;align-items:center;gap:16px}
+    .hamburger{display:none;background:none;border:none;color:var(--text);cursor:pointer}
+    .mobile-nav-icons{display:none;align-items:center;gap:10px}
+    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;text-decoration:none;transition:color .2s}
+    .mobile-nav-icon:hover{color:var(--text)}
+    .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150;background:rgba(15,23,42,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius)}
+    .mobile-menu.open{display:flex}
+    .mobile-menu a{color:var(--text-muted);font-size:16px;padding:10px;border-radius:8px;transition:all .2s}
+    .mobile-menu a:hover{color:var(--text);background:rgba(255,255,255,.05)}
+
+    /* Project header */
+    .project-hero{position:relative;z-index:1;padding:100px 24px 40px;max-width:900px;margin:0 auto}
+    .project-breadcrumb{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+    .project-breadcrumb a{color:var(--primary);transition:color .2s}
+    .project-breadcrumb a:hover{color:var(--text)}
+    .project-title-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .project-avatar{width:48px;height:48px;border-radius:12px;border:2px solid var(--border)}
+    .project-title{font-size:40px;font-weight:700;line-height:1.1;background:linear-gradient(135deg,var(--text),#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .project-owner{font-size:16px;color:var(--text-muted);margin-top:6px}
+    .project-desc{font-size:16px;color:var(--text-muted);margin-top:16px;line-height:1.7;max-width:700px}
+    .project-links{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+    .project-link{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);transition:all .2s}
+    .project-link:hover{border-color:var(--primary);color:var(--text)}
+    .project-link.primary{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+
+    /* Trend badge */
+    .trend-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;font-size:12px;font-weight:600;border-radius:6px;white-space:nowrap}
+    .trend-badge.hot{background:rgba(239,68,68,.15);color:#f87171}
+    .trend-badge.rising{background:rgba(16,185,129,.15);color:#34d399}
+    .trend-badge.steady{background:rgba(148,163,184,.12);color:#94a3b8}
+    .trend-badge.declining{background:rgba(148,163,184,.08);color:#64748b}
+    .trend-badge.new-project{background:rgba(59,130,246,.15);color:#60a5fa}
+
+    /* Stats grid */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px;max-width:900px;margin-left:auto;margin-right:auto;padding:0 24px}
+    .stat-card{padding:24px;text-align:center;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+    .stat-card .stat-val{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#60a5fa}
+    .stat-card .stat-val.green{color:#34d399}
+    .stat-card .stat-val.red{color:#f87171}
+    .stat-card .stat-label{font-size:12px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+
+    /* Momentum bar (large) */
+    .momentum-large{margin-top:8px;display:flex;align-items:center;gap:10px;max-width:900px;margin-left:auto;margin-right:auto;padding:0 24px}
+    .momentum-large .track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+    .momentum-large .fill{height:100%;border-radius:4px;transition:width .8s ease}
+    .momentum-large .fill.hot{background:linear-gradient(90deg,#ef4444,#f97316)}
+    .momentum-large .fill.rising{background:linear-gradient(90deg,#10b981,#3b82f6)}
+    .momentum-large .fill.steady{background:#64748b}
+    .momentum-large .fill.declining{background:#475569}
+    .momentum-large .fill.new-project{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+    .momentum-large .val{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;min-width:50px;text-align:right}
+    .momentum-large .lbl{font-size:13px;color:var(--text-muted);font-weight:600;min-width:80px}
+
+    /* Star chart */
+    .chart-section{position:relative;z-index:1;padding:40px 24px;max-width:900px;margin:0 auto}
+    .chart-title{font-size:20px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .chart-container{border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:24px;overflow-x:auto}
+    .chart-container svg{display:block;max-width:100%}
+
+    /* Embed section */
+    .embed-section{position:relative;z-index:1;padding:40px 24px;max-width:900px;margin:0 auto}
+    .embed-title{font-size:20px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .embed-card{border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:24px}
+    .embed-preview{margin-bottom:20px}
+    .embed-snippet{position:relative;margin-bottom:16px}
+    .embed-snippet label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+    .embed-snippet code{display:block;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:13px;font-family:'JetBrains Mono','Fira Code',monospace;color:var(--text-muted);word-break:break-all;white-space:pre-wrap}
+    .copy-btn{position:absolute;top:28px;right:8px;padding:4px 12px;font-size:11px;font-weight:600;border-radius:6px;background:rgba(59,130,246,.15);color:#60a5fa;cursor:pointer;border:none;transition:all .2s}
+    .copy-btn:hover{background:rgba(59,130,246,.3)}
+
+    /* Loading */
+    .loading-state{text-align:center;padding:120px 24px}
+    .loading-state p{color:var(--text-muted);font-size:16px;margin-top:16px}
+
+    /* Footer */
+    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:48px 24px 24px;margin-top:80px}
+    .footer-grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+    .footer-col{display:flex;flex-direction:column;gap:8px}
+    .footer-heading{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;margin-bottom:8px}
+    .footer-col a{color:var(--text-muted);font-size:14px;transition:color .2s}
+    .footer-col a:hover{color:var(--text)}
+    .footer-bottom{text-align:center;margin-top:32px;font-size:13px;color:var(--text-muted)}
+
+    @media(max-width:768px){
+      .nav-links,.nav-right{display:none}
+      .hamburger{display:block}
+      .mobile-nav-icons{display:flex}
+      .project-title{font-size:28px}
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .footer-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="orb" id="orb-1" aria-hidden="true"></div>
+  <div class="orb" id="orb-2" aria-hidden="true"></div>
+
+  <nav id="navbar">
+    <a href="/" class="nav-logo"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/#projects">Projects</a>
+      <a href="/trending">Trending</a>
+      <a href="/#search">Search</a>
+    </div>
+    <div class="nav-right"></div>
+    <div class="mobile-nav-icons">
+      <a href="/#search" class="mobile-nav-icon" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></a>
+      <a href="/trending" class="mobile-nav-icon" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
+    <div class="mobile-menu glass" id="mobile-menu">
+      <a href="/">Home</a>
+      <a href="/#projects">Projects</a>
+      <a href="/trending">Trending</a>
+      <a href="/#search">Search</a>
+    </div>
+  </nav>
+
+  <div id="app">
+    <div class="loading-state">
+      <i data-lucide="loader" style="width:48px;height:48px;color:var(--text-muted);animation:spin 1s linear infinite"></i>
+      <p>Loading project...</p>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <p class="footer-heading">AI Digital Crew</p>
+        <a href="/">Home</a>
+        <a href="/#projects">Projects</a>
+        <a href="/trending">Trending</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-heading">Resources</p>
+        <a href="https://github.com/ariv14" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://aidigitalcrew.substack.com" target="_blank" rel="noopener">Newsletter</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-heading">Support</p>
+        <a href="https://github.com/ariv14/ai-digital-crew/issues" target="_blank" rel="noopener">Report an Issue</a>
+        <a href="mailto:support@aidigitalcrew.com">support@aidigitalcrew.com</a>
+      </div>
+    </div>
+    <div class="footer-bottom">AI Digital Crew &copy; 2026</div>
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, collection, query, where, getDocs, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    const STAGING_HOSTS = ['staging.aidigitalcrew.com', 'localhost', '127.0.0.1'];
+    const isStaging = STAGING_HOSTS.includes(location.hostname);
+
+    const firebaseConfig = isStaging
+      ? {
+          apiKey: "AIzaSyAH9dWeeHoH6v_UvnhpvLUKoqsm3rrdCPQ",
+          authDomain: "ai-digital-crew-staging.firebaseapp.com",
+          projectId: "ai-digital-crew-staging",
+          storageBucket: "ai-digital-crew-staging.firebasestorage.app",
+          messagingSenderId: "155089534574",
+          appId: "1:155089534574:web:542a7df0b8c809f22c707f"
+        }
+      : {
+          apiKey: "AIzaSyDq4iZ6y90S9KOsPRP0774iYGu4fXzH-4s",
+          authDomain: "ai-digital-crew.firebaseapp.com",
+          projectId: "ai-digital-crew",
+          storageBucket: "ai-digital-crew.firebasestorage.app",
+          messagingSenderId: "67125394484",
+          appId: "1:67125394484:web:85f3da113a0b09aeb39e61",
+          measurementId: "G-4VHGMK995P"
+        };
+
+    if (isStaging) document.title = '[STAGING] ' + document.title;
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    function esc(t) { if (t == null) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+    // ── Parse repo from URL ─────────────────────────────
+    const params = new URLSearchParams(location.search);
+    const repoParam = params.get('repo');
+
+    if (!repoParam) {
+      document.getElementById('app').innerHTML = `
+        <div class="loading-state">
+          <i data-lucide="alert-circle" style="width:48px;height:48px;color:var(--text-muted)"></i>
+          <p>No project specified. <a href="/trending" style="color:var(--primary)">Browse trending projects</a></p>
+        </div>`;
+      refreshIcons();
+    } else {
+      loadProject(repoParam);
+    }
+
+    async function loadProject(repoFullName) {
+      const appEl = document.getElementById('app');
+
+      // 1. Query project by fullName
+      const q = query(collection(db, 'projects'), where('fullName', '==', repoFullName), limit(1));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        appEl.innerHTML = `
+          <div class="loading-state">
+            <i data-lucide="search-x" style="width:48px;height:48px;color:var(--text-muted)"></i>
+            <p>Project not found: ${esc(repoFullName)}</p>
+            <p style="margin-top:8px"><a href="/trending" style="color:var(--primary)">Browse trending projects</a></p>
+          </div>`;
+        refreshIcons();
+        return;
+      }
+
+      const project = snap.docs[0].data();
+      const docRef = snap.docs[0].ref;
+
+      // Update page title
+      document.title = `${project.name} — AI Digital Crew`;
+
+      // 2. Load snapshots for star history
+      let snapshots = [];
+      try {
+        const snapQ = query(collection(docRef, 'snapshots'), orderBy('date', 'asc'), limit(30));
+        const snapSnap = await getDocs(snapQ);
+        snapshots = snapSnap.docs.map(d => d.data());
+      } catch (e) {
+        console.warn('Failed to load snapshots:', e.message);
+      }
+
+      renderProject(project, snapshots);
+    }
+
+    function renderProject(p, snapshots) {
+      const appEl = document.getElementById('app');
+      const trendCls = p.trend_label === 'new' ? 'new-project' : (p.trend_label || 'steady');
+      const trendLabels = { hot: 'Hot', rising: 'Rising', steady: 'Steady', declining: 'Cooling', new: 'New' };
+      const momentum = p.trend_momentum || 0;
+
+      const funcBase = isStaging
+        ? 'https://us-central1-ai-digital-crew-staging.cloudfunctions.net'
+        : 'https://us-central1-ai-digital-crew.cloudfunctions.net';
+      const badgeUrl = `${funcBase}/trendBadge?repo=${encodeURIComponent(p.fullName)}`;
+      const projectPageUrl = `https://aidigitalcrew.com/project?repo=${encodeURIComponent(p.fullName)}`;
+
+      appEl.innerHTML = `
+        <div class="project-hero">
+          <div class="project-breadcrumb">
+            <a href="/trending">Trending</a> / ${esc(p.owner)} / ${esc(p.name)}
+          </div>
+          <div class="project-title-row">
+            ${p.ownerAvatar ? `<img class="project-avatar" src="${esc(p.ownerAvatar)}" alt="${esc(p.owner)}" loading="lazy">` : ''}
+            <div>
+              <div class="project-title">${esc(p.name)}</div>
+              <div class="project-owner">${esc(p.owner)}</div>
+            </div>
+            ${p.trend_label ? `<span class="trend-badge ${esc(trendCls)}">${trendLabels[p.trend_label] || ''} ${momentum.toFixed(0)}</span>` : ''}
+          </div>
+          <p class="project-desc">${esc(p.writeup || p.description || '')}</p>
+          <div class="project-links">
+            <a href="${esc(p.url)}" target="_blank" rel="noopener" class="project-link primary"><i data-lucide="github" style="width:16px;height:16px"></i> View on GitHub</a>
+            <a href="/trending" class="project-link"><i data-lucide="trending-up" style="width:16px;height:16px"></i> Back to Trending</a>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-val ${(p.trend_stars7d || 0) > 0 ? 'green' : ''}">${(p.trend_stars7d || 0) > 0 ? '+' : ''}${(p.trend_stars7d || 0).toLocaleString()}</div>
+            <div class="stat-label">Stars 7d</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">${(p.trend_forks7d || 0) > 0 ? '+' : ''}${(p.trend_forks7d || 0).toLocaleString()}</div>
+            <div class="stat-label">Forks 7d</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val ${(p.trend_starsPct7d || 0) > 0 ? 'green' : ''}">${(p.trend_starsPct7d || 0).toFixed(1)}%</div>
+            <div class="stat-label">% Growth</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">${momentum.toFixed(1)}</div>
+            <div class="stat-label">Momentum</div>
+          </div>
+        </div>
+
+        <div class="momentum-large" style="margin-top:24px">
+          <span class="lbl">Momentum</span>
+          <div class="track"><div class="fill ${esc(trendCls)}" style="width:${Math.min(momentum, 100)}%"></div></div>
+          <span class="val">${momentum.toFixed(1)}</span>
+        </div>
+
+        <div class="chart-section">
+          <div class="chart-title"><i data-lucide="line-chart" style="width:20px;height:20px;color:var(--primary)"></i> Star History</div>
+          <div class="chart-container" id="star-chart"></div>
+        </div>
+
+        <div class="embed-section">
+          <div class="embed-title"><i data-lucide="code" style="width:20px;height:20px;color:var(--primary)"></i> Embed Badge</div>
+          <div class="embed-card">
+            <div class="embed-preview">
+              <img src="${esc(badgeUrl)}" alt="Trending badge" style="height:24px" onerror="this.style.display='none'">
+            </div>
+            <div class="embed-snippet">
+              <label>Markdown</label>
+              <code id="md-snippet">[![Trending on AI Digital Crew](${badgeUrl})](${projectPageUrl})</code>
+              <button class="copy-btn" onclick="copySnippet('md-snippet')">Copy</button>
+            </div>
+            <div class="embed-snippet">
+              <label>HTML</label>
+              <code id="html-snippet">&lt;a href="${esc(projectPageUrl)}"&gt;&lt;img src="${esc(badgeUrl)}" alt="Trending on AI Digital Crew"&gt;&lt;/a&gt;</code>
+              <button class="copy-btn" onclick="copySnippet('html-snippet')">Copy</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Render star chart
+      renderStarChart(snapshots);
+      refreshIcons();
+    }
+
+    // Make copySnippet global
+    window.copySnippet = function(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      navigator.clipboard.writeText(el.textContent).then(() => {
+        const btn = el.parentElement.querySelector('.copy-btn');
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); }
+      });
+    };
+
+    function renderStarChart(snapshots) {
+      const container = document.getElementById('star-chart');
+      if (!snapshots || snapshots.length < 2) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:40px 0">Not enough snapshot data for a chart yet. Check back after a few days of tracking.</p>';
+        return;
+      }
+
+      const W = 600, H = 200, padL = 60, padR = 20, padT = 20, padB = 40;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
+
+      const stars = snapshots.map(s => s.stars);
+      const dates = snapshots.map(s => s.date);
+      const min = Math.min(...stars);
+      const max = Math.max(...stars);
+      const range = max - min || 1;
+
+      // Scale functions
+      const xScale = (i) => padL + (i / (stars.length - 1)) * chartW;
+      const yScale = (v) => padT + chartH - ((v - min) / range) * chartH;
+
+      // Build polyline
+      const points = stars.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(' ');
+      const isUp = stars[stars.length - 1] >= stars[0];
+      const lineColor = isUp ? '#34d399' : '#f87171';
+      const fillColor = isUp ? 'rgba(52,211,153,.15)' : 'rgba(248,113,113,.1)';
+
+      // Gradient fill area
+      const areaPoints = points + ` ${xScale(stars.length - 1).toFixed(1)},${(padT + chartH).toFixed(1)} ${padL},${(padT + chartH).toFixed(1)}`;
+
+      // Grid lines (4 horizontal)
+      let gridLines = '';
+      for (let i = 0; i <= 4; i++) {
+        const val = min + (range * i / 4);
+        const y = yScale(val).toFixed(1);
+        gridLines += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>`;
+        gridLines += `<text x="${padL - 8}" y="${y}" fill="#64748b" font-size="10" text-anchor="end" dominant-baseline="middle">${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : Math.round(val)}</text>`;
+      }
+
+      // X-axis labels (every ~7 days)
+      let xLabels = '';
+      const step = Math.max(1, Math.floor(dates.length / 5));
+      for (let i = 0; i < dates.length; i += step) {
+        const x = xScale(i).toFixed(1);
+        const label = dates[i].slice(5); // MM-DD
+        xLabels += `<text x="${x}" y="${H - 8}" fill="#64748b" font-size="10" text-anchor="middle">${label}</text>`;
+      }
+
+      // Tooltip circles
+      let circles = '';
+      stars.forEach((v, i) => {
+        circles += `<circle cx="${xScale(i).toFixed(1)}" cy="${yScale(v).toFixed(1)}" r="3" fill="${lineColor}" opacity="0"><title>${dates[i]}: ${v.toLocaleString()} stars</title></circle>`;
+      });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+          ${gridLines}
+          ${xLabels}
+          <polygon points="${areaPoints}" fill="${fillColor}"/>
+          <polyline points="${points}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          ${circles}
+        </svg>`;
+    }
+
+    // ── Nav ─────────────────────────────────────────────
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    const hamburgerBtn = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobile-menu');
+    hamburgerBtn.addEventListener('click', () => mobileMenu.classList.toggle('open'));
+    mobileMenu.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => mobileMenu.classList.remove('open'));
+    });
+    document.addEventListener('click', (e) => {
+      if (!mobileMenu.contains(e.target) && e.target !== hamburgerBtn && !hamburgerBtn.contains(e.target)) {
+        mobileMenu.classList.remove('open');
+      }
+    });
+
+    refreshIcons();
+  </script>
+</body>
+</html>

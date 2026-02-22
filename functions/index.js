@@ -8,7 +8,7 @@
  *   GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
  */
 
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onCall, HttpsError, onRequest } from 'firebase-functions/v2/https';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -126,5 +126,75 @@ export const getQueryEmbedding = onCall(
       dimensions: result.dimensions,
       cached: false,
     };
+  }
+);
+
+// ── trendBadge — Dynamic SVG badge for repos ────────────────────────────────
+
+function generateBadgeSvg(label, score, trendLabel) {
+  const colors = {
+    hot: { bg: '#dc2626', text: '#fff' },
+    rising: { bg: '#059669', text: '#fff' },
+    steady: { bg: '#6b7280', text: '#fff' },
+    declining: { bg: '#6b7280', text: '#d1d5db' },
+    new: { bg: '#2563eb', text: '#fff' },
+  };
+  const c = colors[trendLabel] || colors.steady;
+  const icons = { hot: '\uD83D\uDD25', rising: '\u2B06\uFE0F', steady: '\u2796', declining: '\u2B07\uFE0F', new: '\u2728' };
+  const icon = icons[trendLabel] || '';
+  const leftText = 'trending on AI Digital Crew';
+  const rightText = `${icon} ${label} ${score}`;
+  const leftW = leftText.length * 6.2 + 20;
+  const rightW = rightText.length * 6.2 + 20;
+  const totalW = leftW + rightW;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="20" role="img" aria-label="${leftText}: ${rightText}">
+  <title>${leftText}: ${rightText}</title>
+  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+  <clipPath id="r"><rect width="${totalW}" height="20" rx="3" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="${leftW}" height="20" fill="#555"/>
+    <rect x="${leftW}" width="${rightW}" height="20" fill="${c.bg}"/>
+    <rect width="${totalW}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="11">
+    <text x="${leftW / 2}" y="14">${leftText}</text>
+    <text x="${leftW + rightW / 2}" y="14" fill="${c.text}">${rightText}</text>
+  </g>
+</svg>`;
+}
+
+export const trendBadge = onRequest(
+  { region: 'us-central1', cors: true },
+  async (req, res) => {
+    const repo = req.query.repo;
+    if (!repo || typeof repo !== 'string') {
+      res.status(400).send('Missing ?repo= parameter');
+      return;
+    }
+
+    try {
+      const snap = await db.collection('projects')
+        .where('fullName', '==', repo)
+        .limit(1)
+        .get();
+
+      if (snap.empty) {
+        res.status(404).send('Project not found');
+        return;
+      }
+
+      const p = snap.docs[0].data();
+      const score = (p.trend_momentum || 0).toFixed(0);
+      const label = { hot: 'Hot', rising: 'Rising', steady: 'Steady', declining: 'Cooling', new: 'New' }[p.trend_label] || 'Tracked';
+      const svg = generateBadgeSvg(label, score, p.trend_label || 'steady');
+
+      res.set('Content-Type', 'image/svg+xml');
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.send(svg);
+    } catch (err) {
+      console.error('trendBadge error:', err);
+      res.status(500).send('Internal error');
+    }
   }
 );

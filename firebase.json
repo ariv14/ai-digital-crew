@@ -41,6 +41,14 @@
     "cleanUrls": true,
     "rewrites": [
       {
+        "source": "/trending",
+        "destination": "/trending.html"
+      },
+      {
+        "source": "/project",
+        "destination": "/project.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
