@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="view-transition" content="same-origin">
   <title>Project — AI Digital Crew</title>
   <meta name="description" content="Detailed project page with star history, trend data, and embeddable badges.">
   <meta name="theme-color" content="#0a0f1c">
@@ -40,6 +41,15 @@
     @keyframes o2{0%,100%{transform:translate(0,0)}33%{transform:translate(-70px,-50px)}66%{transform:translate(50px,60px)}}
 
     .glass{background:var(--surface);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius)}
+
+    /* View Transitions */
+    @view-transition{navigation:auto}
+    nav{view-transition-name:navbar}
+    ::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
+    ::view-transition-old(root){animation:fadeOut .15s ease}
+    ::view-transition-new(root){animation:fadeIn .15s ease}
+    @keyframes fadeOut{from{opacity:1}to{opacity:0}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
     /* Nav */
     nav{position:sticky;top:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:all .3s ease}

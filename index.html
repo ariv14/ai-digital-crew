@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="view-transition" content="same-origin">
   <title>AI Digital Crew — Community AI Projects</title>
   <meta name="description" content="Discover and share AI projects built by developers. Submit your GitHub repo and join the community.">
   <meta property="og:title" content="AI Digital Crew">
@@ -90,6 +91,15 @@
     .btn-outlined{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:transparent;color:var(--text);font-weight:600;font-size:15px;border-radius:12px;border:1px solid var(--border);transition:all .3s ease}
     .btn-outlined:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-2px)}
     .btn-small{padding:8px 16px;font-size:13px;border-radius:8px}
+
+    /* View Transitions */
+    @view-transition{navigation:auto}
+    nav{view-transition-name:navbar}
+    ::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
+    ::view-transition-old(root){animation:fadeOut .15s ease}
+    ::view-transition-new(root){animation:fadeIn .15s ease}
+    @keyframes fadeOut{from{opacity:1}to{opacity:0}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
     /* Nav */
     nav{position:sticky;top:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:all .3s ease}
