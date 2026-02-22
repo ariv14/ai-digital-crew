@@ -615,7 +615,7 @@
     const submitBtn = document.getElementById('submit-btn');
 
     // ── Navigation ───────────────────────────────────────
-    function navigateTo(view) {
+    function navigateTo(view, skipHash) {
       state.currentView = view;
       const home = document.getElementById('home');
       const featured = document.getElementById('featured-section');
@@ -637,6 +637,12 @@
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
+      // Update URL hash to reflect current view
+      if (!skipHash) {
+        const hash = view === 'search' ? '#search' : '#home';
+        if (location.hash !== hash) history.pushState(null, '', hash);
+      }
+
       // Update nav-active classes
       document.querySelectorAll('.nav-links a, .mobile-menu a').forEach(a => {
         a.classList.toggle('nav-active', a.dataset.nav === view);
@@ -647,7 +653,13 @@
     document.getElementById('nav-search-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('search'); });
 
     // Handle initial hash for cross-page navigation (e.g. from /trending)
-    if (location.hash === '#search') navigateTo('search');
+    if (location.hash === '#search') navigateTo('search', true);
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      if (location.hash === '#search') navigateTo('search', true);
+      else navigateTo('home', true);
+    });
 
     // Wire Home/Projects links to go back to home view
     document.querySelectorAll('.nav-links a[data-nav="home"]').forEach(a => {
