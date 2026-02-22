@@ -8,6 +8,7 @@
   <meta name="description" content="Detailed project page with star history, trend data, and embeddable badges.">
   <meta name="theme-color" content="#0a0f1c">
   <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="canonical" id="canonical-link" href="https://aidigitalcrew.com/project">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -245,6 +246,10 @@
     const params = new URLSearchParams(location.search);
     const repoParam = params.get('repo');
 
+    if (repoParam) {
+      document.getElementById('canonical-link').href = `https://aidigitalcrew.com/project?repo=${encodeURIComponent(repoParam)}`;
+    }
+
     if (!repoParam) {
       document.getElementById('app').innerHTML = `
         <div class="loading-state">
@@ -313,7 +318,7 @@
           <div class="project-title-row">
             ${p.ownerAvatar ? `<img class="project-avatar" src="${esc(p.ownerAvatar)}" alt="${esc(p.owner)}" loading="lazy">` : ''}
             <div>
-              <div class="project-title">${esc(p.name)}</div>
+              <h1 class="project-title">${esc(p.name)}</h1>
               <div class="project-owner">${esc(p.owner)}</div>
             </div>
             ${p.trend_label ? `<span class="trend-badge ${esc(trendCls)}">${trendLabels[p.trend_label] || ''} ${momentum.toFixed(0)}</span>` : ''}
@@ -374,6 +379,20 @@
           </div>
         </div>
       `;
+
+      // Inject JSON-LD structured data
+      const jsonLd = document.createElement('script');
+      jsonLd.type = 'application/ld+json';
+      jsonLd.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareSourceCode',
+        name: p.name,
+        description: p.writeup || p.description || '',
+        codeRepository: p.url,
+        programmingLanguage: p.language || '',
+        author: { '@type': 'Person', name: p.owner }
+      });
+      document.head.appendChild(jsonLd);
 
       // Render star chart
       renderStarChart(snapshots);

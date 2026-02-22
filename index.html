@@ -142,7 +142,7 @@
     .section-subtitle{font-size:18px;color:var(--text-muted)}
 
     /* Project Cards */
-    .project-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .project-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;min-height:300px}
     .project-card{overflow:hidden;transition:transform .3s ease,opacity .4s ease;opacity:0;transform:scale(0.97)}
     .project-card.visible{opacity:1;transform:scale(1)}
     .project-card:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(59,130,246,.15)}
@@ -564,7 +564,7 @@
         <div class="search-container" id="search-container" style="margin-top:24px;margin-bottom:24px">
           <div class="search-input-wrap">
             <i data-lucide="search" class="search-icon"></i>
-            <input type="text" class="search-input" id="search-input" placeholder="Describe what you're looking for..." autocomplete="off">
+            <input type="text" class="search-input" id="search-input" placeholder="Describe what you're looking for..." autocomplete="off" aria-label="Search AI projects">
             <div class="search-spinner" id="search-spinner"></div>
             <button class="search-clear" id="search-clear" aria-label="Clear search"><i data-lucide="x" style="width:16px;height:16px"></i></button>
           </div>
@@ -1195,8 +1195,36 @@
     // ── Modals ──────────────────────────────────────────
     function lockBodyScroll() { document.body.classList.add('modal-open'); }
     function unlockBodyScroll() { document.body.classList.remove('modal-open'); }
-    function openLoginModal() { loginModal.classList.add('open'); lockBodyScroll(); }
-    function closeLoginModal() { loginModal.classList.remove('open'); unlockBodyScroll(); enableOAuthButtons(); }
+
+    // ── Focus Trap ──────────────────────────────────────
+    let _focusTrapCleanup = null;
+    let _previouslyFocused = null;
+    function trapFocus(modal) {
+      _previouslyFocused = document.activeElement;
+      const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      first.focus();
+      function onKeyDown(e) {
+        if (e.key === 'Tab') {
+          if (e.shiftKey) {
+            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+          } else {
+            if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+        }
+      }
+      modal.addEventListener('keydown', onKeyDown);
+      _focusTrapCleanup = () => modal.removeEventListener('keydown', onKeyDown);
+    }
+    function releaseFocusTrap() {
+      if (_focusTrapCleanup) { _focusTrapCleanup(); _focusTrapCleanup = null; }
+      if (_previouslyFocused) { _previouslyFocused.focus(); _previouslyFocused = null; }
+    }
+
+    function openLoginModal() { loginModal.classList.add('open'); lockBodyScroll(); trapFocus(loginModal); }
+    function closeLoginModal() { loginModal.classList.remove('open'); unlockBodyScroll(); enableOAuthButtons(); releaseFocusTrap(); }
     function openSubmitModal() {
       if (!state.isLoggedIn) { openLoginModal(); return; }
       submitModal.classList.add('open');
@@ -1206,8 +1234,9 @@
       submitBtn.disabled = true;
       state.repoPreview = null;
       document.getElementById('repo-error').classList.remove('show');
+      trapFocus(submitModal);
     }
-    function closeSubmitModal() { submitModal.classList.remove('open'); unlockBodyScroll(); }
+    function closeSubmitModal() { submitModal.classList.remove('open'); unlockBodyScroll(); releaseFocusTrap(); }
 
     // ── Auth ────────────────────────────────────────────
     function enableOAuthButtons() {
