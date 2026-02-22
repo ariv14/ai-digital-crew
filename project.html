@@ -14,7 +14,7 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-  <script type="speculationrules">{"prerender":[{"where":{"or":[{"href_matches":"/"},{"href_matches":"/trending"}]},"eagerness":"moderate"}]}</script>
+  <script type="speculationrules">{"prerender":[{"where":{"href_matches":"/"},"eagerness":"moderate"}]}</script>
   <style>
     :root {
       --bg: #0a0f1c;
@@ -161,19 +161,19 @@
       <a href="/">Home</a>
       <a href="/#projects">Projects</a>
       <a href="/#search">Search</a>
-      <a href="/trending">Trending</a>
+      <a href="/#trending">Trending</a>
     </div>
     <div class="nav-right"></div>
     <div class="mobile-nav-icons">
       <a href="/#search" class="mobile-nav-icon" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></a>
-      <a href="/trending" class="mobile-nav-icon" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
+      <a href="/#trending" class="mobile-nav-icon" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
     </div>
     <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
     <div class="mobile-menu glass" id="mobile-menu">
       <a href="/">Home</a>
       <a href="/#projects">Projects</a>
       <a href="/#search">Search</a>
-      <a href="/trending">Trending</a>
+      <a href="/#trending">Trending</a>
     </div>
   </nav>
 
@@ -191,7 +191,7 @@
         <p class="footer-heading">AI Digital Crew</p>
         <a href="/">Home</a>
         <a href="/#projects">Projects</a>
-        <a href="/trending">Trending</a>
+        <a href="/#trending">Trending</a>
       </div>
       <div class="footer-col">
         <p class="footer-heading">Resources</p>
@@ -249,7 +249,7 @@
       document.getElementById('app').innerHTML = `
         <div class="loading-state">
           <i data-lucide="alert-circle" style="width:48px;height:48px;color:var(--text-muted)"></i>
-          <p>No project specified. <a href="/trending" style="color:var(--primary)">Browse trending projects</a></p>
+          <p>No project specified. <a href="/#trending" style="color:var(--primary)">Browse trending projects</a></p>
         </div>`;
       refreshIcons();
     } else {
@@ -268,7 +268,7 @@
           <div class="loading-state">
             <i data-lucide="search-x" style="width:48px;height:48px;color:var(--text-muted)"></i>
             <p>Project not found: ${esc(repoFullName)}</p>
-            <p style="margin-top:8px"><a href="/trending" style="color:var(--primary)">Browse trending projects</a></p>
+            <p style="margin-top:8px"><a href="/#trending" style="color:var(--primary)">Browse trending projects</a></p>
           </div>`;
         refreshIcons();
         return;
@@ -308,7 +308,7 @@
       appEl.innerHTML = `
         <div class="project-hero">
           <div class="project-breadcrumb">
-            <a href="/trending">Trending</a> / ${esc(p.owner)} / ${esc(p.name)}
+            <a href="/#trending">Trending</a> / ${esc(p.owner)} / ${esc(p.name)}
           </div>
           <div class="project-title-row">
             ${p.ownerAvatar ? `<img class="project-avatar" src="${esc(p.ownerAvatar)}" alt="${esc(p.owner)}" loading="lazy">` : ''}
@@ -321,7 +321,7 @@
           <p class="project-desc">${esc(p.writeup || p.description || '')}</p>
           <div class="project-links">
             <a href="${esc(p.url)}" target="_blank" rel="noopener" class="project-link primary"><i data-lucide="github" style="width:16px;height:16px"></i> View on GitHub</a>
-            <a href="/trending" class="project-link"><i data-lucide="trending-up" style="width:16px;height:16px"></i> Back to Trending</a>
+            <a href="/#trending" class="project-link"><i data-lucide="trending-up" style="width:16px;height:16px"></i> Back to Trending</a>
           </div>
         </div>
 

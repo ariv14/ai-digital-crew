@@ -42,7 +42,7 @@
     "rewrites": [
       {
         "source": "/trending",
-        "destination": "/trending.html"
+        "destination": "/index.html"
       },
       {
         "source": "/project",
