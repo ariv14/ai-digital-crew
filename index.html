@@ -465,6 +465,8 @@
     .mover-val{font-size:13px;font-weight:700;white-space:nowrap}
     .mover-val.pct{color:#34d399}
     .mover-val.abs{color:#60a5fa}
+    .mover-val.positive{color:#34d399}
+    .mover-val.negative{color:#f87171}
 
     /* Pagination */
     .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
@@ -487,6 +489,53 @@
     .dev-stats{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap}
     .dev-repos{font-size:11px;color:var(--text-muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+    /* View toggle */
+    .view-toggle{display:flex;gap:4px;margin-left:auto}
+    .view-toggle-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600}
+    .view-toggle-btn:hover{border-color:var(--primary);color:var(--text)}
+    .view-toggle-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+
+    /* Rankings table */
+    .rankings-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
+    .rankings-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+    .rankings-table th{position:sticky;top:0;z-index:2;padding:10px 12px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);background:var(--bg);border-bottom:2px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
+    .rankings-table th:hover{color:var(--text)}
+    .rankings-table th .sort-icon{display:inline-block;width:10px;margin-left:4px;opacity:.4;transition:opacity .2s}
+    .rankings-table th.sorted-asc .sort-icon,.rankings-table th.sorted-desc .sort-icon{opacity:1;color:var(--primary)}
+    .rankings-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);white-space:nowrap;vertical-align:middle}
+    .rankings-table tr:hover td{background:rgba(255,255,255,.02)}
+    .rankings-table .tbl-rank{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text-muted);width:40px}
+    .rankings-table .tbl-project{display:flex;align-items:center;gap:10px;min-width:180px;white-space:normal}
+    .rankings-table .tbl-project img{width:24px;height:24px;border-radius:50%;flex-shrink:0}
+    .rankings-table .tbl-project-name{font-weight:700}
+    .rankings-table .tbl-project-name a{color:var(--text);transition:color .2s}
+    .rankings-table .tbl-project-name a:hover{color:var(--primary)}
+    .rankings-table .tbl-project-owner{font-size:11px;color:var(--text-muted)}
+    .rankings-table .positive{color:#34d399}
+    .rankings-table .negative{color:#f87171}
+
+    /* Movers tabs and toggle */
+    .movers-controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .movers-tab-group{display:flex;gap:4px}
+    .movers-tab{padding:6px 16px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .2s}
+    .movers-tab:hover{border-color:var(--primary);color:var(--text)}
+    .movers-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+    .movers-time-toggle{display:flex;gap:4px;margin-left:auto}
+
+    /* Category leaderboard */
+    .cat-lb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+    .cat-lb-tab{padding:6px 14px;font-size:12px;font-weight:600;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .2s}
+    .cat-lb-tab:hover{border-color:var(--primary);color:var(--text)}
+    .cat-lb-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+
+    /* Weekly recap banner */
+    .recap-banner{display:flex;align-items:center;gap:14px;padding:16px 24px;border-radius:14px;border:1px solid rgba(139,92,246,.3);background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(59,130,246,.08));margin-bottom:24px;position:relative}
+    .recap-banner-icon{font-size:24px;flex-shrink:0}
+    .recap-banner-text{flex:1;font-size:14px;line-height:1.5}
+    .recap-banner-text strong{color:var(--primary)}
+    .recap-banner-dismiss{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:4px;transition:color .2s}
+    .recap-banner-dismiss:hover{color:var(--text)}
+
     /* Trending skeleton */
     #trending-page .skeleton-card{overflow:hidden;min-height:80px;border-radius:14px;border:1px solid var(--border);background:var(--surface);margin-bottom:12px;padding:20px}
     .skeleton-line.title{height:18px;width:50%}
@@ -498,17 +547,23 @@
       .hero-stat{padding:14px 20px;min-width:100px}
       .hero-stat .stat-num{font-size:28px}
       .dev-grid{grid-template-columns:1fr}
+      .movers-controls{flex-direction:column;align-items:flex-start}
+      .movers-time-toggle{margin-left:0}
+      .cat-lb-tabs{gap:4px}
     }
     @media(max-width:768px){
       .radar-hero h1{font-size:36px}
       .radar-hero .subtitle{font-size:15px}
       .hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:320px;margin-left:auto;margin-right:auto}
       .hero-stat{min-width:0;padding:14px 12px}
-      .filter-bar{gap:8px}
+      .filter-bar{gap:8px;flex-wrap:wrap}
       .filter-group{flex-wrap:wrap}
       #trending-page .trnd-search-input{width:100%}
       #trending-page .trnd-search-input:focus{width:100%}
       .trnd-search-wrap{width:100%}
+      .view-toggle{margin-left:0;margin-top:8px}
+      .recap-banner{flex-direction:column;gap:10px;padding:14px 16px;text-align:center}
+      .recap-banner-dismiss{position:static;align-self:flex-end}
     }
   </style>
 </head>
@@ -618,8 +673,23 @@
           </div>
         </div>
         <div class="time-toggle" id="time-toggle">
-          <button class="time-btn active" data-range="7d">Last 7 days</button>
-          <button class="time-btn" data-range="1d">Last 24h</button>
+          <button class="time-btn" data-range="1d">24h</button>
+          <button class="time-btn active" data-range="7d">7d</button>
+          <button class="time-btn" data-range="30d">30d</button>
+          <button class="time-btn" data-range="all">All</button>
+        </div>
+      </section>
+
+      <div id="recap-banner-container" class="section-container" style="display:none"></div>
+
+      <section id="category-leaderboard-section">
+        <div class="section-container">
+          <div class="section-header">
+            <div class="section-title"><i data-lucide="layers" style="width:24px;height:24px;color:#8b5cf6"></i> Category Leaderboards</div>
+            <p class="section-subtitle">Top projects by momentum in each category</p>
+          </div>
+          <div class="cat-lb-tabs" id="cat-lb-tabs"></div>
+          <div id="cat-lb-content"></div>
         </div>
       </section>
 
@@ -675,11 +745,18 @@
                 <input type="text" class="trnd-search-input" id="global-filter-search" placeholder="Search projects...">
               </div>
             </div>
+            <div class="view-toggle" id="global-view-toggle">
+              <button class="view-toggle-btn active" data-view="cards"><i data-lucide="layout-grid" style="width:14px;height:14px"></i> Cards</button>
+              <button class="view-toggle-btn" data-view="table"><i data-lucide="table" style="width:14px;height:14px"></i> Table</button>
+            </div>
           </div>
           <div id="global-top25">
             <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
             <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
             <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
+          </div>
+          <div class="rankings-table-wrap" id="global-table-wrap" style="display:none">
+            <table class="rankings-table" id="global-rankings-table"></table>
           </div>
           <div class="pagination" id="global-pagination"></div>
         </div>
@@ -688,16 +765,26 @@
       <section id="movers-section">
         <div class="section-container">
           <div class="section-header">
-            <div class="section-title"><i data-lucide="zap" style="width:24px;height:24px;color:#fbbf24"></i> Biggest Movers</div>
-            <p class="section-subtitle">Projects with the most growth this week</p>
+            <div class="section-title"><i data-lucide="zap" style="width:24px;height:24px;color:#fbbf24"></i> Gainers &amp; Losers</div>
+            <p class="section-subtitle">Projects with the biggest moves</p>
+          </div>
+          <div class="movers-controls">
+            <div class="movers-tab-group" id="movers-tab-group">
+              <button class="movers-tab active" data-tab="gainers"><i data-lucide="trending-up" style="width:14px;height:14px"></i> Gainers</button>
+              <button class="movers-tab" data-tab="losers"><i data-lucide="trending-down" style="width:14px;height:14px"></i> Losers</button>
+            </div>
+            <div class="movers-time-toggle" id="movers-time-toggle">
+              <button class="movers-tab" data-range="1d">24h</button>
+              <button class="movers-tab active" data-range="7d">7d</button>
+            </div>
           </div>
           <div class="movers-grid">
             <div class="movers-card" id="movers-pct">
-              <div class="movers-title"><i data-lucide="rocket" style="width:16px;height:16px;color:#34d399"></i> Top by % Growth</div>
+              <div class="movers-title"><i data-lucide="percent" style="width:16px;height:16px;color:#34d399"></i> By % Growth</div>
               <div id="movers-pct-list"></div>
             </div>
             <div class="movers-card" id="movers-abs">
-              <div class="movers-title"><i data-lucide="star" style="width:16px;height:16px;color:#60a5fa"></i> Top by Star Gain</div>
+              <div class="movers-title"><i data-lucide="star" style="width:16px;height:16px;color:#60a5fa"></i> By Star Count</div>
               <div id="movers-abs-list"></div>
             </div>
           </div>
@@ -890,7 +977,7 @@
       return addedDate.getTime() > weekAgo;
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 } };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -2213,10 +2300,30 @@
     // ── Trending: Constants & Helpers ─────────────────────
     const TREND_PAGE_SIZE = 25;
 
+    function trendStarsForRange(p) {
+      const r = state.trendTimeRange;
+      if (r === '1d') return p.trend_stars1d || 0;
+      if (r === '30d') return p.trend_stars30d || 0;
+      if (r === 'all') return p.stars || 0;
+      return p.trend_stars7d || 0;
+    }
+    function trendPctForRange(p) {
+      const r = state.trendTimeRange;
+      if (r === '1d') return p.trend_starsPct1d || 0;
+      if (r === '30d') return p.trend_starsPct30d || 0;
+      if (r === 'all') return 0;
+      return p.trend_starsPct7d || 0;
+    }
+    function trendSparklineForRange(p) {
+      const r = state.trendTimeRange;
+      if (r === '30d' || r === 'all') return p.trend_sparkline30d || p.trend_sparkline || [];
+      return p.trend_sparkline || [];
+    }
+
     const trendSortFns = {
       momentum: (a, b) => (b.trend_momentum || 0) - (a.trend_momentum || 0),
-      stars7d:  (a, b) => (b.trend_stars7d || 0) - (a.trend_stars7d || 0),
-      pct:      (a, b) => (b.trend_starsPct7d || 0) - (a.trend_starsPct7d || 0),
+      stars7d:  (a, b) => trendStarsForRange(b) - trendStarsForRange(a),
+      pct:      (a, b) => trendPctForRange(b) - trendPctForRange(a),
     };
 
     function trendBadge(p) {
@@ -2224,7 +2331,8 @@
       const icons = { hot: 'flame', rising: 'trending-up', steady: 'minus', declining: 'trending-down', new: 'sparkles' };
       const cls = p.trend_label === 'new' ? 'new-project' : p.trend_label;
       const labels = { hot: 'Hot', rising: 'Rising', steady: 'Steady', declining: 'Cooling', new: 'New' };
-      return `<span class="trend-badge ${esc(cls)}"><i data-lucide="${icons[p.trend_label] || 'minus'}" style="width:11px;height:11px"></i>${labels[p.trend_label] || ''}${p.trend_stars7d > 0 ? ` +${p.trend_stars7d.toLocaleString()}` : ''}</span>`;
+      const gain = trendStarsForRange(p);
+      return `<span class="trend-badge ${esc(cls)}"><i data-lucide="${icons[p.trend_label] || 'minus'}" style="width:11px;height:11px"></i>${labels[p.trend_label] || ''}${gain > 0 ? ` +${gain.toLocaleString()}` : ''}</span>`;
     }
 
     function renderSparkline(data) {
@@ -2242,9 +2350,12 @@
     }
 
     function starGainHtml(p) {
-      const gain = p.trend_stars7d || 0;
-      if (gain > 0) return `<span class="star-gain positive">+${gain.toLocaleString()} /wk</span>`;
-      if (gain < 0) return `<span class="star-gain negative">${gain.toLocaleString()} /wk</span>`;
+      const gain = trendStarsForRange(p);
+      const labels = { '1d': '/day', '7d': '/wk', '30d': '/mo', all: 'total' };
+      const lbl = labels[state.trendTimeRange] || '/wk';
+      if (state.trendTimeRange === 'all') return `<span class="star-gain positive">${(p.stars || 0).toLocaleString()} ${lbl}</span>`;
+      if (gain > 0) return `<span class="star-gain positive">+${gain.toLocaleString()} ${lbl}</span>`;
+      if (gain < 0) return `<span class="star-gain negative">${gain.toLocaleString()} ${lbl}</span>`;
       return `<span class="star-gain neutral">No change</span>`;
     }
 
@@ -2276,7 +2387,7 @@
               <span class="rank-owner">${esc(p.owner)}</span>
               ${trendBadge(p)}
               ${newBadge}
-              ${renderSparkline(p.trend_sparkline)}
+              ${renderSparkline(trendSparklineForRange(p))}
             </div>
             <p class="rank-desc">${esc(desc)}</p>
             <div class="rank-meta">
@@ -2364,9 +2475,12 @@
 
     function renderGlobalTop25() {
       const container = document.getElementById('global-top25');
+      const tableWrap = document.getElementById('global-table-wrap');
       const filtered = filterTrendingProjects(state.trendingGlobalProjects, state.globalFilter);
       if (filtered.length === 0) {
         container.innerHTML = '';
+        tableWrap.style.display = 'none';
+        container.style.display = '';
         renderTrendingEmptyState(container, 'radar',
           state.globalFilter.search || state.globalFilter.category !== 'All' || state.globalFilter.language !== 'All'
             ? 'No projects match these filters'
@@ -2375,45 +2489,140 @@
         document.getElementById('global-pagination').innerHTML = '';
         return;
       }
-      const start = (state.globalFilter.page - 1) * TREND_PAGE_SIZE;
-      const page = filtered.slice(start, start + TREND_PAGE_SIZE);
-      container.innerHTML = page.map((p, i) => renderRankCard(p, start + i + 1)).join('');
+      if (state.globalView === 'table') {
+        container.style.display = 'none';
+        tableWrap.style.display = '';
+        renderGlobalTable(filtered);
+      } else {
+        container.style.display = '';
+        tableWrap.style.display = 'none';
+        const start = (state.globalFilter.page - 1) * TREND_PAGE_SIZE;
+        const page = filtered.slice(start, start + TREND_PAGE_SIZE);
+        container.innerHTML = page.map((p, i) => renderRankCard(p, start + i + 1)).join('');
+      }
       refreshIcons();
       renderTrendingPagination('global-pagination', state.globalFilter, filtered.length, renderGlobalTop25);
     }
 
+    function renderGlobalTable(filtered) {
+      const table = document.getElementById('global-rankings-table');
+      const { col, dir } = state.globalTableSort;
+      const sortedData = [...filtered].sort((a, b) => {
+        const m = dir === 'asc' ? 1 : -1;
+        if (col === 'name') return m * (a.name || '').localeCompare(b.name || '');
+        if (col === 'stars') return m * ((a.stars || 0) - (b.stars || 0));
+        if (col === 'growth') return m * (trendStarsForRange(a) - trendStarsForRange(b));
+        if (col === 'growthPct') return m * (trendPctForRange(a) - trendPctForRange(b));
+        if (col === 'momentum') return m * ((a.trend_momentum || 0) - (b.trend_momentum || 0));
+        if (col === 'forks') return m * ((a.forks || 0) - (b.forks || 0));
+        if (col === 'language') return m * (a.language || '').localeCompare(b.language || '');
+        return 0;
+      });
+      const start = (state.globalFilter.page - 1) * TREND_PAGE_SIZE;
+      const page = sortedData.slice(start, start + TREND_PAGE_SIZE);
+      const cols = [
+        { key: 'rank', label: '#', sortable: false },
+        { key: 'name', label: 'Project', sortable: true },
+        { key: 'stars', label: 'Stars', sortable: true },
+        { key: 'growth', label: 'Growth', sortable: true },
+        { key: 'growthPct', label: 'Growth %', sortable: true },
+        { key: 'momentum', label: 'Momentum', sortable: true },
+        { key: 'forks', label: 'Forks', sortable: true },
+        { key: 'language', label: 'Language', sortable: true },
+      ];
+      const thHtml = cols.map(c => {
+        const sorted = col === c.key;
+        const cls = sorted ? (dir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
+        const arrow = sorted ? (dir === 'asc' ? '\u25B2' : '\u25BC') : '\u25B4';
+        return `<th class="${cls}" ${c.sortable ? `data-sort="${c.key}"` : ''}>${c.label}${c.sortable ? `<span class="sort-icon">${arrow}</span>` : ''}</th>`;
+      }).join('');
+      const rowsHtml = page.map((p, i) => {
+        const rank = start + i + 1;
+        const gain = trendStarsForRange(p);
+        const pct = trendPctForRange(p);
+        const gainCls = gain > 0 ? 'positive' : gain < 0 ? 'negative' : '';
+        const pctCls = pct > 0 ? 'positive' : pct < 0 ? 'negative' : '';
+        const langColor = LANG_COLORS[p.language] || '#888';
+        const projectUrl = `/project?repo=${encodeURIComponent(p.fullName || (p.owner + '/' + p.name))}`;
+        return `<tr>
+          <td class="tbl-rank">${rank}</td>
+          <td><div class="tbl-project">${p.ownerAvatar ? `<img src="${esc(p.ownerAvatar)}" alt="" loading="lazy">` : ''}<div><div class="tbl-project-name"><a href="${esc(projectUrl)}">${esc(p.name)}</a></div><div class="tbl-project-owner">${esc(p.owner)}</div></div></div></td>
+          <td>${(p.stars || 0).toLocaleString()}</td>
+          <td class="${gainCls}">${gain > 0 ? '+' : ''}${gain.toLocaleString()}</td>
+          <td class="${pctCls}">${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</td>
+          <td>${(p.trend_momentum || 0).toFixed(1)}</td>
+          <td>${(p.forks || 0).toLocaleString()}</td>
+          <td>${p.language ? `<span class="rank-lang-dot" style="background:${langColor}"></span> ${esc(p.language)}` : ''}</td>
+        </tr>`;
+      }).join('');
+      table.innerHTML = `<thead><tr>${thHtml}</tr></thead><tbody>${rowsHtml}</tbody>`;
+      table.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.sort;
+          if (state.globalTableSort.col === key) {
+            state.globalTableSort.dir = state.globalTableSort.dir === 'desc' ? 'asc' : 'desc';
+          } else {
+            state.globalTableSort.col = key;
+            state.globalTableSort.dir = 'desc';
+          }
+          renderGlobalTop25();
+        });
+      });
+    }
+
     function renderMovers() {
-      const pctList = [...state.trendingProjects]
-        .filter(p => (p.stars || 0) < 5000 && (p.trend_starsPct7d || 0) > 0)
-        .sort((a, b) => (b.trend_starsPct7d || 0) - (a.trend_starsPct7d || 0))
-        .slice(0, 5);
+      const isGainers = state.moversTab === 'gainers';
+      const range = state.moversRange;
+      const starsKey = range === '1d' ? 'trend_stars1d' : 'trend_stars7d';
+      const pctKey = range === '1d' ? 'trend_starsPct1d' : 'trend_starsPct7d';
+
+      const filtered = [...state.trendingProjects].filter(p => {
+        const gain = p[starsKey] || 0;
+        return isGainers ? gain > 0 : gain < 0;
+      });
+
+      const pctSorted = [...filtered]
+        .sort((a, b) => isGainers
+          ? (b[pctKey] || 0) - (a[pctKey] || 0)
+          : (a[pctKey] || 0) - (b[pctKey] || 0))
+        .slice(0, 10);
+
+      const absSorted = [...filtered]
+        .sort((a, b) => isGainers
+          ? (b[starsKey] || 0) - (a[starsKey] || 0)
+          : (a[starsKey] || 0) - (b[starsKey] || 0))
+        .slice(0, 10);
+
       const pctContainer = document.getElementById('movers-pct-list');
-      if (pctList.length === 0) {
-        pctContainer.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Not enough data yet</p>';
+      if (pctSorted.length === 0) {
+        pctContainer.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">No ${isGainers ? 'gainers' : 'losers'} data yet</p>`;
       } else {
-        pctContainer.innerHTML = pctList.map((p, i) => `
-          <div class="mover-row">
+        pctContainer.innerHTML = pctSorted.map((p, i) => {
+          const val = (p[pctKey] || 0);
+          const cls = val >= 0 ? 'positive' : 'negative';
+          return `<div class="mover-row">
             <span class="mover-rank">${i + 1}.</span>
             <span class="mover-name"><a href="/project?repo=${encodeURIComponent(p.fullName)}">${esc(p.name)}</a></span>
-            <span class="mover-val pct">+${(p.trend_starsPct7d || 0).toFixed(0)}%</span>
-          </div>`).join('');
+            <span class="mover-val ${cls}">${val >= 0 ? '+' : ''}${val.toFixed(1)}%</span>
+          </div>`;
+        }).join('');
       }
 
-      const absList = [...state.trendingProjects]
-        .filter(p => (p.trend_stars7d || 0) > 0)
-        .sort((a, b) => (b.trend_stars7d || 0) - (a.trend_stars7d || 0))
-        .slice(0, 5);
       const absContainer = document.getElementById('movers-abs-list');
-      if (absList.length === 0) {
-        absContainer.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Not enough data yet</p>';
+      if (absSorted.length === 0) {
+        absContainer.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">No ${isGainers ? 'gainers' : 'losers'} data yet</p>`;
       } else {
-        absContainer.innerHTML = absList.map((p, i) => `
-          <div class="mover-row">
+        absContainer.innerHTML = absSorted.map((p, i) => {
+          const val = (p[starsKey] || 0);
+          const cls = val >= 0 ? 'positive' : 'negative';
+          return `<div class="mover-row">
             <span class="mover-rank">${i + 1}.</span>
             <span class="mover-name"><a href="/project?repo=${encodeURIComponent(p.fullName)}">${esc(p.name)}</a></span>
-            <span class="mover-val abs">+${(p.trend_stars7d || 0).toLocaleString()}</span>
-          </div>`).join('');
+            <span class="mover-val ${cls}">${val >= 0 ? '+' : ''}${val.toLocaleString()}</span>
+          </div>`;
+        }).join('');
       }
+      refreshIcons();
     }
 
     function renderDevelopers() {
@@ -2525,7 +2734,82 @@
       }
     }
 
+    function renderCategoryLeaderboards() {
+      const catMap = new Map();
+      state.trendingProjects.forEach(p => {
+        const cat = inferCategory(p);
+        if (!catMap.has(cat)) catMap.set(cat, []);
+        catMap.get(cat).push(p);
+      });
+      // Only show categories with 3+ projects
+      const validCats = [...catMap.entries()]
+        .filter(([, list]) => list.length >= 3)
+        .sort((a, b) => {
+          const order = CATEGORY_ORDER;
+          return (order.indexOf(a[0]) === -1 ? 99 : order.indexOf(a[0])) - (order.indexOf(b[0]) === -1 ? 99 : order.indexOf(b[0]));
+        });
+
+      const tabsEl = document.getElementById('cat-lb-tabs');
+      const contentEl = document.getElementById('cat-lb-content');
+      if (validCats.length === 0) {
+        tabsEl.innerHTML = '';
+        contentEl.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Not enough data for category leaderboards yet</p>';
+        return;
+      }
+      // Auto-select first category if none active or if active was removed
+      if (!state.catLbActive || !catMap.has(state.catLbActive)) {
+        state.catLbActive = validCats[0][0];
+      }
+      tabsEl.innerHTML = validCats.map(([cat]) =>
+        `<button class="cat-lb-tab${cat === state.catLbActive ? ' active' : ''}" data-cat="${esc(cat)}">${esc(cat)}</button>`
+      ).join('');
+      const catProjects = (catMap.get(state.catLbActive) || [])
+        .sort((a, b) => (b.trend_momentum || 0) - (a.trend_momentum || 0))
+        .slice(0, 10);
+      contentEl.innerHTML = catProjects.map((p, i) => renderRankCard(p, i + 1)).join('');
+      refreshIcons();
+    }
+
+    function renderWeeklyRecap() {
+      const container = document.getElementById('recap-banner-container');
+      // Check if dismissed this week
+      const now = new Date();
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      const weekNum = Math.ceil(((now - yearStart) / 86400000 + yearStart.getDay() + 1) / 7);
+      const dismissKey = `recap-dismissed-${now.getFullYear()}-W${weekNum}`;
+      if (localStorage.getItem(dismissKey)) { container.style.display = 'none'; return; }
+
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const newThisWeek = state.trendingProjects.filter(p => isNewThisWeek(p)).length;
+      const hotProjects = state.trendingProjects.filter(p => p.trend_label === 'hot').length;
+      const crossed10k = state.trendingProjects.filter(p => {
+        const prev = (p.stars || 0) - (p.trend_stars7d || 0);
+        return prev < 10000 && (p.stars || 0) >= 10000;
+      }).length;
+
+      if (newThisWeek === 0 && hotProjects === 0) { container.style.display = 'none'; return; }
+
+      const parts = [];
+      if (newThisWeek > 0) parts.push(`<strong>${newThisWeek}</strong> new project${newThisWeek !== 1 ? 's' : ''} added`);
+      if (hotProjects > 0) parts.push(`<strong>${hotProjects}</strong> hot project${hotProjects !== 1 ? 's' : ''}`);
+      if (crossed10k > 0) parts.push(`<strong>${crossed10k}</strong> project${crossed10k !== 1 ? 's' : ''} crossed 10k stars`);
+
+      container.style.display = '';
+      container.innerHTML = `
+        <div class="recap-banner">
+          <span class="recap-banner-icon"><i data-lucide="sparkles" style="width:24px;height:24px;color:#8b5cf6"></i></span>
+          <div class="recap-banner-text">This week: ${parts.join(' \u00B7 ')}</div>
+          <button class="recap-banner-dismiss" id="recap-dismiss" aria-label="Dismiss"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+        </div>`;
+      refreshIcons();
+      document.getElementById('recap-dismiss').addEventListener('click', () => {
+        localStorage.setItem(dismissKey, '1');
+        container.style.display = 'none';
+      });
+    }
+
     function renderTrendingAll() {
+      renderCategoryLeaderboards();
       renderAiTop25();
       renderGlobalTop25();
       renderMovers();
@@ -2545,6 +2829,46 @@
           state.trendTimeRange = btn.dataset.range;
           renderTrendingAll();
         });
+      });
+
+      // Global view toggle (cards / table)
+      document.querySelectorAll('#global-view-toggle .view-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#global-view-toggle .view-toggle-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.globalView = btn.dataset.view;
+          renderGlobalTop25();
+        });
+      });
+
+      // Movers tab toggle (gainers / losers)
+      document.querySelectorAll('#movers-tab-group .movers-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#movers-tab-group .movers-tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.moversTab = btn.dataset.tab;
+          renderMovers();
+        });
+      });
+
+      // Movers time toggle
+      document.querySelectorAll('#movers-time-toggle .movers-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#movers-time-toggle .movers-tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.moversRange = btn.dataset.range;
+          renderMovers();
+        });
+      });
+
+      // Category leaderboard tabs
+      document.getElementById('cat-lb-tabs')?.addEventListener('click', (e) => {
+        const tab = e.target.closest('.cat-lb-tab');
+        if (!tab) return;
+        document.querySelectorAll('#cat-lb-tabs .cat-lb-tab').forEach(b => b.classList.remove('active'));
+        tab.classList.add('active');
+        state.catLbActive = tab.dataset.cat;
+        renderCategoryLeaderboards();
       });
     }
 
@@ -2583,6 +2907,13 @@
             if (p.trend_stars7d === undefined) p.trend_stars7d = 0;
             if (p.trend_starsPct7d === undefined) p.trend_starsPct7d = 0;
             if (p.trend_sparkline === undefined) p.trend_sparkline = [];
+            if (p.trend_stars1d === undefined) p.trend_stars1d = 0;
+            if (p.trend_starsPct1d === undefined) p.trend_starsPct1d = 0;
+            if (p.trend_forks1d === undefined) p.trend_forks1d = 0;
+            if (p.trend_stars30d === undefined) p.trend_stars30d = 0;
+            if (p.trend_starsPct30d === undefined) p.trend_starsPct30d = 0;
+            if (p.trend_forks30d === undefined) p.trend_forks30d = 0;
+            if (p.trend_sparkline30d === undefined) p.trend_sparkline30d = [];
             return p;
           })
           .filter(p => p.source || p.submittedBy);
@@ -2591,6 +2922,7 @@
         renderTrendingAll();
         populateTrendingFilters();
         updateTrendingHeroStats();
+        renderWeeklyRecap();
         initTrendingControls();
         state.trendingLoaded = true;
       } catch (err) {

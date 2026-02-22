@@ -128,9 +128,22 @@ function computeMomentum(snapshots) {
   const latest = sorted[sorted.length - 1];
   const weekAgo = sorted.length >= 7 ? sorted[sorted.length - 7] : sorted[0];
 
+  // 7-day metrics
   const stars7d = latest.stars - weekAgo.stars;
   const forks7d = latest.forks - weekAgo.forks;
   const starsPct7d = weekAgo.stars > 0 ? (stars7d / weekAgo.stars) * 100 : 0;
+
+  // 1-day metrics (yesterday vs today)
+  const yesterday = sorted.length >= 2 ? sorted[sorted.length - 2] : sorted[0];
+  const stars1d = latest.stars - yesterday.stars;
+  const starsPct1d = yesterday.stars > 0 ? (stars1d / yesterday.stars) * 100 : 0;
+  const forks1d = latest.forks - yesterday.forks;
+
+  // 30-day metrics
+  const monthAgo = sorted.length >= 30 ? sorted[sorted.length - 30] : sorted[0];
+  const stars30d = latest.stars - monthAgo.stars;
+  const starsPct30d = monthAgo.stars > 0 ? (stars30d / monthAgo.stars) * 100 : 0;
+  const forks30d = latest.forks - monthAgo.forks;
 
   // Relative growth: log2(1 + pct) normalized, cap at 100
   const relGrowth = Math.min(100, (Math.log2(1 + Math.abs(starsPct7d)) / Math.log2(1 + 50)) * 100);
@@ -164,14 +177,22 @@ function computeMomentum(snapshots) {
   else label = 'declining';
 
   const sparkline = sorted.slice(-7).map(s => s.stars);
+  const sparkline30d = sorted.slice(-30).map(s => s.stars);
 
   return {
     trend_stars7d: stars7d,
     trend_starsPct7d: Math.round(starsPct7d * 100) / 100,
     trend_forks7d: forks7d,
+    trend_stars1d: stars1d,
+    trend_starsPct1d: Math.round(starsPct1d * 100) / 100,
+    trend_forks1d: forks1d,
+    trend_stars30d: stars30d,
+    trend_starsPct30d: Math.round(starsPct30d * 100) / 100,
+    trend_forks30d: forks30d,
     trend_momentum: Math.round(momentum * 10) / 10,
     trend_label: label,
     trend_sparkline: sparkline,
+    trend_sparkline30d: sparkline30d,
   };
 }
 
@@ -206,10 +227,10 @@ async function collectSnapshots(db) {
         };
         await doc.ref.collection('snapshots').doc(TODAY).set(snapshotData);
 
-        // Query last 8 snapshots for momentum calculation
+        // Query last 31 snapshots for momentum calculation (supports 30d metrics)
         const snapQuery = await doc.ref.collection('snapshots')
           .orderBy('date', 'desc')
-          .limit(8)
+          .limit(31)
           .get();
         const snapshots = snapQuery.docs.map(d => d.data());
 
