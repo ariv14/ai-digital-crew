@@ -382,7 +382,7 @@
       <a href="#" data-nav="search" id="nav-search-link">Search</a>
       <a href="/trending">Trending</a>
     </div>
-    <div class="nav-right" id="nav-right"></div>
+    <div class="nav-right" id="nav-right" style="visibility:hidden"></div>
     <div class="mobile-nav-icons">
       <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></button>
       <a href="/trending" class="mobile-nav-icon" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
@@ -1839,10 +1839,10 @@
       state.user = user || null;
       state.isLoggedIn = !!user;
       renderNavbar();
+      navRight.style.visibility = '';
     });
 
     // ── Init ────────────────────────────────────────────
-    renderNavbar();
     animateStats();
     renderHeroTrending();
     refreshIcons();
