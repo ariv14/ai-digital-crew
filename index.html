@@ -1433,6 +1433,12 @@
           return tb - ta;
         });
 
+        // Check GitHub rate limit before bulk-refreshing to avoid 403 console errors
+        try {
+          const rl = await fetch('https://api.github.com/rate_limit');
+          if (rl.ok) { const j = await rl.json(); if ((j.resources?.core?.remaining ?? 60) < stored.length) _ghRateLimitOk = false; }
+        } catch {}
+
         // Refresh live stats from GitHub but preserve stored-only fields (including embeddings)
         const refreshed = await Promise.all(stored.map(async (p) => {
           try {
