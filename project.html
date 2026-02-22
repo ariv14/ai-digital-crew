@@ -43,14 +43,12 @@
 
     .glass{background:var(--surface);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius)}
 
+    html{background:#0a0f1c}
     /* View Transitions */
     @view-transition{navigation:auto}
     nav{view-transition-name:navbar}
     ::view-transition-old(navbar),::view-transition-new(navbar){animation:none}
-    ::view-transition-old(root){animation:fadeOut .15s ease}
-    ::view-transition-new(root){animation:fadeIn .15s ease}
-    @keyframes fadeOut{from{opacity:1}to{opacity:0}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    ::view-transition-group(root){animation-duration:.2s}
 
     /* Nav */
     nav{position:sticky;top:0;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;transition:all .3s ease}
