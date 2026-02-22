@@ -884,7 +884,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, getDocs, getDoc, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
     // Firebase Functions loaded lazily on first search (saves ~20KB from critical path)
 
     // ============================================================
@@ -978,7 +978,7 @@
       return addedDate.getTime() > weekAgo;
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, embeddingsLoaded: false };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -1490,7 +1490,17 @@
           createdAt: serverTimestamp()
         });
 
-        state.projects.unshift(data);
+        const newProject = { ...data, submittedBy: state.user.uid, submittedByName: state.user.displayName || 'Anonymous', createdAt: new Date().toISOString() };
+        state.projects.unshift(newProject);
+        // Update localStorage cache so the new project persists across refreshes
+        try {
+          const cached = localStorage.getItem(ADC_CACHE_KEY);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            parsed.projects.push(newProject);
+            localStorage.setItem(ADC_CACHE_KEY, JSON.stringify(parsed));
+          }
+        } catch {}
         closeSubmitModal();
         renderProjects();
 
@@ -1510,48 +1520,140 @@
       submitBtn.textContent = 'Submit Project';
     });
 
-    // ── Load projects from Firestore ────────────────────
-    async function loadProjects() {
-      state.isLoading = true;
-      try {
-        const snap = await getDocs(collection(db, 'projects'));
-        const stored = snap.docs.map(d => d.data()).filter(p => p.source !== 'trending-ai' && p.source !== 'trending-global').sort((a, b) => {
+    // ── Load all projects: single-doc cache (1 Firestore read) + localStorage TTL ──
+    const ADC_CACHE_KEY = 'adc_projects_cache';
+    const ADC_CACHE_TTL = 3600000; // 1 hour
+
+    function applyProjectData(allProjects) {
+      // Home view: exclude trending-only projects, sort by newest
+      state.projects = allProjects
+        .filter(p => p.source !== 'trending-ai' && p.source !== 'trending-global')
+        .sort((a, b) => {
           const ta = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
           const tb = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
           return tb - ta;
         });
 
-        // Check GitHub rate limit before bulk-refreshing to avoid 403 console errors
+      // Trending view: all projects with trend defaults
+      state.trendingProjects = allProjects.map(p => ({
+        ...p,
+        trend_momentum: p.trend_momentum ?? 0,
+        trend_label: p.trend_label ?? 'new',
+        trend_stars7d: p.trend_stars7d ?? 0,
+        trend_starsPct7d: p.trend_starsPct7d ?? 0,
+        trend_sparkline: p.trend_sparkline ?? [],
+        trend_stars1d: p.trend_stars1d ?? 0,
+        trend_starsPct1d: p.trend_starsPct1d ?? 0,
+        trend_forks1d: p.trend_forks1d ?? 0,
+        trend_stars30d: p.trend_stars30d ?? 0,
+        trend_starsPct30d: p.trend_starsPct30d ?? 0,
+        trend_forks30d: p.trend_forks30d ?? 0,
+        trend_sparkline30d: p.trend_sparkline30d ?? [],
+      })).filter(p => p.source || p.submittedBy);
+      state.trendingAiProjects = state.trendingProjects.filter(isAiProject);
+      state.trendingGlobalProjects = state.trendingProjects;
+      state.trendingLoaded = true;
+    }
+
+    async function loadAllProjects() {
+      state.isLoading = true;
+      try {
+        // 1. Check localStorage cache
+        let allProjects = null;
         try {
-          const rl = await fetch('https://api.github.com/rate_limit');
-          if (rl.ok) { const j = await rl.json(); if ((j.resources?.core?.remaining ?? 60) < stored.length) _ghRateLimitOk = false; }
-        } catch {}
+          const cached = localStorage.getItem(ADC_CACHE_KEY);
+          if (cached) {
+            const { projects, ts } = JSON.parse(cached);
+            if (Date.now() - ts < ADC_CACHE_TTL && Array.isArray(projects) && projects.length > 0) {
+              allProjects = projects;
+              console.log(`Loaded ${projects.length} projects from localStorage cache`);
+            }
+          }
+        } catch (e) { /* localStorage parse error — fetch fresh */ }
 
-        // Refresh live stats from GitHub but preserve stored-only fields (including embeddings)
-        const refreshed = await Promise.all(stored.map(async (p) => {
-          try {
-            const fresh = await fetchRepoData(p.owner, p.name);
-            if (fresh) return { ...fresh, writeup: p.writeup, quickStart: p.quickStart, source: p.source, autoAddedDate: p.autoAddedDate, submittedBy: p.submittedBy, submittedByName: p.submittedByName, category: p.category || '', embedding_gemini: p.embedding_gemini || null, embedding_cloudflare: p.embedding_cloudflare || null, trend_stars7d: p.trend_stars7d, trend_starsPct7d: p.trend_starsPct7d, trend_forks7d: p.trend_forks7d, trend_momentum: p.trend_momentum, trend_label: p.trend_label, trend_sparkline: p.trend_sparkline, trend_updatedAt: p.trend_updatedAt };
-          } catch {}
-          return p;
-        }));
+        // 2. Single Firestore read from projectsCache/latest
+        if (!allProjects) {
+          const snap = await getDoc(doc(db, 'projectsCache', 'latest'));
+          if (snap.exists()) {
+            const data = snap.data();
+            allProjects = data.projects || [];
+            console.log(`Loaded ${allProjects.length} projects from projectsCache (1 read)`);
+            try {
+              localStorage.setItem(ADC_CACHE_KEY, JSON.stringify({ projects: allProjects, ts: Date.now() }));
+            } catch (e) { /* localStorage full — silently continue */ }
+          }
+        }
 
-        state.projects = refreshed;
+        // 3. Fallback: read individual docs (cache doc not yet built by pipeline)
+        if (!allProjects || allProjects.length === 0) {
+          console.log('projectsCache not found, falling back to getDocs...');
+          const snap = await getDocs(collection(db, 'projects'));
+          allProjects = snap.docs.map(d => {
+            const raw = d.data();
+            // Convert Firestore timestamps to ISO strings for consistency
+            if (raw.createdAt && typeof raw.createdAt.toDate === 'function') {
+              raw.createdAt = raw.createdAt.toDate().toISOString();
+            }
+            if (raw.trend_updatedAt && typeof raw.trend_updatedAt.toDate === 'function') {
+              raw.trend_updatedAt = raw.trend_updatedAt.toDate().toISOString();
+            }
+            return raw;
+          });
+        }
+
+        applyProjectData(allProjects);
         try { await initFuse(); } catch (e) { console.warn('Fuse init deferred:', e.message); }
       } catch (err) {
-        console.error('loadProjects error:', err);
+        console.error('loadAllProjects error:', err);
         state.projects = [];
       }
       state.isLoading = false;
-      // Render featured first, then show projects — single layout pass, no CLS
       renderFeatured();
       renderCategoryTabs();
       if (state.currentView === 'home') {
         document.getElementById('projects').style.display = '';
       }
       renderProjects();
-      // Handle #projects hash after data loads (cross-page nav from /trending)
       if (location.hash === '#projects') setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 100);
+      // If user navigated directly to trending, render it now that data is loaded
+      if (state.currentView === 'trending' && state.trendingLoaded) {
+        renderTrendingAll();
+        populateTrendingFilters();
+        updateTrendingHeroStats();
+        renderWeeklyRecap();
+        initTrendingControls();
+      }
+    }
+
+    // Lazy-load embeddings for semantic search (only when needed)
+    async function loadEmbeddings() {
+      if (state.embeddingsLoaded) return;
+      console.log('Loading embeddings for semantic search...');
+      try {
+        const snap = await getDocs(collection(db, 'projects'));
+        const embMap = {};
+        for (const d of snap.docs) {
+          const data = d.data();
+          if (data.fullName && (data.embedding_gemini || data.embedding_cloudflare)) {
+            embMap[data.fullName] = {
+              embedding_gemini: data.embedding_gemini || null,
+              embedding_cloudflare: data.embedding_cloudflare || null,
+            };
+          }
+        }
+        // Merge embeddings into state.projects
+        for (const p of state.projects) {
+          const emb = embMap[p.fullName];
+          if (emb) {
+            p.embedding_gemini = emb.embedding_gemini;
+            p.embedding_cloudflare = emb.embedding_cloudflare;
+          }
+        }
+        state.embeddingsLoaded = true;
+        console.log(`Embeddings loaded for ${Object.keys(embMap).length} projects`);
+      } catch (err) {
+        console.warn('Failed to load embeddings:', err.message);
+      }
     }
 
     // ── Utilities ───────────────────────────────────────
@@ -1747,8 +1849,9 @@
         return;
       }
 
-      // Similar projects — use embeddings
+      // Similar projects — use embeddings (lazy-load if needed)
       if (intent.type === 'similar') {
+        await loadEmbeddings();
         const similar = findSimilarProjects(intent.project, 10);
         state.searchResults = similar.length > 0
           ? similar.map(s => ({ project: s.project, score: s.score }))
@@ -1770,7 +1873,8 @@
         return;
       }
 
-      // Semantic + keyword hybrid search
+      // Semantic + keyword hybrid search — lazy-load embeddings if needed
+      await loadEmbeddings();
       state.isSearching = true;
       const statusEl = document.getElementById('search-status');
       const spinnerEl = document.getElementById('search-spinner');
@@ -2894,40 +2998,18 @@
       });
     }
 
-    // ── Trending: Lazy-load data ──────────────────────────
+    // ── Trending: Use shared data from loadAllProjects (0 extra reads) ──────
     async function loadTrendingData() {
-      if (state.trendingLoaded) return;
-      try {
-        const snap = await getDocs(collection(db, 'projects'));
-        state.trendingProjects = snap.docs
-          .map(d => {
-            const p = d.data();
-            if (p.trend_momentum === undefined) p.trend_momentum = 0;
-            if (p.trend_label === undefined) p.trend_label = 'new';
-            if (p.trend_stars7d === undefined) p.trend_stars7d = 0;
-            if (p.trend_starsPct7d === undefined) p.trend_starsPct7d = 0;
-            if (p.trend_sparkline === undefined) p.trend_sparkline = [];
-            if (p.trend_stars1d === undefined) p.trend_stars1d = 0;
-            if (p.trend_starsPct1d === undefined) p.trend_starsPct1d = 0;
-            if (p.trend_forks1d === undefined) p.trend_forks1d = 0;
-            if (p.trend_stars30d === undefined) p.trend_stars30d = 0;
-            if (p.trend_starsPct30d === undefined) p.trend_starsPct30d = 0;
-            if (p.trend_forks30d === undefined) p.trend_forks30d = 0;
-            if (p.trend_sparkline30d === undefined) p.trend_sparkline30d = [];
-            return p;
-          })
-          .filter(p => p.source || p.submittedBy);
-        state.trendingAiProjects = state.trendingProjects.filter(isAiProject);
-        state.trendingGlobalProjects = state.trendingProjects;
+      if (state.trendingLoaded) {
         renderTrendingAll();
         populateTrendingFilters();
         updateTrendingHeroStats();
         renderWeeklyRecap();
         initTrendingControls();
-        state.trendingLoaded = true;
-      } catch (err) {
-        console.error('loadTrendingData error:', err);
+        return;
       }
+      // Data not yet loaded (unlikely — loadAllProjects runs on init)
+      // Wait for it instead of making a separate Firestore call
     }
 
     // ── Init ────────────────────────────────────────────
@@ -2935,7 +3017,7 @@
     renderHeroTrending();
     refreshIcons();
     // Defer Firestore load until after first paint to improve FCP
-    requestAnimationFrame(() => { setTimeout(loadProjects, 0); });
+    requestAnimationFrame(() => { setTimeout(loadAllProjects, 0); });
   </script>
 </body>
 </html>

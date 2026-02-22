@@ -275,6 +275,43 @@ async function collectSnapshots(db) {
   console.log(`Snapshots complete: ${processed} updated, ${failed} failed, ${pruned} pruned`);
 }
 
+// ── Projects cache: single-doc for frontend (1 read instead of N) ─────────
+
+const CACHE_FIELDS = [
+  'fullName', 'name', 'owner', 'ownerAvatar', 'description', 'writeup', 'quickStart',
+  'stars', 'forks', 'language', 'topics', 'url', 'category', 'source', 'autoAddedDate',
+  'submittedBy', 'submittedByName', 'createdAt',
+  'trend_momentum', 'trend_label', 'trend_stars7d', 'trend_starsPct7d', 'trend_forks7d',
+  'trend_stars1d', 'trend_starsPct1d', 'trend_forks1d',
+  'trend_stars30d', 'trend_starsPct30d', 'trend_forks30d',
+  'trend_sparkline', 'trend_sparkline30d', 'trend_updatedAt',
+];
+
+async function writeProjectsCache(db) {
+  console.log('Writing projectsCache/latest...');
+  const allSnap = await db.collection('projects').get();
+  const projects = allSnap.docs.map(d => {
+    const raw = d.data();
+    const obj = {};
+    for (const key of CACHE_FIELDS) {
+      if (raw[key] === undefined) continue;
+      // Convert Firestore Timestamps to ISO strings
+      if (raw[key] && typeof raw[key].toDate === 'function') {
+        obj[key] = raw[key].toDate().toISOString();
+      } else {
+        obj[key] = raw[key];
+      }
+    }
+    return obj;
+  });
+
+  await db.collection('projectsCache').doc('latest').set({
+    projects,
+    updatedAt: new Date().toISOString(),
+  });
+  console.log(`projectsCache/latest written with ${projects.length} projects`);
+}
+
 // ── Firestore ─────────────────────────────────────────────────────────────────
 
 function initFirestore() {
@@ -661,6 +698,13 @@ async function main() {
     await collectSnapshots(db);
   } catch (snapErr) {
     console.warn('Snapshot collection failed (non-fatal):', snapErr.message);
+  }
+
+  // 7b. Write single-doc projects cache for frontend (1 read instead of N)
+  try {
+    await writeProjectsCache(db);
+  } catch (cacheErr) {
+    console.warn('Projects cache write failed (non-fatal):', cacheErr.message);
   }
 
   // 8. Notify the repo owner via a GitHub issue
