@@ -2560,8 +2560,18 @@
       const pages = Math.ceil(total / TREND_PAGE_SIZE);
       if (pages <= 1) { pag.innerHTML = ''; return; }
       let html = `<button class="page-btn" data-page="prev" ${filter.page <= 1 ? 'disabled' : ''}>&laquo;</button>`;
-      for (let i = 1; i <= pages; i++) {
-        html += `<button class="page-btn${filter.page === i ? ' active' : ''}" data-page="${i}">${i}</button>`;
+      const cur = filter.page;
+      if (pages <= 7) {
+        for (let i = 1; i <= pages; i++) html += `<button class="page-btn${cur === i ? ' active' : ''}" data-page="${i}">${i}</button>`;
+      } else {
+        const show = new Set([1, 2, cur - 1, cur, cur + 1, pages - 1, pages]);
+        let prev = 0;
+        for (let i = 1; i <= pages; i++) {
+          if (!show.has(i)) continue;
+          if (prev && i - prev > 1) html += `<span class="page-info">&hellip;</span>`;
+          html += `<button class="page-btn${cur === i ? ' active' : ''}" data-page="${i}">${i}</button>`;
+          prev = i;
+        }
       }
       html += `<button class="page-btn" data-page="next" ${filter.page >= pages ? 'disabled' : ''}>&raquo;</button>`;
       html += `<span class="page-info">${total} projects</span>`;
