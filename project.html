@@ -210,7 +210,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getFirestore, collection, query, where, getDocs, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { getFirestore, collection, query, where, getDocs, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     const STAGING_HOSTS = ['staging.aidigitalcrew.com', 'localhost', '127.0.0.1'];
     const isStaging = STAGING_HOSTS.includes(location.hostname);
@@ -280,20 +280,12 @@
       }
 
       const project = snap.docs[0].data();
-      const docRef = snap.docs[0].ref;
 
       // Update page title
       document.title = `${project.name} — AI Digital Crew`;
 
-      // 2. Load snapshots for star history
-      let snapshots = [];
-      try {
-        const snapQ = query(collection(docRef, 'snapshots'), orderBy('date', 'asc'), limit(30));
-        const snapSnap = await getDocs(snapQ);
-        snapshots = snapSnap.docs.map(d => d.data());
-      } catch (e) {
-        console.warn('Failed to load snapshots:', e.message);
-      }
+      // 2. Use inline snapshots array from project doc (no extra reads)
+      const snapshots = Array.isArray(project.snapshots) ? project.snapshots : [];
 
       renderProject(project, snapshots);
     }
