@@ -63,6 +63,44 @@
     .nav-links a.active{color:var(--text);position:relative}
     .nav-links a.active::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--primary-end));border-radius:1px}
     .nav-right{display:flex;align-items:center;gap:16px}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:linear-gradient(135deg,var(--primary),var(--primary-end));background-size:200% 200%;color:#fff;font-weight:600;font-size:15px;border-radius:12px;border:none;transition:all .3s ease}
+    .btn-primary:hover{background-position:100% 0;transform:translateY(-2px);box-shadow:0 0 24px rgba(59,130,246,.4)}
+    .btn-outlined{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:transparent;color:var(--text);font-weight:600;font-size:15px;border-radius:12px;border:1px solid var(--border);transition:all .3s ease}
+    .btn-outlined:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-2px)}
+    .btn-small{padding:8px 16px;font-size:13px;border-radius:8px}
+    .nav-avatar{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:border-color .2s;object-fit:cover}
+    .nav-avatar:hover{border-color:var(--primary)}
+    .avatar-dropdown{position:absolute;top:60px;right:32px;min-width:180px;padding:8px;display:none;flex-direction:column;z-index:200}
+    .avatar-dropdown.open{display:flex}
+    .avatar-dropdown a,.avatar-dropdown button{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:var(--text-muted);border-radius:8px;transition:all .2s;width:100%;text-align:left}
+    .avatar-dropdown a:hover,.avatar-dropdown button:hover{background:rgba(255,255,255,.05);color:var(--text)}
+    .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center;padding:24px;overscroll-behavior:contain}
+    .modal-overlay.open{display:flex}
+    .modal{width:100%;max-width:480px;padding:32px;position:relative;max-height:90vh;overflow-y:auto}
+    .modal-close{position:absolute;top:16px;right:16px;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:8px;transition:color .2s;background:none;border:none}
+    .modal-close:hover{color:var(--text)}
+    .modal h2{font-size:24px;margin-bottom:8px}
+    .modal .modal-subtitle{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+    .oauth-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;border:none;margin-bottom:12px}
+    .oauth-btn:hover{transform:translateY(-1px)}
+    .oauth-btn.github{background:#24292e;color:#fff}
+    .oauth-btn.google{background:#fff;color:#1f2937}
+    .oauth-btn.facebook{background:#1877F2;color:#fff}
+    .oauth-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .oauth-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+    .oauth-btn.google .oauth-spinner{border-color:rgba(0,0,0,.2);border-top-color:#1f2937}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    .toast{min-width:280px;padding:14px 18px;display:flex;align-items:center;gap:10px;font-size:14px;pointer-events:auto;animation:slideIn .3s ease forwards}
+    .toast.removing{animation:slideOut .3s ease forwards}
+    .toast.success{border-left:4px solid var(--success)}
+    .toast.error{border-left:4px solid var(--error)}
+    .toast.info{border-left:4px solid var(--primary)}
+    .toast i{flex-shrink:0}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
+    body.modal-open{overflow:hidden}
     .hamburger{display:none;background:none;border:none;color:var(--text);cursor:pointer}
     .mobile-nav-icons{display:none;align-items:center;gap:10px}
     .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;text-decoration:none;transition:color .2s}
@@ -266,6 +304,7 @@
       <a href="/#search">Search</a>
       <a href="/trending" class="active">Trending</a>
     </div>
+    <div class="nav-right" id="nav-right"></div>
     <div class="mobile-nav-icons">
       <a href="/#search" class="mobile-nav-icon" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></a>
       <a href="/trending" class="mobile-nav-icon active" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
@@ -277,6 +316,7 @@
       <a href="/#search">Search</a>
       <a href="/trending" class="active">Trending</a>
     </div>
+    <div class="avatar-dropdown glass" id="avatar-dropdown"></div>
   </nav>
 
   <main>
@@ -436,8 +476,29 @@
     </div>
   </footer>
 
+  <div id="toast-container"></div>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="login-modal" role="dialog" aria-modal="true" aria-label="Login">
+    <div class="modal glass">
+      <button class="modal-close" id="login-close" aria-label="Close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+      <h2>Join AI Digital Crew</h2>
+      <p class="modal-subtitle">Sign in to submit your AI projects.</p>
+      <button class="oauth-btn github" id="btn-github"><i data-lucide="github" style="width:20px;height:20px"></i>Continue with GitHub</button>
+      <button class="oauth-btn google" id="btn-google">
+        <svg style="width:20px;height:20px" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <button class="oauth-btn facebook" id="btn-facebook">
+        <svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Continue with Facebook
+      </button>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     // ── Firebase config ─────────────────────────────────
@@ -466,7 +527,14 @@
     if (isStaging) document.title = '[STAGING] ' + document.title;
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
+
+    // ── DOM refs ─────────────────────────────────────────
+    const navRight = document.getElementById('nav-right');
+    const avatarDropdown = document.getElementById('avatar-dropdown');
+    const loginModal = document.getElementById('login-modal');
+    const toastContainer = document.getElementById('toast-container');
 
     // ── Shared utils ────────────────────────────────────
     function esc(t) { if (t == null) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
@@ -583,6 +651,8 @@
     // ── State ───────────────────────────────────────────
     const PAGE_SIZE = 25;
     const state = {
+      user: null,
+      isLoggedIn: false,
       projects: [],
       aiProjects: [],
       globalProjects: [],
@@ -917,6 +987,120 @@
       renderMovers();
       renderDevelopers();
     }
+
+    // ── Toast ────────────────────────────────────────────
+    function showToast(message, type = 'success', duration = 3000) {
+      const icons = { success: 'check-circle', error: 'x-circle', info: 'info' };
+      const t = document.createElement('div');
+      t.className = `toast glass ${type}`;
+      t.innerHTML = `<i data-lucide="${icons[type]}" style="width:18px;height:18px"></i><span>${message}</span>`;
+      toastContainer.appendChild(t);
+      refreshIcons();
+      setTimeout(() => { t.classList.add('removing'); t.addEventListener('animationend', () => t.remove()); }, duration);
+    }
+
+    // ── Modals ──────────────────────────────────────────
+    function lockBodyScroll() { document.body.classList.add('modal-open'); }
+    function unlockBodyScroll() { document.body.classList.remove('modal-open'); }
+    function openLoginModal() { loginModal.classList.add('open'); lockBodyScroll(); }
+    function closeLoginModal() { loginModal.classList.remove('open'); unlockBodyScroll(); enableOAuthButtons(); }
+
+    // ── Auth ────────────────────────────────────────────
+    function enableOAuthButtons() {
+      loginModal.querySelectorAll('.oauth-btn').forEach(b => { b.disabled = false; if (b.dataset.label) b.innerHTML = b.dataset.label; });
+    }
+    function setLoading(btn) {
+      loginModal.querySelectorAll('.oauth-btn').forEach(b => b.disabled = true);
+      btn.dataset.label = btn.innerHTML;
+      btn.innerHTML = `<div class="oauth-spinner"></div> Connecting...`;
+    }
+
+    const providerNames = { 'google.com': 'Google', 'github.com': 'GitHub', 'facebook.com': 'Facebook' };
+
+    async function handleOAuthError(err, providerName) {
+      if (err.code === 'auth/account-exists-with-different-credential') {
+        const otherProviders = Object.values(providerNames).filter(n => n !== providerName);
+        showToast(`This email is already registered. Sign in with ${otherProviders.join(' or ')} to link your ${providerName} account.`, 'info', 6000);
+      } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        // User closed popup
+      } else {
+        console.error(`${providerName} auth error:`, err);
+        showToast(`Auth error: ${err.code || err.message}`, 'error');
+      }
+      enableOAuthButtons();
+    }
+
+    async function handleOAuthSuccess() {
+      closeLoginModal();
+      showToast(`Welcome, ${state.user.displayName || 'friend'}!`, 'success');
+    }
+
+    async function loginWithGitHub() {
+      const btn = document.getElementById('btn-github');
+      setLoading(btn);
+      try { await signInWithPopup(auth, new GithubAuthProvider()); await handleOAuthSuccess(); }
+      catch (err) { await handleOAuthError(err, 'GitHub'); }
+    }
+    async function loginWithGoogle() {
+      const btn = document.getElementById('btn-google');
+      setLoading(btn);
+      try { await signInWithPopup(auth, new GoogleAuthProvider()); await handleOAuthSuccess(); }
+      catch (err) { await handleOAuthError(err, 'Google'); }
+    }
+    async function loginWithFacebook() {
+      const btn = document.getElementById('btn-facebook');
+      setLoading(btn);
+      try { await signInWithPopup(auth, new FacebookAuthProvider()); await handleOAuthSuccess(); }
+      catch (err) { await handleOAuthError(err, 'Facebook'); }
+    }
+    async function logout() {
+      avatarDropdown.classList.remove('open');
+      await signOut(auth);
+      showToast('Signed out.', 'info');
+    }
+
+    // Wire login modal
+    document.getElementById('login-close').addEventListener('click', closeLoginModal);
+    loginModal.addEventListener('click', (e) => { if (e.target === loginModal) closeLoginModal(); });
+    document.getElementById('btn-github').addEventListener('click', loginWithGitHub);
+    document.getElementById('btn-google').addEventListener('click', loginWithGoogle);
+    document.getElementById('btn-facebook').addEventListener('click', loginWithFacebook);
+
+    // ── Navbar rendering ────────────────────────────────
+    function renderNavbar() {
+      if (state.isLoggedIn) {
+        const photo = state.user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.user.uid}`;
+        navRight.innerHTML = `
+          <a href="/" class="btn-primary btn-small" style="text-decoration:none"><i data-lucide="plus" style="width:14px;height:14px"></i> Submit</a>
+          <img src="${esc(photo)}" alt="Avatar" class="nav-avatar" id="nav-avatar" width="36" height="36" referrerpolicy="no-referrer">
+        `;
+        avatarDropdown.innerHTML = `
+          <a href="#"><i data-lucide="user" style="width:16px;height:16px"></i>${esc(state.user.displayName || 'Profile')}</a>
+          <div class="dropdown-divider"></div>
+          <button id="logout-btn"><i data-lucide="log-out" style="width:16px;height:16px"></i>Logout</button>
+        `;
+        document.getElementById('nav-avatar').addEventListener('click', (e) => { e.stopPropagation(); avatarDropdown.classList.toggle('open'); });
+        document.getElementById('logout-btn').addEventListener('click', logout);
+      } else {
+        navRight.innerHTML = `<button class="btn-outlined btn-small" id="nav-login-btn">Login / Join</button>`;
+        avatarDropdown.innerHTML = '';
+        avatarDropdown.classList.remove('open');
+        document.getElementById('nav-login-btn').addEventListener('click', openLoginModal);
+      }
+      refreshIcons();
+    }
+
+    // Close avatar dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (!avatarDropdown.contains(e.target)) avatarDropdown.classList.remove('open');
+    });
+
+    // ── Auth state listener ─────────────────────────────
+    onAuthStateChanged(auth, user => {
+      state.user = user || null;
+      state.isLoggedIn = !!user;
+      renderNavbar();
+    });
 
     // ── Nav scroll effect ───────────────────────────────
     const navbar = document.getElementById('navbar');
