@@ -169,10 +169,17 @@
     .search-wrap{position:relative;display:flex;align-items:center}
     .search-wrap i{position:absolute;left:10px;color:var(--text-muted);pointer-events:none}
 
-    /* Explore layout */
-    .explore-grid{display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start}
-    .movers-sidebar{position:sticky;top:90px}
-    .movers-card{padding:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:16px}
+    /* Movers grid */
+    .movers-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .movers-card{padding:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+    /* Pagination */
+    .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
+    .page-btn{padding:6px 14px;font-size:13px;font-weight:600;border-radius:8px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .2s}
+    .page-btn:hover:not(:disabled){border-color:var(--primary);color:var(--text)}
+    .page-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+    .page-btn:disabled{opacity:.4;cursor:default}
+    .page-info{font-size:13px;color:var(--text-muted);padding:0 8px}
     .movers-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px}
     .mover-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
     .mover-row:last-child{border-bottom:none}
@@ -223,8 +230,7 @@
 
     /* Responsive */
     @media(max-width:900px){
-      .explore-grid{grid-template-columns:1fr}
-      .movers-sidebar{position:static;display:grid;grid-template-columns:1fr 1fr;gap:16px;order:-1}
+      .movers-grid{grid-template-columns:1fr}
       .hero-stats{gap:12px}
       .hero-stat{padding:14px 20px;min-width:100px}
       .hero-stat .stat-num{font-size:28px}
@@ -238,7 +244,6 @@
       .radar-hero .subtitle{font-size:15px}
       .hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:320px;margin-left:auto;margin-right:auto}
       .hero-stat{min-width:0;padding:14px 12px}
-      .movers-sidebar{grid-template-columns:1fr}
       .filter-bar{gap:8px}
       .filter-group{flex-wrap:wrap}
       .footer-grid{grid-template-columns:1fr}
@@ -258,10 +263,9 @@
     <div class="nav-links">
       <a href="/">Home</a>
       <a href="/#projects">Projects</a>
-      <a href="/trending" class="active">Trending</a>
       <a href="/#search">Search</a>
+      <a href="/trending" class="active">Trending</a>
     </div>
-    <div class="nav-right"></div>
     <div class="mobile-nav-icons">
       <a href="/#search" class="mobile-nav-icon" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></a>
       <a href="/trending" class="mobile-nav-icon active" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></a>
@@ -270,8 +274,8 @@
     <div class="mobile-menu glass" id="mobile-menu">
       <a href="/">Home</a>
       <a href="/#projects">Projects</a>
-      <a href="/trending" class="active">Trending</a>
       <a href="/#search">Search</a>
+      <a href="/trending" class="active">Trending</a>
     </div>
   </nav>
 
@@ -311,77 +315,78 @@
           <div class="section-title"><i data-lucide="bot" style="width:24px;height:24px;color:#8b5cf6"></i> AI Trending &mdash; Top 25</div>
           <p class="section-subtitle">The hottest AI &amp; ML projects right now</p>
         </div>
+        <div class="filter-bar" id="ai-filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">Category</span>
+            <select class="filter-select" id="ai-filter-category"><option value="All">All</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Language</span>
+            <select class="filter-select" id="ai-filter-language"><option value="All">All</option></select>
+          </div>
+          <div class="filter-group">
+            <div class="search-wrap">
+              <i data-lucide="search" style="width:14px;height:14px"></i>
+              <input type="text" class="search-input" id="ai-filter-search" placeholder="Search AI projects...">
+            </div>
+          </div>
+        </div>
         <div id="ai-top25">
           <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
           <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
           <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
         </div>
+        <div class="pagination" id="ai-pagination"></div>
       </div>
     </section>
 
-    <!-- Section 2: Global Trending Top 25 -->
+    <!-- Section 2: Global Trending Top 100 -->
     <section id="global-top25-section">
       <div class="section-container">
         <div class="section-header">
-          <div class="section-title"><i data-lucide="trophy" style="width:24px;height:24px;color:#fbbf24"></i> Global Trending &mdash; Top 25</div>
+          <div class="section-title"><i data-lucide="trophy" style="width:24px;height:24px;color:#fbbf24"></i> Global Trending &mdash; Top 100</div>
           <p class="section-subtitle">Top projects across all of GitHub</p>
+        </div>
+        <div class="filter-bar" id="global-filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">Category</span>
+            <select class="filter-select" id="global-filter-category"><option value="All">All</option></select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Language</span>
+            <select class="filter-select" id="global-filter-language"><option value="All">All</option></select>
+          </div>
+          <div class="filter-group">
+            <div class="search-wrap">
+              <i data-lucide="search" style="width:14px;height:14px"></i>
+              <input type="text" class="search-input" id="global-filter-search" placeholder="Search projects...">
+            </div>
+          </div>
         </div>
         <div id="global-top25">
           <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
           <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
           <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
         </div>
+        <div class="pagination" id="global-pagination"></div>
       </div>
     </section>
 
-    <!-- Section 3: Explore -->
-    <section id="explore-section">
+    <!-- Section 3: Biggest Movers -->
+    <section id="movers-section">
       <div class="section-container">
         <div class="section-header">
-          <div class="section-title"><i data-lucide="compass" style="width:24px;height:24px;color:var(--primary)"></i> Explore</div>
-          <p class="section-subtitle">Filter, sort, and discover projects across all categories</p>
+          <div class="section-title"><i data-lucide="zap" style="width:24px;height:24px;color:#fbbf24"></i> Biggest Movers</div>
+          <p class="section-subtitle">Projects with the most growth this week</p>
         </div>
-        <div class="filter-bar" id="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label">Sort</span>
-            <button class="sort-btn active" data-sort="momentum">Momentum</button>
-            <button class="sort-btn" data-sort="stars7d">Star Gain</button>
-            <button class="sort-btn" data-sort="pct">% Growth</button>
+        <div class="movers-grid">
+          <div class="movers-card" id="movers-pct">
+            <div class="movers-title"><i data-lucide="rocket" style="width:16px;height:16px;color:#34d399"></i> Top by % Growth</div>
+            <div id="movers-pct-list"></div>
           </div>
-          <div class="filter-group">
-            <span class="filter-label">Pool</span>
-            <select class="filter-select" id="filter-pool">
-              <option value="All">All</option>
-              <option value="AI">AI Only</option>
-              <option value="Global">Global</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Category</span>
-            <select class="filter-select" id="filter-category"><option value="All">All</option></select>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Language</span>
-            <select class="filter-select" id="filter-language"><option value="All">All</option></select>
-          </div>
-          <div class="filter-group">
-            <div class="search-wrap">
-              <i data-lucide="search" style="width:14px;height:14px"></i>
-              <input type="text" class="search-input" id="explore-search" placeholder="Search projects...">
-            </div>
-          </div>
-        </div>
-        <div class="explore-grid">
-          <div id="filtered-board"></div>
-          <div class="movers-sidebar" id="movers-sidebar">
-            <div class="movers-card" id="movers-pct">
-              <div class="movers-title"><i data-lucide="rocket" style="width:16px;height:16px;color:#34d399"></i> Top by % Growth</div>
-              <div id="movers-pct-list"></div>
-            </div>
-            <div class="movers-card" id="movers-abs">
-              <div class="movers-title"><i data-lucide="star" style="width:16px;height:16px;color:#60a5fa"></i> Top by Star Gain</div>
-              <div id="movers-abs-list"></div>
-            </div>
+          <div class="movers-card" id="movers-abs">
+            <div class="movers-title"><i data-lucide="star" style="width:16px;height:16px;color:#60a5fa"></i> Top by Star Gain</div>
+            <div id="movers-abs-list"></div>
           </div>
         </div>
       </div>
@@ -411,8 +416,8 @@
       <div class="footer-col">
         <p class="footer-heading">Trending</p>
         <a href="#ai-top25-section">AI Top 25</a>
-        <a href="#global-top25-section">Global Top 25</a>
-        <a href="#explore-section">Explore</a>
+        <a href="#global-top25-section">Global Top 100</a>
+        <a href="#movers-section">Movers</a>
         <a href="#developers-section">Developers</a>
       </div>
       <div class="footer-col">
@@ -576,16 +581,15 @@
     }
 
     // ── State ───────────────────────────────────────────
+    const PAGE_SIZE = 25;
     const state = {
       projects: [],
       aiProjects: [],
       globalProjects: [],
       sort: 'momentum',
-      pool: 'All',
-      category: 'All',
-      language: 'All',
-      searchQuery: '',
       timeRange: '7d',
+      aiFilter: { category: 'All', language: 'All', search: '', page: 1 },
+      globalFilter: { category: 'All', language: 'All', search: '', page: 1 },
     };
 
     // ── Sort by time range ──────────────────────────────
@@ -644,105 +648,112 @@
       refreshIcons();
     }
 
-    // ── Section 1: AI Top 25 ────────────────────────────
-    function renderAiTop25() {
-      const container = document.getElementById('ai-top25');
-      const top25 = [...state.aiProjects]
-        .sort(sortFns[getSortKey()] || sortFns.momentum)
-        .slice(0, 25);
-
-      if (top25.length === 0) {
-        renderEmptyState(container, 'bot', 'No AI trending data yet', 'The daily pipeline hasn\'t run yet. Check back tomorrow!');
-        return;
-      }
-      container.innerHTML = top25.map((p, i) => renderRankCard(p, i + 1)).join('');
-      refreshIcons();
-    }
-
-    // ── Section 2: Global Top 25 ────────────────────────
-    function renderGlobalTop25() {
-      const container = document.getElementById('global-top25');
-      const top25 = [...state.globalProjects]
-        .sort(sortFns[getSortKey()] || sortFns.momentum)
-        .slice(0, 25);
-
-      if (top25.length === 0) {
-        renderEmptyState(container, 'radar', 'No trending data yet', 'The daily pipeline hasn\'t run yet. Check back tomorrow!');
-        return;
-      }
-      container.innerHTML = top25.map((p, i) => renderRankCard(p, i + 1)).join('');
-      refreshIcons();
-    }
-
-    // ── Populate filter dropdowns ───────────────────────
-    function populateFilters() {
-      const catSelect = document.getElementById('filter-category');
-      const langSelect = document.getElementById('filter-language');
-
-      const cats = new Set();
-      const langs = new Set();
-      state.projects.forEach(p => {
-        cats.add(inferCategory(p));
-        if (p.language) langs.add(p.language);
-      });
-
-      CATEGORY_ORDER.forEach(c => {
-        if (c !== 'All' && cats.has(c)) {
-          const opt = document.createElement('option');
-          opt.value = c; opt.textContent = c;
-          catSelect.appendChild(opt);
-        }
-      });
-
-      [...langs].sort().forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l; opt.textContent = l;
-        langSelect.appendChild(opt);
-      });
-    }
-
-    // ── Section 3: Filtered leaderboard ─────────────────
-    function renderFilteredBoard() {
-      const container = document.getElementById('filtered-board');
-      let filtered = [...state.projects];
-
-      // Pool filter
-      if (state.pool === 'AI') {
-        filtered = filtered.filter(p => isAiProject(p));
-      } else if (state.pool === 'Global') {
-        filtered = filtered.filter(p => p.source === 'trending-global');
-      }
-
-      if (state.category !== 'All') {
-        filtered = filtered.filter(p => inferCategory(p) === state.category);
-      }
-      if (state.language !== 'All') {
-        filtered = filtered.filter(p => p.language === state.language);
-      }
-
-      // Search filter
-      if (state.searchQuery) {
-        const q = state.searchQuery.toLowerCase();
-        filtered = filtered.filter(p =>
+    // ── Shared filter + paginate helper ─────────────────
+    function filterProjects(projects, filter) {
+      let list = [...projects];
+      if (filter.category !== 'All') list = list.filter(p => inferCategory(p) === filter.category);
+      if (filter.language !== 'All') list = list.filter(p => p.language === filter.language);
+      if (filter.search) {
+        const q = filter.search.toLowerCase();
+        list = list.filter(p =>
           (p.name || '').toLowerCase().includes(q) ||
           (p.owner || '').toLowerCase().includes(q) ||
           (p.description || '').toLowerCase().includes(q) ||
           (p.language || '').toLowerCase().includes(q)
         );
       }
+      list.sort(sortFns[getSortKey()] || sortFns.momentum);
+      return list;
+    }
 
-      filtered.sort(sortFns[getSortKey()] || sortFns.momentum);
+    function renderPagination(containerId, filter, total, renderFn) {
+      const pag = document.getElementById(containerId);
+      const pages = Math.ceil(total / PAGE_SIZE);
+      if (pages <= 1) { pag.innerHTML = ''; return; }
+      let html = `<button class="page-btn" data-page="prev" ${filter.page <= 1 ? 'disabled' : ''}>&laquo;</button>`;
+      for (let i = 1; i <= pages; i++) {
+        html += `<button class="page-btn${filter.page === i ? ' active' : ''}" data-page="${i}">${i}</button>`;
+      }
+      html += `<button class="page-btn" data-page="next" ${filter.page >= pages ? 'disabled' : ''}>&raquo;</button>`;
+      html += `<span class="page-info">${total} projects</span>`;
+      pag.innerHTML = html;
+      pag.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.dataset.page;
+          if (v === 'prev') filter.page = Math.max(1, filter.page - 1);
+          else if (v === 'next') filter.page = Math.min(pages, filter.page + 1);
+          else filter.page = parseInt(v, 10);
+          renderFn();
+        });
+      });
+    }
+
+    // ── Section 1: AI Top 25 ────────────────────────────
+    function renderAiTop25() {
+      const container = document.getElementById('ai-top25');
+      const filtered = filterProjects(state.aiProjects, state.aiFilter);
 
       if (filtered.length === 0) {
-        renderEmptyState(container, 'filter-x', 'No projects match these filters');
+        container.innerHTML = '';
+        renderEmptyState(container, 'bot', state.aiFilter.search || state.aiFilter.category !== 'All' || state.aiFilter.language !== 'All' ? 'No projects match these filters' : 'No AI trending data yet', state.aiFilter.search ? '' : 'The daily pipeline hasn\'t run yet. Check back tomorrow!');
+        document.getElementById('ai-pagination').innerHTML = '';
         return;
       }
 
-      container.innerHTML = filtered.map((p, i) => renderRankCard(p, i + 1)).join('');
+      const start = (state.aiFilter.page - 1) * PAGE_SIZE;
+      const page = filtered.slice(start, start + PAGE_SIZE);
+      container.innerHTML = page.map((p, i) => renderRankCard(p, start + i + 1)).join('');
       refreshIcons();
+      renderPagination('ai-pagination', state.aiFilter, filtered.length, renderAiTop25);
     }
 
-    // ── Biggest Movers sidebar ──────────────────────────
+    // ── Section 2: Global Top 100 ────────────────────────
+    function renderGlobalTop25() {
+      const container = document.getElementById('global-top25');
+      const filtered = filterProjects(state.globalProjects, state.globalFilter);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        renderEmptyState(container, 'radar', state.globalFilter.search || state.globalFilter.category !== 'All' || state.globalFilter.language !== 'All' ? 'No projects match these filters' : 'No trending data yet', state.globalFilter.search ? '' : 'The daily pipeline hasn\'t run yet. Check back tomorrow!');
+        document.getElementById('global-pagination').innerHTML = '';
+        return;
+      }
+
+      const start = (state.globalFilter.page - 1) * PAGE_SIZE;
+      const page = filtered.slice(start, start + PAGE_SIZE);
+      container.innerHTML = page.map((p, i) => renderRankCard(p, start + i + 1)).join('');
+      refreshIcons();
+      renderPagination('global-pagination', state.globalFilter, filtered.length, renderGlobalTop25);
+    }
+
+    // ── Populate filter dropdowns ───────────────────────
+    function populateFilters() {
+      // AI section filters
+      const aiCats = new Set(), aiLangs = new Set();
+      state.aiProjects.forEach(p => { aiCats.add(inferCategory(p)); if (p.language) aiLangs.add(p.language); });
+      fillSelect('ai-filter-category', aiCats, CATEGORY_ORDER);
+      fillSelect('ai-filter-language', aiLangs);
+
+      // Global section filters
+      const gCats = new Set(), gLangs = new Set();
+      state.globalProjects.forEach(p => { gCats.add(inferCategory(p)); if (p.language) gLangs.add(p.language); });
+      fillSelect('global-filter-category', gCats, CATEGORY_ORDER);
+      fillSelect('global-filter-language', gLangs);
+    }
+
+    function fillSelect(id, valueSet, order) {
+      const sel = document.getElementById(id);
+      const sorted = order
+        ? order.filter(c => c !== 'All' && valueSet.has(c))
+        : [...valueSet].sort();
+      sorted.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ── Biggest Movers ────────────────────────────────
     function renderMovers() {
       const pctList = [...state.projects]
         .filter(p => (p.stars || 0) < 5000 && (p.trend_starsPct7d || 0) > 0)
@@ -863,33 +874,9 @@
         });
       });
 
-      // Pool filter
-      document.getElementById('filter-pool').addEventListener('change', (e) => {
-        state.pool = e.target.value;
-        renderFilteredBoard();
-      });
-
-      // Category filter
-      document.getElementById('filter-category').addEventListener('change', (e) => {
-        state.category = e.target.value;
-        renderFilteredBoard();
-      });
-
-      // Language filter
-      document.getElementById('filter-language').addEventListener('change', (e) => {
-        state.language = e.target.value;
-        renderFilteredBoard();
-      });
-
-      // Search input (300ms debounce)
-      let searchTimer;
-      document.getElementById('explore-search').addEventListener('input', (e) => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => {
-          state.searchQuery = e.target.value.trim();
-          renderFilteredBoard();
-        }, 300);
-      });
+      // Per-section filters
+      wireFilter('ai', state.aiFilter, renderAiTop25);
+      wireFilter('global', state.globalFilter, renderGlobalTop25);
 
       // Time range toggle
       document.querySelectorAll('.time-btn').forEach(btn => {
@@ -902,10 +889,31 @@
       });
     }
 
+    function wireFilter(prefix, filter, renderFn) {
+      document.getElementById(`${prefix}-filter-category`).addEventListener('change', (e) => {
+        filter.category = e.target.value;
+        filter.page = 1;
+        renderFn();
+      });
+      document.getElementById(`${prefix}-filter-language`).addEventListener('change', (e) => {
+        filter.language = e.target.value;
+        filter.page = 1;
+        renderFn();
+      });
+      let timer;
+      document.getElementById(`${prefix}-filter-search`).addEventListener('input', (e) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          filter.search = e.target.value.trim();
+          filter.page = 1;
+          renderFn();
+        }, 300);
+      });
+    }
+
     function renderAll() {
       renderAiTop25();
       renderGlobalTop25();
-      renderFilteredBoard();
       renderMovers();
       renderDevelopers();
     }
