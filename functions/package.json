@@ -2,7 +2,7 @@
   "name": "ai-digital-crew-functions",
   "type": "module",
   "engines": {
-    "node": "22"
+    "node": "24"
   },
   "main": "index.js",
   "dependencies": {
