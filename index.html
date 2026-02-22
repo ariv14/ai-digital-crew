@@ -1212,7 +1212,7 @@
         return;
       }
 
-      section.style.display = '';
+      section.style.display = state.currentView === 'home' ? '' : 'none';
       const langColor = LANG_COLORS[featured.language] || '#888';
       const topics = (featured.topics || []).slice(0, 5);
       const avatar = featured.ownerAvatar
@@ -1546,7 +1546,9 @@
       // Render featured first, then show projects — single layout pass, no CLS
       renderFeatured();
       renderCategoryTabs();
-      document.getElementById('projects').style.display = '';
+      if (state.currentView === 'home') {
+        document.getElementById('projects').style.display = '';
+      }
       renderProjects();
       // Handle #projects hash after data loads (cross-page nav from /trending)
       if (location.hash === '#projects') setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 100);
