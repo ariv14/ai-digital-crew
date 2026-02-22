@@ -48,12 +48,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
+  <link rel="preload" href="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" as="script">
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
   <!-- identitytoolkit preconnect removed: unused, exceeded 4-preconnect limit -->
   <link rel="dns-prefetch" href="https://firestore.googleapis.com">
   <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
   <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js">
   <script type="speculationrules">{"prerender":[{"where":{"href_matches":"/project"},"eagerness":"moderate"}]}</script>
   <style>
     :root {
@@ -574,7 +578,7 @@
   <div class="orb" id="orb-3" aria-hidden="true"></div>
 
   <nav id="navbar">
-    <a href="#home" class="nav-logo" id="nav-logo-link"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></a>
+    <a href="#home" class="nav-logo" id="nav-logo-link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg><span>AI Digital Crew</span></a>
     <div class="nav-links">
       <a href="#home" data-nav="home">Home</a>
       <a href="#projects" data-nav="home">Projects</a>
@@ -583,10 +587,10 @@
     </div>
     <div class="nav-right" id="nav-right" style="visibility:hidden"></div>
     <div class="mobile-nav-icons">
-      <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><i data-lucide="search" style="width:20px;height:20px"></i></button>
-      <button class="mobile-nav-icon" id="mobile-trending-btn" aria-label="Trending"><i data-lucide="trending-up" style="width:20px;height:20px"></i></button>
+      <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+      <button class="mobile-nav-icon" id="mobile-trending-btn" aria-label="Trending"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button>
     </div>
-    <button class="hamburger" id="hamburger" aria-label="Open menu"><i data-lucide="menu" style="width:24px;height:24px"></i></button>
+    <button class="hamburger" id="hamburger" aria-label="Open menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button>
     <div class="mobile-menu" id="mobile-menu"></div>
     <div class="avatar-dropdown glass" id="avatar-dropdown"></div>
   </nav>
@@ -882,10 +886,13 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, getDocs, getDoc, deleteDoc, doc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    // Firebase Functions loaded lazily on first search (saves ~20KB from critical path)
+    // Firebase SDK loaded via dynamic import() — unblocks DOM setup, skeletons,
+    // stat animations, and icon rendering while Firebase downloads in parallel.
+    let app, auth, db;
+    let initializeApp, getAuth, signInWithPopup, signInWithCredential, linkWithCredential,
+        deleteUser, GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider,
+        onAuthStateChanged, signOut, getFirestore, collection, addDoc, getDocs, getDoc,
+        deleteDoc, doc, query, where, orderBy, serverTimestamp;
 
     // ============================================================
     // FIREBASE CONFIG — environment detection by hostname
@@ -914,11 +921,26 @@
 
     if (isStaging) document.title = '[STAGING] ' + document.title;
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    const firebaseReady = (async () => {
+      const [appMod, authMod, fsMod] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'),
+        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+      ]);
+      ({ initializeApp } = appMod);
+      ({ getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser,
+         GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider,
+         onAuthStateChanged, signOut } = authMod);
+      ({ getFirestore, collection, addDoc, getDocs, getDoc, deleteDoc, doc, query,
+         where, orderBy, serverTimestamp } = fsMod);
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    })();
+
     let getQueryEmbeddingFn = null;
     async function loadFunctions() {
+      await firebaseReady;
       if (getQueryEmbeddingFn) return getQueryEmbeddingFn;
       const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js');
       const functions = getFunctions(app);
@@ -1383,30 +1405,35 @@
     }
 
     async function loginWithGitHub() {
+      await firebaseReady;
       const btn = document.getElementById('btn-github');
       setLoading(btn);
       try { const result = await signInWithPopup(auth, new GithubAuthProvider()); await handleOAuthSuccess(result); }
       catch (err) { await handleOAuthError(err, 'GitHub'); }
     }
     async function loginWithGoogle() {
+      await firebaseReady;
       const btn = document.getElementById('btn-google');
       setLoading(btn);
       try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); await handleOAuthSuccess(result); }
       catch (err) { await handleOAuthError(err, 'Google'); }
     }
     async function loginWithFacebook() {
+      await firebaseReady;
       const btn = document.getElementById('btn-facebook');
       setLoading(btn);
       try { const result = await signInWithPopup(auth, new FacebookAuthProvider()); await handleOAuthSuccess(result); }
       catch (err) { await handleOAuthError(err, 'Facebook'); }
     }
     async function logout() {
+      await firebaseReady;
       avatarDropdown.classList.remove('open');
       await signOut(auth);
       showToast('Signed out.', 'info');
     }
 
     async function deleteAccount() {
+      await firebaseReady;
       avatarDropdown.classList.remove('open');
       if (!state.user) return;
       const confirmed = confirm('Are you sure you want to delete your account? This will remove your account and all your submitted projects. This cannot be undone.');
@@ -1466,6 +1493,7 @@
     // ── Submit project ──────────────────────────────────
     document.getElementById('submit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      await firebaseReady;
       if (!state.repoPreview || !state.isLoggedIn) return;
       const data = state.repoPreview;
 
@@ -1556,6 +1584,7 @@
     }
 
     async function loadAllProjects() {
+      await firebaseReady;
       state.isLoading = true;
       try {
         // 1. Check localStorage cache
@@ -2359,11 +2388,13 @@
       if (link && !link.dataset.nav) { e.preventDefault(); navigateTo('trending'); }
     });
 
-    onAuthStateChanged(auth, user => {
-      state.user = user || null;
-      state.isLoggedIn = !!user;
-      renderNavbar();
-      navRight.style.visibility = '';
+    firebaseReady.then(() => {
+      onAuthStateChanged(auth, user => {
+        state.user = user || null;
+        state.isLoggedIn = !!user;
+        renderNavbar();
+        navRight.style.visibility = '';
+      });
     });
 
     // ── Trending: Constants & Helpers ─────────────────────
