@@ -467,6 +467,7 @@
     .mover-val.abs{color:#60a5fa}
     .mover-val.positive{color:#34d399}
     .mover-val.negative{color:#f87171}
+    .mover-val.cooling{color:#60a5fa}
 
     /* Pagination */
     .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
@@ -765,13 +766,13 @@
       <section id="movers-section">
         <div class="section-container">
           <div class="section-header">
-            <div class="section-title"><i data-lucide="zap" style="width:24px;height:24px;color:#fbbf24"></i> Gainers &amp; Losers</div>
+            <div class="section-title"><i data-lucide="zap" style="width:24px;height:24px;color:#fbbf24"></i> Gainers &amp; Cooling</div>
             <p class="section-subtitle">Projects with the biggest moves</p>
           </div>
           <div class="movers-controls">
             <div class="movers-tab-group" id="movers-tab-group">
               <button class="movers-tab active" data-tab="gainers"><i data-lucide="trending-up" style="width:14px;height:14px"></i> Gainers</button>
-              <button class="movers-tab" data-tab="losers"><i data-lucide="trending-down" style="width:14px;height:14px"></i> Losers</button>
+              <button class="movers-tab" data-tab="cooling"><i data-lucide="thermometer-snowflake" style="width:14px;height:14px"></i> Cooling</button>
             </div>
             <div class="movers-time-toggle" id="movers-time-toggle">
               <button class="movers-tab" data-range="1d">24h</button>
@@ -2575,19 +2576,18 @@
       const range = state.moversRange;
       const starsKey = range === '1d' ? 'trend_stars1d' : 'trend_stars7d';
       const pctKey = range === '1d' ? 'trend_starsPct1d' : 'trend_starsPct7d';
+      const tabLabel = isGainers ? 'gainers' : 'cooling';
 
-      const filtered = [...state.trendingProjects].filter(p => {
-        const gain = p[starsKey] || 0;
-        return isGainers ? gain > 0 : gain < 0;
-      });
+      // Gainers: highest positive growth. Cooling: smallest positive growth (slowing down)
+      const withGrowth = [...state.trendingProjects].filter(p => (p[starsKey] || 0) > 0);
 
-      const pctSorted = [...filtered]
+      const pctSorted = [...withGrowth]
         .sort((a, b) => isGainers
           ? (b[pctKey] || 0) - (a[pctKey] || 0)
           : (a[pctKey] || 0) - (b[pctKey] || 0))
         .slice(0, 10);
 
-      const absSorted = [...filtered]
+      const absSorted = [...withGrowth]
         .sort((a, b) => isGainers
           ? (b[starsKey] || 0) - (a[starsKey] || 0)
           : (a[starsKey] || 0) - (b[starsKey] || 0))
@@ -2595,30 +2595,28 @@
 
       const pctContainer = document.getElementById('movers-pct-list');
       if (pctSorted.length === 0) {
-        pctContainer.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">No ${isGainers ? 'gainers' : 'losers'} data yet</p>`;
+        pctContainer.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">No ${tabLabel} data yet</p>`;
       } else {
         pctContainer.innerHTML = pctSorted.map((p, i) => {
           const val = (p[pctKey] || 0);
-          const cls = val >= 0 ? 'positive' : 'negative';
           return `<div class="mover-row">
             <span class="mover-rank">${i + 1}.</span>
             <span class="mover-name"><a href="/project?repo=${encodeURIComponent(p.fullName)}">${esc(p.name)}</a></span>
-            <span class="mover-val ${cls}">${val >= 0 ? '+' : ''}${val.toFixed(1)}%</span>
+            <span class="mover-val ${isGainers ? 'positive' : 'cooling'}">${val >= 0 ? '+' : ''}${val.toFixed(1)}%</span>
           </div>`;
         }).join('');
       }
 
       const absContainer = document.getElementById('movers-abs-list');
       if (absSorted.length === 0) {
-        absContainer.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">No ${isGainers ? 'gainers' : 'losers'} data yet</p>`;
+        absContainer.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">No ${tabLabel} data yet</p>`;
       } else {
         absContainer.innerHTML = absSorted.map((p, i) => {
           const val = (p[starsKey] || 0);
-          const cls = val >= 0 ? 'positive' : 'negative';
           return `<div class="mover-row">
             <span class="mover-rank">${i + 1}.</span>
             <span class="mover-name"><a href="/project?repo=${encodeURIComponent(p.fullName)}">${esc(p.name)}</a></span>
-            <span class="mover-val ${cls}">${val >= 0 ? '+' : ''}${val.toLocaleString()}</span>
+            <span class="mover-val ${isGainers ? 'positive' : 'cooling'}">${val >= 0 ? '+' : ''}${val.toLocaleString()}</span>
           </div>`;
         }).join('');
       }
@@ -2841,7 +2839,7 @@
         });
       });
 
-      // Movers tab toggle (gainers / losers)
+      // Movers tab toggle (gainers / cooling)
       document.querySelectorAll('#movers-tab-group .movers-tab').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('#movers-tab-group .movers-tab').forEach(b => b.classList.remove('active'));
