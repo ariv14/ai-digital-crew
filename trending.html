@@ -788,17 +788,18 @@
         const owner = p.owner;
         if (!owner) return;
         if (!devMap.has(owner)) {
-          devMap.set(owner, { owner, avatar: p.ownerAvatar, repos: [], totalStars7d: 0, maxMomentum: 0 });
+          devMap.set(owner, { owner, avatar: p.ownerAvatar, repos: [], totalStars7d: 0, totalStars: 0, maxMomentum: 0 });
         }
         const dev = devMap.get(owner);
         dev.repos.push(p.name);
         dev.totalStars7d += (p.trend_stars7d || 0);
+        dev.totalStars += (p.stars || 0);
         dev.maxMomentum = Math.max(dev.maxMomentum, p.trend_momentum || 0);
       });
 
       const devs = [...devMap.values()]
-        .filter(d => d.repos.length >= 1 && d.totalStars7d > 0)
-        .sort((a, b) => b.totalStars7d - a.totalStars7d)
+        .filter(d => d.repos.length >= 1)
+        .sort((a, b) => (b.totalStars7d - a.totalStars7d) || (b.totalStars - a.totalStars))
         .slice(0, 15);
 
       if (devs.length === 0) {
@@ -814,8 +815,10 @@
             <div class="dev-name"><a href="https://github.com/${esc(d.owner)}" target="_blank" rel="noopener">${esc(d.owner)}</a></div>
             <div class="dev-stats">
               <span>${d.repos.length} repo${d.repos.length > 1 ? 's' : ''}</span>
-              <span style="color:#34d399">+${d.totalStars7d.toLocaleString()} stars/wk</span>
-              <span>Peak: ${d.maxMomentum.toFixed(0)}</span>
+              ${d.totalStars7d > 0
+                ? `<span style="color:#34d399">+${d.totalStars7d.toLocaleString()} stars/wk</span>`
+                : `<span style="color:var(--text-muted)">${d.totalStars.toLocaleString()} total stars</span>`}
+              ${d.maxMomentum > 0 ? `<span>Peak: ${d.maxMomentum.toFixed(0)}</span>` : ''}
             </div>
             <div class="dev-repos">${d.repos.slice(0, 3).map(r => esc(r)).join(', ')}${d.repos.length > 3 ? ` +${d.repos.length - 3} more` : ''}</div>
           </div>
@@ -931,8 +934,17 @@
       try {
         const snap = await getDocs(collection(db, 'projects'));
         state.projects = snap.docs
-          .map(d => d.data())
-          .filter(p => p.trend_momentum !== undefined);
+          .map(d => {
+            const p = d.data();
+            // Default trend fields for newly discovered repos awaiting first snapshot
+            if (p.trend_momentum === undefined) p.trend_momentum = 0;
+            if (p.trend_label === undefined) p.trend_label = 'new';
+            if (p.trend_stars7d === undefined) p.trend_stars7d = 0;
+            if (p.trend_starsPct7d === undefined) p.trend_starsPct7d = 0;
+            if (p.trend_sparkline === undefined) p.trend_sparkline = [];
+            return p;
+          })
+          .filter(p => p.source || p.submittedBy);
       } catch (err) {
         console.error('loadProjects error:', err);
         state.projects = [];

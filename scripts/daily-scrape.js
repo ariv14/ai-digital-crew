@@ -69,6 +69,7 @@ const ghHeaders = {
 };
 
 async function searchRepos(topic) {
+  await waitForSearchQuota();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
@@ -76,6 +77,7 @@ async function searchRepos(topic) {
   const url = `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=10`;
 
   const res = await fetch(url, { headers: ghHeaders });
+  updateSearchRateLimit(res);
   if (!res.ok) {
     console.warn(`GitHub search failed for topic ${topic}: ${res.status}`);
     return [];
@@ -368,13 +370,49 @@ async function notifyOwner(owner, repo, repoFullName) {
   }
 }
 
+// ── Search rate limiter (GitHub Search API: 30 req/min) ──────────────────────
+
+const searchRateLimit = { remaining: 30, resetAt: 0 };
+
+async function waitForSearchQuota() {
+  if (searchRateLimit.remaining < 3 && Date.now() / 1000 < searchRateLimit.resetAt) {
+    const waitMs = (searchRateLimit.resetAt - Date.now() / 1000 + 2) * 1000;
+    console.log(`Search rate limit low (${searchRateLimit.remaining}), waiting ${Math.round(waitMs / 1000)}s...`);
+    await new Promise(r => setTimeout(r, waitMs));
+  }
+}
+
+function updateSearchRateLimit(res) {
+  const rem = res.headers.get('X-RateLimit-Remaining');
+  const reset = res.headers.get('X-RateLimit-Reset');
+  if (rem !== null) searchRateLimit.remaining = parseInt(rem, 10);
+  if (reset !== null) searchRateLimit.resetAt = parseInt(reset, 10);
+}
+
 // ── Trending discovery: AI + Global pools ────────────────────────────────────
 
 async function searchReposRaw(query, perPage = 100) {
+  await waitForSearchQuota();
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${perPage}`;
   const res = await fetch(url, { headers: ghHeaders });
+  updateSearchRateLimit(res);
   if (!res.ok) {
-    console.warn(`GitHub search failed (${res.status}): ${query.slice(0, 60)}...`);
+    if (res.status === 403 || res.status === 429) {
+      console.warn(`Search rate-limited (${res.status}), waiting for reset...`);
+      const retryAfter = res.headers.get('Retry-After');
+      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (searchRateLimit.resetAt - Date.now() / 1000 + 2) * 1000;
+      if (waitMs > 0 && waitMs < 120000) {
+        await new Promise(r => setTimeout(r, waitMs));
+        // Retry once
+        const res2 = await fetch(url, { headers: ghHeaders });
+        updateSearchRateLimit(res2);
+        if (res2.ok) {
+          const data = await res2.json();
+          return data.items || [];
+        }
+      }
+    }
+    console.warn(`GitHub search failed (${res.status}): ${query.slice(0, 80)}...`);
     return [];
   }
   const data = await res.json();
