@@ -518,7 +518,7 @@
   <div class="orb" id="orb-3" aria-hidden="true"></div>
 
   <nav id="navbar">
-    <div class="nav-logo"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></div>
+    <a href="#home" class="nav-logo" id="nav-logo-link"><i data-lucide="cpu" style="width:24px;height:24px"></i><span>AI Digital Crew</span></a>
     <div class="nav-links">
       <a href="#home" data-nav="home">Home</a>
       <a href="#projects" data-nav="home">Projects</a>
@@ -950,6 +950,8 @@
       });
     }
 
+    // Wire nav logo to go home
+    document.getElementById('nav-logo-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('home'); });
     // Wire desktop nav search link
     document.getElementById('nav-search-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('search'); });
     // Wire desktop nav trending link
