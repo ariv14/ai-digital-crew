@@ -9,6 +9,9 @@ functions/node_modules/
 .env
 .env.*
 
+# Lighthouse reports
+lh-*.json
+
 # OS files
 .DS_Store
 Thumbs.db
