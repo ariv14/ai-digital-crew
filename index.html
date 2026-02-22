@@ -978,7 +978,7 @@
       return addedDate.getTime() > weekAgo;
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, embeddingsLoaded: false };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -1625,34 +1625,18 @@
       }
     }
 
-    // Lazy-load embeddings for semantic search (only when needed)
-    async function loadEmbeddings() {
-      if (state.embeddingsLoaded) return;
-      console.log('Loading embeddings for semantic search...');
+    // Server-side semantic search helper — calls Cloud Function for rankings
+    async function getServerRankings(query, options = {}) {
       try {
-        const snap = await getDocs(collection(db, 'projects'));
-        const embMap = {};
-        for (const d of snap.docs) {
-          const data = d.data();
-          if (data.fullName && (data.embedding_gemini || data.embedding_cloudflare)) {
-            embMap[data.fullName] = {
-              embedding_gemini: data.embedding_gemini || null,
-              embedding_cloudflare: data.embedding_cloudflare || null,
-            };
-          }
-        }
-        // Merge embeddings into state.projects
-        for (const p of state.projects) {
-          const emb = embMap[p.fullName];
-          if (emb) {
-            p.embedding_gemini = emb.embedding_gemini;
-            p.embedding_cloudflare = emb.embedding_cloudflare;
-          }
-        }
-        state.embeddingsLoaded = true;
-        console.log(`Embeddings loaded for ${Object.keys(embMap).length} projects`);
+        const fn = await loadFunctions();
+        const payload = { query };
+        if (options.rankProjects) payload.rankProjects = true;
+        if (options.findSimilar) payload.findSimilar = options.findSimilar;
+        const result = await fn(payload);
+        return result.data;
       } catch (err) {
-        console.warn('Failed to load embeddings:', err.message);
+        console.warn('Server ranking failed:', err.message);
+        return null;
       }
     }
 
@@ -1694,19 +1678,6 @@
           if (p < 1) requestAnimationFrame(update);
         })(start);
       });
-    }
-
-    // ── Search: Cosine similarity ─────────────────────────
-    function cosineSimilarity(a, b) {
-      if (!a || !b || a.length !== b.length) return 0;
-      let dot = 0, magA = 0, magB = 0;
-      for (let i = 0; i < a.length; i++) {
-        dot += a[i] * b[i];
-        magA += a[i] * a[i];
-        magB += b[i] * b[i];
-      }
-      const denom = Math.sqrt(magA) * Math.sqrt(magB);
-      return denom === 0 ? 0 : dot / denom;
     }
 
     // ── Search: Fuse.js instances ───────────────────────
@@ -1804,19 +1775,19 @@
       return '<span class="match-badge related">Related</span>';
     }
 
-    // ── Search: Similar projects ────────────────────────
-    function findSimilarProjects(project, count = 3) {
-      const providerKey = project.embedding_gemini ? 'embedding_gemini' : project.embedding_cloudflare ? 'embedding_cloudflare' : null;
-      if (!providerKey || !project[providerKey]) return [];
-      const results = [];
-      for (const p of state.projects) {
-        if (p.fullName === project.fullName) continue;
-        if (!p[providerKey]) continue;
-        const score = cosineSimilarity(project[providerKey], p[providerKey]);
-        if (score > 0.25) results.push({ project: p, score });
+    // ── Search: Similar projects (server-side) ─────────
+    async function findSimilarProjects(project, count = 3) {
+      if (!project.fullName) return [];
+      try {
+        const data = await getServerRankings('', { findSimilar: project.fullName });
+        if (!data?.rankings) return [];
+        const projectMap = new Map(state.projects.map(p => [p.fullName, p]));
+        return data.rankings.slice(0, count)
+          .filter(r => projectMap.has(r.fullName))
+          .map(r => ({ project: projectMap.get(r.fullName), score: r.score }));
+      } catch {
+        return [];
       }
-      results.sort((a, b) => b.score - a.score);
-      return results.slice(0, count);
     }
 
     // ── Search: Main handler ────────────────────────────
@@ -1849,10 +1820,9 @@
         return;
       }
 
-      // Similar projects — use embeddings (lazy-load if needed)
+      // Similar projects — server-side ranking via Cloud Function
       if (intent.type === 'similar') {
-        await loadEmbeddings();
-        const similar = findSimilarProjects(intent.project, 10);
+        const similar = await findSimilarProjects(intent.project, 10);
         state.searchResults = similar.length > 0
           ? similar.map(s => ({ project: s.project, score: s.score }))
           : [{ project: intent.project, score: 1.0 }];
@@ -1873,8 +1843,7 @@
         return;
       }
 
-      // Semantic + keyword hybrid search — lazy-load embeddings if needed
-      await loadEmbeddings();
+      // Semantic + keyword hybrid search — server-side embeddings + client-side Fuse.js
       state.isSearching = true;
       const statusEl = document.getElementById('search-status');
       const spinnerEl = document.getElementById('search-spinner');
@@ -1882,16 +1851,13 @@
       statusEl.classList.add('visible');
       spinnerEl.classList.add('visible');
 
-      let queryEmbedding = null;
-      let embProvider = null;
-
+      // Server-side semantic rankings via Cloud Function
+      let serverRankings = null;
       try {
-        const fn = await loadFunctions();
-        const result = await fn({ query: q });
-        queryEmbedding = result.data.embedding;
-        embProvider = result.data.provider;
+        const data = await getServerRankings(q, { rankProjects: true });
+        if (data?.rankings) serverRankings = new Map(data.rankings.map(r => [r.fullName, r.score]));
       } catch (err) {
-        console.warn('Embedding API failed, falling back to keyword search:', err.message);
+        console.warn('Server ranking failed, falling back to keyword search:', err.message);
       }
 
       spinnerEl.classList.remove('visible');
@@ -1901,8 +1867,6 @@
       const searchTerms = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
 
       // Compute Fuse.js keyword matches once (outside the loop)
-      // Fuse score: 0 = perfect match, 1 = no match; threshold 0.3 caps it
-      // Normalize so best Fuse match → 1.0, threshold boundary → 0.0
       const fuseMatchMap = new Map();
       if (fuseProjects) {
         const fuseResults = fuseProjects.search(q);
@@ -1917,12 +1881,9 @@
         let semanticScore = 0;
         let keywordScore = 0;
 
-        // Semantic score
-        if (queryEmbedding) {
-          const embKey = `embedding_${embProvider}`;
-          if (p[embKey]) {
-            semanticScore = cosineSimilarity(queryEmbedding, p[embKey]);
-          }
+        // Semantic score from server-side rankings
+        if (serverRankings && serverRankings.has(p.fullName)) {
+          semanticScore = serverRankings.get(p.fullName);
         }
 
         // Keyword score from pre-computed Fuse.js results
@@ -1938,12 +1899,10 @@
 
         // Combined score — require meaningful relevance
         let combined;
-        if (queryEmbedding && semanticScore > 0) {
-          // Semantic-only results need high similarity; keyword match lowers the bar
+        if (serverRankings && semanticScore > 0) {
           if (keywordScore > 0) {
             combined = 0.7 * semanticScore + 0.3 * keywordScore;
           } else {
-            // No keyword match — semantic only, require stronger signal
             combined = semanticScore >= 0.55 ? semanticScore : 0;
           }
         } else {
@@ -1956,7 +1915,6 @@
       }
 
       scored.sort((a, b) => b.score - a.score);
-      // Cap at 12 results to avoid showing the whole catalog
       scored.splice(12);
       state.searchResults = scored;
       state.isSearching = false;
@@ -2011,12 +1969,6 @@
         const langColor = LANG_COLORS[p.language] || '#888';
         const topics = (p.topics || []).slice(0, 5);
         const cat = inferCategory(p);
-        const similar = findSimilarProjects(p);
-        const similarHtml = similar.length > 0 ? `
-          <details class="similar-projects">
-            <summary>Similar Projects (${similar.length})</summary>
-            ${similar.map(s => `<div class="similar-card"><a href="${esc(s.project.url)}" target="_blank" rel="noopener">${esc(s.project.name)}</a><span class="similar-score">${Math.round(s.score * 100)}%</span></div>`).join('')}
-          </details>` : '';
 
         return `
           <div class="project-card glass visible" data-fullname="${esc(p.fullName || '')}" data-score="${score}">
@@ -2036,13 +1988,23 @@
                 <span><i data-lucide="git-fork" style="width:14px;height:14px"></i> ${(p.forks||0).toLocaleString()}</span>
                 ${p.language ? `<span><span class="project-lang-dot" style="background:${langColor}"></span> ${esc(p.language)}</span>` : ''}
               </div>
-              ${similarHtml}
+              <div class="similar-projects-slot" data-fullname="${esc(p.fullName || '')}"></div>
             </div>
           </div>`;
       }).join('');
 
       refreshIcons();
       renderGitHubDiscovery(queryText, ghContainer);
+
+      // Lazy-load similar projects for each result (async, non-blocking)
+      for (const { project: p } of results) {
+        findSimilarProjects(p).then(similar => {
+          if (similar.length === 0) return;
+          const slot = searchResultGrid.querySelector(`.similar-projects-slot[data-fullname="${CSS.escape(p.fullName || '')}"]`);
+          if (!slot) return;
+          slot.innerHTML = `<details class="similar-projects"><summary>Similar Projects (${similar.length})</summary>${similar.map(s => `<div class="similar-card"><a href="${esc(s.project.url)}" target="_blank" rel="noopener">${esc(s.project.name)}</a><span class="similar-score">${Math.round(s.score * 100)}%</span></div>`).join('')}</details>`;
+        });
+      }
     }
 
     // ── Search: GitHub discovery ─────────────────────────

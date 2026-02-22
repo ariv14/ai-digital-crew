@@ -19,6 +19,46 @@ const db = getFirestore();
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+// ── In-memory embedding cache for server-side ranking ─────────────────────────
+let embCache = null;  // Map<fullName, number[]>
+let embCacheAge = 0;
+const EMB_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour in-memory TTL
+
+async function loadEmbeddingsCache() {
+  if (embCache && (Date.now() - embCacheAge) < EMB_CACHE_TTL_MS) return embCache;
+
+  const metaDoc = await db.collection('embeddingsCache').doc('meta').get();
+  if (!metaDoc.exists) return null;
+
+  const { partCount } = metaDoc.data();
+  const map = new Map();
+
+  for (let i = 0; i < partCount; i++) {
+    const partDoc = await db.collection('embeddingsCache').doc(`part${i}`).get();
+    if (!partDoc.exists) continue;
+    for (const entry of partDoc.data().entries) {
+      map.set(entry.fullName, entry.embedding);
+    }
+  }
+
+  embCache = map;
+  embCacheAge = Date.now();
+  console.log(`Loaded embeddingsCache: ${map.size} projects`);
+  return map;
+}
+
+function cosineSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dot = 0, magA = 0, magB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(magA) * Math.sqrt(magB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
 function hashQuery(query) {
   return crypto.createHash('sha256').update(query.toLowerCase().trim()).digest('hex').slice(0, 32);
 }
@@ -58,6 +98,28 @@ export const getQueryEmbedding = onCall(
     region: 'us-central1',
   },
   async (request) => {
+    // findSimilar doesn't need a query — use cached project embeddings directly
+    if (request.data?.findSimilar) {
+      const targetName = request.data.findSimilar;
+      const embMap = await loadEmbeddingsCache();
+      if (embMap && embMap.size > 0) {
+        const targetEmb = embMap.get(targetName);
+        if (targetEmb) {
+          const ranked = [];
+          for (const [fullName, projectEmb] of embMap) {
+            if (fullName === targetName) continue;
+            const score = cosineSimilarity(targetEmb, projectEmb);
+            if (score > 0.25) {
+              ranked.push({ fullName, score: Math.round(score * 10000) / 10000 });
+            }
+          }
+          ranked.sort((a, b) => b.score - a.score);
+          return { rankings: ranked.slice(0, 12), provider: 'cached', cached: true };
+        }
+      }
+      return { rankings: [], provider: 'cached', cached: true };
+    }
+
     const query = request.data?.query;
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       throw new HttpsError('invalid-argument', 'query is required');
@@ -66,65 +128,87 @@ export const getQueryEmbedding = onCall(
     const normalizedQuery = query.toLowerCase().trim();
     const cacheKey = hashQuery(normalizedQuery);
 
-    // Check cache
+    // Check searchCache for cached query embedding
+    let queryEmbedding = null;
+    let embProvider = null;
+    let wasCached = false;
+
     const cacheDoc = await db.collection('searchCache').doc(cacheKey).get();
     if (cacheDoc.exists) {
       const cached = cacheDoc.data();
       const age = Date.now() - (cached.createdAt?.toMillis?.() || 0);
       if (age < CACHE_TTL_MS) {
-        return {
-          embedding: cached.embedding,
-          provider: cached.provider,
-          dimensions: cached.dimensions,
-          cached: true,
-        };
+        queryEmbedding = cached.embedding;
+        embProvider = cached.provider;
+        wasCached = true;
       }
     }
 
-    // Generate embedding with fallback chain
-    let result;
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-    const cfToken = process.env.CLOUDFLARE_API_TOKEN;
+    // Generate embedding if not cached
+    if (!queryEmbedding) {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+      const cfToken = process.env.CLOUDFLARE_API_TOKEN;
 
-    try {
-      if (geminiKey) {
-        result = await embedWithGemini(normalizedQuery, geminiKey);
-      } else {
-        throw new Error('No GEMINI_API_KEY');
-      }
-    } catch (geminiErr) {
-      console.warn('Gemini embedding failed:', geminiErr.message);
+      let result;
       try {
-        if (cfAccountId && cfToken) {
-          result = await embedWithCloudflare(normalizedQuery, cfAccountId, cfToken);
+        if (geminiKey) {
+          result = await embedWithGemini(normalizedQuery, geminiKey);
         } else {
-          throw new Error('CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set');
+          throw new Error('No GEMINI_API_KEY');
         }
-      } catch (cfErr) {
-        console.error('All embedding providers failed:', cfErr.message);
-        throw new HttpsError('internal', 'All embedding providers failed');
+      } catch (geminiErr) {
+        console.warn('Gemini embedding failed:', geminiErr.message);
+        try {
+          if (cfAccountId && cfToken) {
+            result = await embedWithCloudflare(normalizedQuery, cfAccountId, cfToken);
+          } else {
+            throw new Error('CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set');
+          }
+        } catch (cfErr) {
+          console.error('All embedding providers failed:', cfErr.message);
+          throw new HttpsError('internal', 'All embedding providers failed');
+        }
+      }
+
+      queryEmbedding = result.values;
+      embProvider = result.provider;
+
+      // Store in cache
+      try {
+        await db.collection('searchCache').doc(cacheKey).set({
+          query: normalizedQuery,
+          embedding: queryEmbedding,
+          provider: embProvider,
+          dimensions: result.dimensions,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      } catch (cacheErr) {
+        console.warn('Cache write failed (non-fatal):', cacheErr.message);
       }
     }
 
-    // Store in cache
-    try {
-      await db.collection('searchCache').doc(cacheKey).set({
-        query: normalizedQuery,
-        embedding: result.values,
-        provider: result.provider,
-        dimensions: result.dimensions,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    } catch (cacheErr) {
-      console.warn('Cache write failed (non-fatal):', cacheErr.message);
+    // If rankProjects requested, compute server-side scores and return ranked results
+    if (request.data?.rankProjects) {
+      const embMap = await loadEmbeddingsCache();
+      if (embMap && embMap.size > 0) {
+        const ranked = [];
+        for (const [fullName, projectEmb] of embMap) {
+          const score = cosineSimilarity(queryEmbedding, projectEmb);
+          if (score > 0.25) {
+            ranked.push({ fullName, score: Math.round(score * 10000) / 10000 });
+          }
+        }
+        ranked.sort((a, b) => b.score - a.score);
+        return { rankings: ranked.slice(0, 12), provider: embProvider, cached: wasCached };
+      }
     }
 
     return {
-      embedding: result.values,
-      provider: result.provider,
-      dimensions: result.dimensions,
-      cached: false,
+      embedding: queryEmbedding,
+      provider: embProvider,
+      dimensions: queryEmbedding.length,
+      cached: wasCached,
     };
   }
 );

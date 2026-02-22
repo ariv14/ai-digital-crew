@@ -196,13 +196,13 @@ function computeMomentum(snapshots) {
   };
 }
 
-async function collectSnapshots(db) {
+async function collectSnapshots(db, allDocs) {
   console.log('Collecting daily snapshots for trend tracking...');
-  const allProjects = await db.collection('projects').get();
-  const projects = allProjects.docs;
+  const projects = allDocs;
   console.log(`Processing ${projects.length} projects for snapshots`);
 
   const BATCH_SIZE = 30;
+  const MAX_SNAPSHOTS = 31; // Keep last 31 entries (supports 30d metrics)
   let processed = 0, failed = 0;
 
   for (let i = 0; i < projects.length; i += BATCH_SIZE) {
@@ -217,26 +217,35 @@ async function collectSnapshots(db) {
         const ghData = await fetchWithRateLimit(owner, repo);
         if (!ghData) return null;
 
-        // Write today's snapshot
-        const snapshotData = {
+        // Build today's snapshot
+        const todaySnapshot = {
           date: TODAY,
           stars: ghData.stargazers_count || 0,
           forks: ghData.forks_count || 0,
           openIssues: ghData.open_issues_count || 0,
-          capturedAt: new Date(),
         };
-        await doc.ref.collection('snapshots').doc(TODAY).set(snapshotData);
 
-        // Query last 31 snapshots for momentum calculation (supports 30d metrics)
-        const snapQuery = await doc.ref.collection('snapshots')
-          .orderBy('date', 'desc')
-          .limit(31)
-          .get();
-        const snapshots = snapQuery.docs.map(d => d.data());
+        // Read existing inline snapshots array (already in memory from allDocs)
+        let snapshots = Array.isArray(p.snapshots) ? [...p.snapshots] : [];
 
-        // Compute momentum and update parent doc
+        // Replace today's entry if it exists, otherwise append
+        const todayIdx = snapshots.findIndex(s => s.date === TODAY);
+        if (todayIdx >= 0) {
+          snapshots[todayIdx] = todaySnapshot;
+        } else {
+          snapshots.push(todaySnapshot);
+        }
+
+        // Sort by date and trim to last MAX_SNAPSHOTS entries
+        snapshots.sort((a, b) => a.date.localeCompare(b.date));
+        if (snapshots.length > MAX_SNAPSHOTS) {
+          snapshots = snapshots.slice(-MAX_SNAPSHOTS);
+        }
+
+        // Compute momentum from inline array
         const trendFields = computeMomentum(snapshots);
         await doc.ref.update({
+          snapshots,
           ...trendFields,
           stars: ghData.stargazers_count || p.stars,
           forks: ghData.forks_count || p.forks,
@@ -259,20 +268,7 @@ async function collectSnapshots(db) {
     }
   }
 
-  // Prune snapshots older than 90 days
-  const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  let pruned = 0;
-  for (const doc of projects) {
-    const oldSnaps = await doc.ref.collection('snapshots')
-      .where('date', '<', cutoffDate)
-      .get();
-    for (const snap of oldSnaps.docs) {
-      await snap.ref.delete();
-      pruned++;
-    }
-  }
-
-  console.log(`Snapshots complete: ${processed} updated, ${failed} failed, ${pruned} pruned`);
+  console.log(`Snapshots complete: ${processed} updated, ${failed} failed`);
 }
 
 // ── Projects cache: single-doc for frontend (1 read instead of N) ─────────
@@ -287,10 +283,9 @@ const CACHE_FIELDS = [
   'trend_sparkline', 'trend_sparkline30d', 'trend_updatedAt',
 ];
 
-async function writeProjectsCache(db) {
+async function writeProjectsCache(db, allDocs) {
   console.log('Writing projectsCache/latest...');
-  const allSnap = await db.collection('projects').get();
-  const projects = allSnap.docs.map(d => {
+  const projects = allDocs.map(d => {
     const raw = d.data();
     const obj = {};
     for (const key of CACHE_FIELDS) {
@@ -312,21 +307,52 @@ async function writeProjectsCache(db) {
   console.log(`projectsCache/latest written with ${projects.length} projects`);
 }
 
+// ── Embeddings cache: chunked for Cloud Function ──────────────────────────────
+
+async function writeEmbeddingsCache(db, allDocs) {
+  console.log('Writing embeddingsCache...');
+  const entries = [];
+  for (const doc of allDocs) {
+    const p = doc.data();
+    if (p.fullName && p.embedding_gemini) {
+      entries.push({ fullName: p.fullName, embedding: p.embedding_gemini });
+    }
+  }
+
+  if (entries.length === 0) {
+    console.log('No embeddings to cache');
+    return;
+  }
+
+  // Split into chunks of 30 per doc (~900KB each, under 1MB Firestore limit)
+  const CHUNK_SIZE = 30;
+  const chunks = [];
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    chunks.push(entries.slice(i, i + CHUNK_SIZE));
+  }
+
+  for (let i = 0; i < chunks.length; i++) {
+    await db.collection('embeddingsCache').doc(`part${i}`).set({
+      entries: chunks[i],
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  await db.collection('embeddingsCache').doc('meta').set({
+    partCount: chunks.length,
+    totalProjects: entries.length,
+    updatedAt: new Date().toISOString(),
+  });
+
+  console.log(`embeddingsCache written: ${chunks.length} parts, ${entries.length} projects`);
+}
+
 // ── Firestore ─────────────────────────────────────────────────────────────────
 
 function initFirestore() {
   const serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
   initializeApp({ credential: cert(serviceAccount) });
   return getFirestore();
-}
-
-async function isAlreadyInFirestore(db, fullName) {
-  const snap = await db
-    .collection('projects')
-    .where('fullName', '==', fullName)
-    .limit(1)
-    .get();
-  return !snap.empty;
 }
 
 async function writeProjectToFirestore(db, project) {
@@ -485,7 +511,7 @@ function inferCategoryFromTopics(topics) {
   return 'Other';
 }
 
-async function discoverTrendingRepos(db) {
+async function discoverTrendingRepos(db, existingNames) {
   console.log('Discovering trending repos (AI + Global)...');
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -493,10 +519,6 @@ async function discoverTrendingRepos(db) {
 
   const seen = new Set();
   let aiAdded = 0, globalAdded = 0;
-
-  // Check existing fullNames to avoid duplicates
-  const existingSnap = await db.collection('projects').select('fullName').get();
-  const existingNames = new Set(existingSnap.docs.map(d => d.data().fullName));
 
   async function maybeAdd(repo, source) {
     if (seen.has(repo.full_name) || existingNames.has(repo.full_name)) return false;
@@ -592,12 +614,16 @@ async function main() {
     return;
   }
 
-  // 2. Init Firestore and find the first repo not already stored
+  // 2. Init Firestore, single read of all projects for the entire pipeline
   const db = initFirestore();
+  let allDocsSnap = await db.collection('projects').get();
+  let allDocs = allDocsSnap.docs;
+  const existingNames = new Set(allDocs.map(d => d.data().fullName));
+  console.log(`Loaded ${allDocs.length} projects from Firestore (single read for entire pipeline)`);
+
   let chosen = null;
   for (const repo of candidates) {
-    const exists = await isAlreadyInFirestore(db, repo.full_name);
-    if (!exists) {
+    if (!existingNames.has(repo.full_name)) {
       chosen = repo;
       break;
     }
@@ -666,9 +692,8 @@ async function main() {
   // 5c. Backfill embeddings for user-submitted projects missing them
   console.log('Checking for projects missing embeddings...');
   try {
-    const allProjects = await db.collection('projects').get();
     let backfilled = 0;
-    for (const d of allProjects.docs) {
+    for (const d of allDocs) {
       const p = d.data();
       if (p.embedding_gemini && p.embedding_cloudflare) continue;
       const text = projectToEmbeddingText(p);
@@ -688,23 +713,36 @@ async function main() {
 
   // 6. Discover trending repos (AI + Global pools)
   try {
-    await discoverTrendingRepos(db);
+    await discoverTrendingRepos(db, existingNames);
   } catch (discoverErr) {
     console.warn('Trending discovery failed (non-fatal):', discoverErr.message);
   }
 
   // 7. Collect daily snapshots for trend tracking
+  //    Re-read allDocs since discovery may have added new projects
   try {
-    await collectSnapshots(db);
+    allDocsSnap = await db.collection('projects').get();
+    allDocs = allDocsSnap.docs;
+    await collectSnapshots(db, allDocs);
   } catch (snapErr) {
     console.warn('Snapshot collection failed (non-fatal):', snapErr.message);
   }
 
   // 7b. Write single-doc projects cache for frontend (1 read instead of N)
+  //     Re-read after snapshots since trend fields were just updated
   try {
-    await writeProjectsCache(db);
+    allDocsSnap = await db.collection('projects').get();
+    allDocs = allDocsSnap.docs;
+    await writeProjectsCache(db, allDocs);
   } catch (cacheErr) {
     console.warn('Projects cache write failed (non-fatal):', cacheErr.message);
+  }
+
+  // 7c. Write embeddings cache for Cloud Function (server-side semantic search)
+  try {
+    await writeEmbeddingsCache(db, allDocs);
+  } catch (embCacheErr) {
+    console.warn('Embeddings cache write failed (non-fatal):', embCacheErr.message);
   }
 
   // 8. Notify the repo owner via a GitHub issue

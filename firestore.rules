@@ -14,6 +14,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false; // Only pipeline via Admin SDK
     }
+    match /embeddingsCache/{docId} {
+      allow read: if true;
+      allow write: if false; // Only pipeline via Admin SDK
+    }
     match /searchCache/{cacheId} {
       allow read: if true;
       allow write: if false; // only Cloud Functions (Admin SDK) can write
