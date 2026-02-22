@@ -1082,7 +1082,7 @@
       if (state.isLoggedIn) {
         const photo = state.user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.user.uid}`;
         navRight.innerHTML = `
-          <a href="/" class="btn-primary btn-small" style="text-decoration:none"><i data-lucide="plus" style="width:14px;height:14px"></i> Submit</a>
+          <button class="btn-primary btn-small" id="nav-submit-btn"><i data-lucide="plus" style="width:14px;height:14px"></i> Submit</button>
           <img src="${esc(photo)}" alt="Avatar" class="nav-avatar" id="nav-avatar" width="36" height="36" referrerpolicy="no-referrer">
         `;
         avatarDropdown.innerHTML = `
@@ -1090,6 +1090,7 @@
           <div class="dropdown-divider"></div>
           <button id="logout-btn"><i data-lucide="log-out" style="width:16px;height:16px"></i>Logout</button>
         `;
+        document.getElementById('nav-submit-btn').addEventListener('click', () => { window.location.href = '/'; });
         document.getElementById('nav-avatar').addEventListener('click', (e) => { e.stopPropagation(); avatarDropdown.classList.toggle('open'); });
         document.getElementById('logout-btn').addEventListener('click', logout);
       } else {
