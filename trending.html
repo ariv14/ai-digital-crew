@@ -1073,6 +1073,7 @@
     // Wire login modal
     document.getElementById('login-close').addEventListener('click', closeLoginModal);
     loginModal.addEventListener('click', (e) => { if (e.target === loginModal) closeLoginModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && loginModal.classList.contains('open')) closeLoginModal(); });
     document.getElementById('btn-github').addEventListener('click', loginWithGitHub);
     document.getElementById('btn-google').addEventListener('click', loginWithGoogle);
     document.getElementById('btn-facebook').addEventListener('click', loginWithFacebook);
