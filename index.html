@@ -1438,7 +1438,7 @@
         }));
 
         state.projects = refreshed;
-        await initFuse();
+        try { await initFuse(); } catch (e) { console.warn('Fuse init deferred:', e.message); }
       } catch (err) {
         console.error('loadProjects error:', err);
         state.projects = [];
