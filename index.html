@@ -986,9 +986,14 @@
       return { owner: m[1], repo: m[2].replace(/\.git$/, '') };
     }
 
+    let _ghRateLimitOk = true;
     async function fetchRepoData(owner, repo) {
+      if (!_ghRateLimitOk) return null;
       const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+      if (res.status === 403 || res.status === 429) { _ghRateLimitOk = false; return null; }
       if (!res.ok) return null;
+      const remaining = res.headers.get('x-ratelimit-remaining');
+      if (remaining !== null && parseInt(remaining, 10) <= 1) _ghRateLimitOk = false;
       const d = await res.json();
       return {
         fullName: d.full_name,
