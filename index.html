@@ -54,7 +54,6 @@
   <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
   <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
-  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-lite.js">
   <script type="speculationrules">{"prerender":[{"where":{"href_matches":"/project"},"eagerness":"moderate"}]}</script>
   <style>
@@ -920,21 +919,31 @@
     if (isStaging) document.title = '[STAGING] ' + document.title;
 
     const firebaseReady = (async () => {
-      const [appMod, authMod, fsMod] = await Promise.all([
+      const [appMod, fsMod] = await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
-        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'),
         import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-lite.js')
       ]);
       ({ initializeApp } = appMod);
-      ({ getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser,
-         GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider,
-         onAuthStateChanged, signOut } = authMod);
       ({ getFirestore, collection, addDoc, getDocs, getDoc, deleteDoc, doc, query,
          where, serverTimestamp } = fsMod);
       app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
       db = getFirestore(app);
     })();
+
+    let _authReady;
+    function ensureAuth() {
+      if (!_authReady) {
+        _authReady = (async () => {
+          await firebaseReady;
+          const authMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+          ({ getAuth, signInWithPopup, signInWithCredential, linkWithCredential, deleteUser,
+             GithubAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider,
+             onAuthStateChanged, signOut } = authMod);
+          auth = getAuth(app);
+        })();
+      }
+      return _authReady;
+    }
 
     let getQueryEmbeddingFn = null;
     async function loadFunctions() {
@@ -1403,35 +1412,35 @@
     }
 
     async function loginWithGitHub() {
-      await firebaseReady;
+      await ensureAuth();
       const btn = document.getElementById('btn-github');
       setLoading(btn);
       try { const result = await signInWithPopup(auth, new GithubAuthProvider()); await handleOAuthSuccess(result); }
       catch (err) { await handleOAuthError(err, 'GitHub'); }
     }
     async function loginWithGoogle() {
-      await firebaseReady;
+      await ensureAuth();
       const btn = document.getElementById('btn-google');
       setLoading(btn);
       try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); await handleOAuthSuccess(result); }
       catch (err) { await handleOAuthError(err, 'Google'); }
     }
     async function loginWithFacebook() {
-      await firebaseReady;
+      await ensureAuth();
       const btn = document.getElementById('btn-facebook');
       setLoading(btn);
       try { const result = await signInWithPopup(auth, new FacebookAuthProvider()); await handleOAuthSuccess(result); }
       catch (err) { await handleOAuthError(err, 'Facebook'); }
     }
     async function logout() {
-      await firebaseReady;
+      await ensureAuth();
       avatarDropdown.classList.remove('open');
       await signOut(auth);
       showToast('Signed out.', 'info');
     }
 
     async function deleteAccount() {
-      await firebaseReady;
+      await ensureAuth();
       avatarDropdown.classList.remove('open');
       if (!state.user) return;
       const confirmed = confirm('Are you sure you want to delete your account? This will remove your account and all your submitted projects. This cannot be undone.');
@@ -2413,7 +2422,7 @@
       if (link && !link.dataset.nav) { e.preventDefault(); navigateTo('trending'); }
     });
 
-    firebaseReady.then(() => {
+    ensureAuth().then(() => {
       onAuthStateChanged(auth, user => {
         state.user = user || null;
         state.isLoggedIn = !!user;
