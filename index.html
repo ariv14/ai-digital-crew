@@ -217,6 +217,34 @@
     .quick-start ol{padding-left:18px;color:var(--text-muted);line-height:1.6}
     .quick-start ol li{margin-bottom:4px}
 
+    /* Home source toggle */
+    .home-source-toggle{display:flex;gap:4px;justify-content:center;margin-top:20px}
+    .home-source-btn{padding:10px 24px;font-size:14px;font-weight:600;border-radius:12px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .3s ease;display:inline-flex;align-items:center;gap:8px}
+    .home-source-btn:hover{border-color:var(--primary);color:var(--text);transform:translateY(-1px)}
+    .home-source-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff;box-shadow:0 0 20px rgba(59,130,246,.3)}
+    .home-source-btn .src-icon{width:18px;height:18px;flex-shrink:0}
+
+    /* HF Picks Grid */
+    .hf-picks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:0}
+    .hf-pick-card{border-radius:var(--radius);overflow:hidden;border:1px solid rgba(139,92,246,.3);background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(59,130,246,.04));padding:0;transition:all .3s ease}
+    .hf-pick-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(139,92,246,.15);border-color:rgba(139,92,246,.5)}
+    .hf-pick-label{padding:14px 20px 0;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px}
+    .hf-pick-label.model{color:#8b5cf6}
+    .hf-pick-label.paper{color:#fbbf24}
+    .hf-pick-label.space{color:#34d399}
+    .hf-pick-body{padding:14px 20px 20px}
+    .hf-pick-name{font-size:18px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hf-pick-name a{color:var(--text);transition:color .2s}
+    .hf-pick-name a:hover{color:var(--primary)}
+    .hf-pick-sub{font-size:12px;color:var(--text-muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hf-pick-desc{font-size:13px;color:var(--text-muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:12px;min-height:39px}
+    .hf-pick-stats{display:flex;gap:14px;font-size:12px;color:var(--text-muted)}
+    .hf-pick-stats span{display:flex;align-items:center;gap:4px}
+    .hf-pick-link{display:inline-flex;align-items:center;gap:4px;margin-top:10px;padding:6px 14px;font-size:12px;font-weight:600;border-radius:8px;border:1px solid var(--border);color:var(--text-muted);transition:all .2s}
+    .hf-pick-link:hover{border-color:var(--primary);color:var(--primary)}
+    @media(max-width:768px){.hf-picks-grid{grid-template-columns:1fr}.hf-pick-name{font-size:16px}}
+    @media(max-width:480px){.home-source-btn{padding:8px 16px;font-size:13px}}
+
     /* Featured Spotlight */
     .featured-section{padding-top:0}
     .featured-spotlight{border-radius:var(--radius);overflow:hidden;border:1px solid rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(239,68,68,.04));position:relative}
@@ -704,20 +732,36 @@
     <section id="home" class="hero">
       <h1>AI Tools Built by the Community</h1>
       <p class="subtitle">Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.</p>
-      <div class="hero-ctas">
-        <a href="#projects" class="btn-primary">Browse Projects</a>
-        <a href="#featured-section" class="btn-gold">Project of the Day</a>
+      <div class="home-source-toggle" id="home-source-toggle">
+        <button class="home-source-btn active" data-hsrc="github">
+          <svg class="src-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          GitHub Projects
+        </button>
+        <button class="home-source-btn" data-hsrc="huggingface">
+          <svg class="src-icon" viewBox="0 0 120 120" fill="currentColor"><path d="M41.7 49.5c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zm36.6 0c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zM60 0C26.9 0 0 26.9 0 60s26.9 60 60 60 60-26.9 60-60S93.1 0 60 0zm0 108c-26.5 0-48-21.5-48-48S33.5 12 60 12s48 21.5 48 48-21.5 48-48 48zm24.5-38.5c-1.2-1.2-3.1-1.2-4.2 0-5.6 5.6-14.7 8.4-20.3 8.4s-14.7-2.8-20.3-8.4c-1.2-1.2-3.1-1.2-4.2 0-1.2 1.2-1.2 3.1 0 4.2 6.8 6.8 17.4 10.2 24.5 10.2s17.7-3.4 24.5-10.2c1.2-1.1 1.2-3 0-4.2z"/></svg>
+          Hugging Face
+        </button>
+      </div>
+      <div class="hero-ctas" id="home-hero-ctas">
+        <a href="#projects" class="btn-primary" id="home-cta-browse">Browse Projects</a>
+        <a href="#featured-section" class="btn-gold" id="home-cta-potd">Project of the Day</a>
       </div>
       <div class="stats-bar" id="stats-bar">
-        <div class="stat-pill glass"><span class="stat-number" id="stat-projects" data-target="0">0</span><span class="stat-label"> Projects</span></div>
-        <div class="stat-pill glass"><span class="stat-number" id="stat-stars" data-target="0">0</span><span class="stat-label"> Total Stars</span></div>
-        <div class="stat-pill glass"><span class="stat-number" data-target="100">0</span><span class="stat-label">% Open Source</span></div>
+        <div class="stat-pill glass"><span class="stat-number" id="stat-projects" data-target="0">0</span><span class="stat-label" id="stat-projects-lbl"> Projects</span></div>
+        <div class="stat-pill glass"><span class="stat-number" id="stat-stars" data-target="0">0</span><span class="stat-label" id="stat-stars-lbl"> Total Stars</span></div>
+        <div class="stat-pill glass"><span class="stat-number" id="stat-oss" data-target="100">0</span><span class="stat-label" id="stat-oss-lbl">% Open Source</span></div>
       </div>
     </section>
 
     <section id="featured-section" class="featured-section" style="display:none">
       <div class="section-container">
         <div id="featured-spotlight" class="featured-spotlight glass"></div>
+      </div>
+    </section>
+
+    <section id="hf-picks-section" class="featured-section" style="display:none">
+      <div class="section-container">
+        <div class="hf-picks-grid" id="hf-picks-grid"></div>
       </div>
     </section>
 
@@ -1238,7 +1282,7 @@
       return addedDate.getTime() > weekAgo;
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, hfSource: 'github', hfModels: [], hfSpaces: [], hfPapers: [], hfLoaded: false, hfLoading: false, hfModelsFilter: { task: 'All', search: '', page: 1 }, hfSpacesFilter: { search: '', page: 1 }, hfPapersFilter: { search: '', page: 1 }, hfTaskActive: null };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, homeSource: 'github', hfSource: 'github', hfModels: [], hfSpaces: [], hfPapers: [], hfLoaded: false, hfLoading: false, hfModelsFilter: { task: 'All', search: '', page: 1 }, hfSpacesFilter: { search: '', page: 1 }, hfPapersFilter: { search: '', page: 1 }, hfTaskActive: null };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -1271,6 +1315,7 @@
       projects.style.display = 'none';
       searchPage.style.display = 'none';
       trendingPage.style.display = 'none';
+      document.getElementById('hf-picks-section').style.display = 'none';
 
       if (view === 'search') {
         searchPage.style.display = '';
@@ -1281,8 +1326,13 @@
       } else {
         // home view
         home.style.display = '';
-        if (state.projects.find(p => p.source === 'auto')) featured.style.display = '';
-        projects.style.display = '';
+        const isHfHome = state.homeSource === 'huggingface';
+        if (isHfHome) {
+          document.getElementById('hf-picks-section').style.display = '';
+        } else {
+          if (state.projects.find(p => p.source === 'auto')) featured.style.display = '';
+        }
+        projects.style.display = isHfHome ? 'none' : '';
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -1437,7 +1487,7 @@
           <div class="project-card glass">
             <div class="project-banner">
               ${p.ownerAvatar ? `<img src="${avatarSized(p.ownerAvatar, 96)}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
-              ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
+              ${p.source === 'auto' && p.autoAddedDate ? `<span class="auto-badge">${new Date(p.autoAddedDate).toLocaleDateString('en-US', {month:'short',day:'numeric'})}</span>` : ''}
             </div>
             <div class="project-body">
               <div class="project-name"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a></div>
@@ -1465,7 +1515,22 @@
       const spotlight = document.getElementById('featured-spotlight');
       const footerCol = document.getElementById('footer-featured-col');
 
-      const featured = state.projects.find(p => p.source === 'auto');
+      // Only show daily picks from the last 25 days, max 25 listings
+      const twentyFiveDaysAgo = Date.now() - 25 * 24 * 60 * 60 * 1000;
+      const dailyPicks = state.projects
+        .filter(p => {
+          if (p.source !== 'auto') return false;
+          const dateStr = p.autoAddedDate || '';
+          if (!dateStr) return true; // keep if no date (legacy)
+          return new Date(dateStr).getTime() > twentyFiveDaysAgo;
+        })
+        .sort((a, b) => {
+          const da = a.autoAddedDate ? new Date(a.autoAddedDate).getTime() : 0;
+          const db = b.autoAddedDate ? new Date(b.autoAddedDate).getTime() : 0;
+          return db - da;
+        })
+        .slice(0, 25);
+      const featured = dailyPicks[0] || null;
       if (!featured) {
         section.style.display = 'none';
         if (footerCol) footerCol.innerHTML = `<p class="footer-heading">🤖 Today's Pick</p><span style="color:var(--text-muted);font-size:14px">Coming soon</span>`;
@@ -1482,7 +1547,7 @@
       spotlight.innerHTML = `
         <div class="featured-label">
           ${icon('sparkles', 14)} Today's AI Project of the Day
-          <span>${featured.autoAddedDate || ''}</span>
+          <span>${featured.autoAddedDate || ''} · ${dailyPicks.length} of 25 max</span>
         </div>
         <div class="featured-body">
           <div>${avatar}</div>
@@ -2281,7 +2346,7 @@
           <div class="project-card glass visible" data-fullname="${esc(p.fullName || '')}" data-score="${score}">
             <div class="project-banner">
               ${p.ownerAvatar ? `<img src="${avatarSized(p.ownerAvatar, 96)}" alt="${esc(p.owner)}" width="48" height="48" loading="lazy">` : `<span class="initial">${(p.name||'P').charAt(0).toUpperCase()}</span>`}
-              ${p.source === 'auto' ? '<span class="auto-badge">🤖 Daily Pick</span>' : ''}
+              ${p.source === 'auto' && p.autoAddedDate ? `<span class="auto-badge">${new Date(p.autoAddedDate).toLocaleDateString('en-US', {month:'short',day:'numeric'})}</span>` : ''}
             </div>
             <div class="project-body">
               <div class="project-name"><a href="${esc(p.url)}" target="_blank" rel="noopener" onclick="logSearchClick('${esc(state.searchQuery)}','${esc(p.fullName || p.name)}')">${highlightText(p.name, searchTerms)}</a>${matchBadge(score)}</div>
@@ -3228,6 +3293,163 @@
         <div class="hf-trend-track"><div class="hf-trend-fill" style="width:${pct.toFixed(0)}%"></div></div>
         <span class="hf-trend-val">${typeof score === 'number' ? score.toFixed(1) : '0'}</span>
       </div>`;
+    }
+
+    // ── Home: Source Toggle (GitHub / Hugging Face) ─────
+    document.getElementById('home-source-toggle').addEventListener('click', e => {
+      const btn = e.target.closest('.home-source-btn');
+      if (!btn) return;
+      const src = btn.dataset.hsrc;
+      if (src === state.homeSource) return;
+      state.homeSource = src;
+      document.querySelectorAll('.home-source-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const heroH1 = document.querySelector('#home h1');
+      const heroSub = document.querySelector('#home .subtitle');
+      const ctaBrowse = document.getElementById('home-cta-browse');
+      const ctaPotd = document.getElementById('home-cta-potd');
+      const featuredSection = document.getElementById('featured-section');
+      const hfPicksSection = document.getElementById('hf-picks-section');
+      const projectsSection = document.getElementById('projects');
+
+      if (src === 'huggingface') {
+        heroH1.textContent = 'AI Models, Papers & Spaces';
+        heroSub.textContent = 'Discover the hottest Hugging Face models, trending AI research papers, and interactive demos — updated live.';
+        ctaBrowse.textContent = 'Explore Trending';
+        ctaBrowse.href = '#trending';
+        ctaBrowse.onclick = (ev) => { ev.preventDefault(); navigateTo('trending'); document.querySelectorAll('.source-toggle-btn').forEach(b => b.classList.remove('active')); document.querySelector('.source-toggle-btn[data-source="huggingface"]').classList.add('active'); document.getElementById('source-toggle').dispatchEvent(new MouseEvent('click', {bubbles:true})); const hfBtn = document.querySelector('.source-toggle-btn[data-source="huggingface"]'); if (hfBtn && !hfBtn.classList.contains('active')) hfBtn.click(); };
+        ctaPotd.style.display = 'none';
+        featuredSection.style.display = 'none';
+        hfPicksSection.style.display = '';
+        projectsSection.style.display = 'none';
+        // Update stats
+        document.getElementById('stat-projects-lbl').textContent = ' Models';
+        document.getElementById('stat-stars-lbl').textContent = ' Papers Today';
+        document.getElementById('stat-oss-lbl').textContent = ' Spaces';
+        // Fetch HF picks if not loaded
+        if (!state.hfLoaded) {
+          fetchHomeHFPicks();
+        } else {
+          renderHomeHFPicks();
+          updateHomeHFStats();
+        }
+      } else {
+        heroH1.textContent = 'AI Tools Built by the Community';
+        heroSub.textContent = 'Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.';
+        ctaBrowse.textContent = 'Browse Projects';
+        ctaBrowse.href = '#projects';
+        ctaBrowse.onclick = null;
+        ctaPotd.style.display = '';
+        hfPicksSection.style.display = 'none';
+        if (state.projects.find(p => p.source === 'auto')) featuredSection.style.display = '';
+        projectsSection.style.display = '';
+        // Restore stats
+        document.getElementById('stat-projects-lbl').textContent = ' Projects';
+        document.getElementById('stat-stars-lbl').textContent = ' Total Stars';
+        document.getElementById('stat-oss-lbl').textContent = '% Open Source';
+        updateStats();
+      }
+    });
+
+    async function fetchHomeHFPicks() {
+      const grid = document.getElementById('hf-picks-grid');
+      grid.innerHTML = '<div class="skeleton-card" style="min-height:180px"><div class="skeleton-body"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div></div>'.repeat(3);
+      try {
+        const [models, spaces, papers] = await Promise.all([
+          state.hfModels.length ? Promise.resolve(state.hfModels) : fetch('https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=50').then(r => r.json()),
+          state.hfSpaces.length ? Promise.resolve(state.hfSpaces) : fetch('https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=25').then(r => r.json()),
+          state.hfPapers.length ? Promise.resolve(state.hfPapers) : fetch('https://huggingface.co/api/daily_papers').then(r => r.json()),
+        ]);
+        state.hfModels = models;
+        state.hfSpaces = spaces;
+        state.hfPapers = Array.isArray(papers) ? papers : [];
+        state.hfLoaded = true;
+      } catch (err) {
+        console.warn('HF fetch failed:', err);
+      }
+      renderHomeHFPicks();
+      updateHomeHFStats();
+    }
+
+    function updateHomeHFStats() {
+      const projEl = document.getElementById('stat-projects');
+      const starEl = document.getElementById('stat-stars');
+      const ossEl = document.getElementById('stat-oss');
+      projEl.dataset.target = state.hfModels.length;
+      starEl.dataset.target = state.hfPapers.length;
+      ossEl.dataset.target = state.hfSpaces.length;
+      animateStats();
+    }
+
+    function renderHomeHFPicks() {
+      const grid = document.getElementById('hf-picks-grid');
+      const topModel = state.hfModels[0];
+      const topPaper = (state.hfPapers.sort((a, b) => ((b.paper?.upvotes || 0) - (a.paper?.upvotes || 0))))[0];
+      const topSpace = state.hfSpaces[0];
+      let html = '';
+
+      // Model of the Day
+      if (topModel) {
+        const mId = topModel.id || '';
+        const mAuthor = mId.includes('/') ? mId.split('/')[0] : '';
+        const mName = mId.includes('/') ? mId.split('/').slice(1).join('/') : mId;
+        html += `<div class="hf-pick-card">
+          <div class="hf-pick-label model">${icon('bot', 14)} Model of the Day</div>
+          <div class="hf-pick-body">
+            <div class="hf-pick-name"><a href="https://huggingface.co/${esc(mId)}" target="_blank" rel="noopener">${esc(mName)}</a></div>
+            <div class="hf-pick-sub">by ${esc(mAuthor)}${topModel.pipeline_tag ? ' · ' + esc(formatPipelineTag(topModel.pipeline_tag)) : ''}</div>
+            <div class="hf-pick-stats">
+              <span>${icon('download', 13)} ${fmtNum(topModel.downloads)}</span>
+              <span>${icon('heart', 13)} ${fmtNum(topModel.likes)}</span>
+              <span style="color:#8b5cf6;font-weight:600">Score: ${(topModel.trendingScore || 0).toFixed(1)}</span>
+            </div>
+            <a href="https://huggingface.co/${esc(mId)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} View on Hugging Face</a>
+          </div>
+        </div>`;
+      }
+
+      // Paper of the Day
+      if (topPaper) {
+        const p = topPaper.paper || topPaper;
+        const authors = (p.authors || []).slice(0, 2).map(a => esc(a.name || a.user || a)).join(', ');
+        const moreAuthors = (p.authors || []).length > 2 ? ' et al.' : '';
+        html += `<div class="hf-pick-card">
+          <div class="hf-pick-label paper">${icon('file-text', 14)} Paper of the Day</div>
+          <div class="hf-pick-body">
+            <div class="hf-pick-name"><a href="https://huggingface.co/papers/${esc(p.id || '')}" target="_blank" rel="noopener">${esc(p.title || 'Untitled')}</a></div>
+            <div class="hf-pick-sub">${authors}${moreAuthors}</div>
+            <div class="hf-pick-desc">${esc(p.summary || '')}</div>
+            <div class="hf-pick-stats">
+              <span style="color:#fbbf24;font-weight:600">${icon('arrow-up', 13)} ${p.upvotes || 0} upvotes</span>
+              ${p.githubRepo || topPaper.githubRepo ? `<span>${icon('github', 13)} Has code</span>` : ''}
+            </div>
+            <a href="https://huggingface.co/papers/${esc(p.id || '')}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} Read Paper</a>
+          </div>
+        </div>`;
+      }
+
+      // Space of the Day
+      if (topSpace) {
+        const sId = topSpace.id || '';
+        const sAuthor = sId.includes('/') ? sId.split('/')[0] : '';
+        const sName = sId.includes('/') ? sId.split('/').slice(1).join('/') : sId;
+        const sdk = topSpace.sdk || '';
+        html += `<div class="hf-pick-card">
+          <div class="hf-pick-label space">${icon('rocket', 14)} Space of the Day</div>
+          <div class="hf-pick-body">
+            <div class="hf-pick-name"><a href="https://huggingface.co/spaces/${esc(sId)}" target="_blank" rel="noopener">${esc(sName)}</a></div>
+            <div class="hf-pick-sub">by ${esc(sAuthor)}${sdk ? ' · ' + esc(sdk) : ''}</div>
+            <div class="hf-pick-stats">
+              <span>${icon('heart', 13)} ${fmtNum(topSpace.likes)}</span>
+              <span style="color:#34d399;font-weight:600">Score: ${(topSpace.trendingScore || 0).toFixed(1)}</span>
+            </div>
+            <a href="https://huggingface.co/spaces/${esc(sId)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} Try it live</a>
+          </div>
+        </div>`;
+      }
+
+      grid.innerHTML = html || '<p style="color:var(--text-muted);text-align:center">No Hugging Face data available</p>';
     }
 
     // ── Hugging Face: Source Toggle ──────────────────────
