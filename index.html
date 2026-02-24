@@ -484,7 +484,7 @@
     .page-info{font-size:13px;color:var(--text-muted);padding:0 8px}
 
     /* Developer card */
-    .dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+    .dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:16px}
     .dev-card{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .3s ease}
     .dev-card:hover{border-color:rgba(59,130,246,.3);transform:translateY(-2px)}
     .dev-rank{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--text-muted);min-width:28px}
@@ -494,7 +494,7 @@
     .dev-name a{color:var(--text);transition:color .2s}
     .dev-name a:hover{color:var(--primary)}
     .dev-stats{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap}
-    .dev-repos{font-size:11px;color:var(--text-muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .dev-repos{font-size:11px;color:var(--text-muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
     /* View toggle */
     .view-toggle{display:flex;gap:4px;margin-left:auto}
@@ -568,6 +568,9 @@
       #trending-page .trnd-search-input{width:100%}
       #trending-page .trnd-search-input:focus{width:100%}
       .trnd-search-wrap{width:100%}
+      .dev-card{padding:12px 14px;gap:10px}
+      .dev-rank{font-size:16px;min-width:24px}
+      .dev-avatar{width:36px;height:36px}
       .view-toggle{margin-left:0;margin-top:8px}
       .recap-banner{flex-direction:column;gap:10px;padding:14px 16px;text-align:center}
       .recap-banner-dismiss{position:static;align-self:flex-end}
@@ -2808,7 +2811,7 @@
       container.innerHTML = devs.map((d, i) => `
         <div class="dev-card">
           <span class="dev-rank">#${i + 1}</span>
-          ${d.avatar ? `<img class="dev-avatar" src="${esc(d.avatar)}" alt="${esc(d.owner)}" loading="lazy">` : ''}
+          ${d.avatar ? `<img class="dev-avatar" src="${avatarSized(d.avatar, 80)}" alt="${esc(d.owner)}" width="40" height="40" loading="lazy">` : ''}
           <div class="dev-info">
             <div class="dev-name"><a href="https://github.com/${esc(d.owner)}" target="_blank" rel="noopener">${esc(d.owner)}</a></div>
             <div class="dev-stats">
