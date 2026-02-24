@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="view-transition" content="same-origin">
   <meta name="theme-color" content="#0a0f1c">
-  <title>AI Digital Crew — Community AI Projects</title>
-  <meta name="description" content="Discover and share AI projects built by developers. Submit your GitHub repo and join the community.">
-  <meta property="og:title" content="AI Digital Crew">
-  <meta property="og:description" content="Community-driven AI project showcase. Submit your GitHub repo.">
+  <title>AI Digital Crew — Trending AI Tools, Models & Research 2026</title>
+  <meta name="description" content="Discover trending AI tools, track top Hugging Face models, and read the latest AI research papers. Real-time AI industry trends and open-source project rankings.">
+  <meta name="keywords" content="trending AI tools, AI tools 2026, best AI projects, AI industry trends, Hugging Face trending, AI research papers, GitHub AI repositories, machine learning trends, LLM leaderboard, generative AI, open source AI, AI developer community, deep learning, AI models, AI news">
+  <meta property="og:title" content="AI Digital Crew — Trending AI Tools, Models & Research">
+  <meta property="og:description" content="Real-time AI industry intelligence. Track trending GitHub AI projects, Hugging Face models, and the latest AI research papers — updated daily.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://aidigitalcrew.com">
   <meta property="og:image" content="https://aidigitalcrew.com/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AI Digital Crew">
-  <meta name="twitter:description" content="Community-driven AI project showcase. Submit your GitHub repo.">
+  <meta name="twitter:title" content="AI Digital Crew — Trending AI Tools, Models & Research">
+  <meta name="twitter:description" content="Real-time AI industry intelligence. Track trending GitHub AI projects, Hugging Face models, and the latest AI research papers.">
   <meta name="twitter:image" content="https://aidigitalcrew.com/og-image.png">
   <link rel="canonical" href="https://aidigitalcrew.com">
   <meta name="theme-color" content="#0a0f1c">
@@ -28,7 +29,7 @@
         "@type": "WebSite",
         "name": "AI Digital Crew",
         "url": "https://aidigitalcrew.com",
-        "description": "Community-driven AI project showcase. Discover and share AI projects built by developers.",
+        "description": "Real-time intelligence platform for trending AI tools, Hugging Face models, GitHub AI projects, and AI research papers.",
         "potentialAction": {
           "@type": "SearchAction",
           "target": "https://aidigitalcrew.com/#search?q={search_term_string}",
@@ -36,10 +37,59 @@
         }
       },
       {
+        "@type": "CollectionPage",
+        "name": "Trending AI Tools & Models",
+        "url": "https://aidigitalcrew.com/#trending",
+        "description": "Track the hottest AI projects on GitHub, trending Hugging Face models, daily AI research papers, and developer leaderboards. Updated daily with real-time data.",
+        "isPartOf": { "@type": "WebSite", "url": "https://aidigitalcrew.com" },
+        "about": [
+          { "@type": "Thing", "name": "Artificial Intelligence" },
+          { "@type": "Thing", "name": "Machine Learning" },
+          { "@type": "Thing", "name": "Large Language Models" },
+          { "@type": "Thing", "name": "Generative AI" },
+          { "@type": "Thing", "name": "Hugging Face" },
+          { "@type": "Thing", "name": "GitHub" },
+          { "@type": "Thing", "name": "AI Research" }
+        ]
+      },
+      {
         "@type": "Organization",
         "name": "AI Digital Crew",
         "url": "https://aidigitalcrew.com",
-        "description": "Community-driven AI project showcase. Submit your GitHub repo and join the community."
+        "description": "Community-driven AI trend intelligence platform. Discover, track, and compare trending AI tools, models, and research papers.",
+        "sameAs": [
+          "https://github.com/ariv14/ai-digital-crew",
+          "https://aidigitalcrew.substack.com"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What are the trending AI tools right now?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AI Digital Crew tracks the top trending AI tools in real-time across GitHub and Hugging Face. Visit aidigitalcrew.com to see trending AI projects ranked by stars, momentum, and growth rate."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Where can I find the latest AI research papers?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AI Digital Crew features daily trending AI research papers from Hugging Face, with upvotes, author details, and links to the original papers. New papers are added daily."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How can I discover new AI models?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AI Digital Crew shows the top trending Hugging Face models ranked by trending score, downloads, and likes. Filter by task type (text generation, image generation, etc.) to find models for your use case."
+            }
+          }
+        ]
       }
     ]
   }
@@ -54,6 +104,7 @@
   <link rel="dns-prefetch" href="https://firestore.googleapis.com">
   <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
   <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
+  <link rel="dns-prefetch" href="https://huggingface.co">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-lite.js">
   <script type="speculationrules">{"prerender":[{"where":{"href_matches":"/project"},"eagerness":"moderate"}]}</script>
@@ -538,6 +589,47 @@
     .cat-lb-tab:hover{border-color:var(--primary);color:var(--text)}
     .cat-lb-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
 
+    /* Source toggle (GitHub / Hugging Face) */
+    .source-toggle{display:flex;gap:4px;justify-content:center;margin-top:16px}
+    .source-toggle-btn{padding:8px 16px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+    .source-toggle-btn:hover{border-color:var(--primary);color:var(--text)}
+    .source-toggle-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+
+    /* HF model cards */
+    .hf-model-card{display:flex;align-items:flex-start;gap:16px;padding:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .3s ease;margin-bottom:12px}
+    .hf-model-card:hover{border-color:rgba(59,130,246,.3);transform:translateX(4px)}
+    .hf-card-body{flex:1;min-width:0}
+    .hf-card-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .hf-card-name{font-size:17px;font-weight:700}
+    .hf-card-name a{color:var(--text);transition:color .2s}
+    .hf-card-name a:hover{color:var(--primary)}
+    .hf-card-author{font-size:13px;color:var(--text-muted)}
+    .hf-card-desc{font-size:13px;color:var(--text-muted);line-height:1.5;margin:6px 0 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .hf-card-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)}
+    .hf-card-meta span{display:flex;align-items:center;gap:4px}
+    .hf-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;font-size:11px;font-weight:600;border-radius:6px;white-space:nowrap}
+    .hf-badge.task{background:rgba(139,92,246,.15);color:#a78bfa}
+    .hf-badge.sdk{background:rgba(16,185,129,.15);color:#34d399}
+    .hf-badge.new{background:rgba(59,130,246,.15);color:#60a5fa}
+    .hf-badge.upvotes{background:rgba(251,191,36,.15);color:#fbbf24}
+    .hf-trend-bar{margin-top:8px;display:flex;align-items:center;gap:8px}
+    .hf-trend-track{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;max-width:200px}
+    .hf-trend-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#8b5cf6,#3b82f6);transition:width .6s ease}
+    .hf-trend-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);min-width:32px;text-align:right}
+
+    /* HF paper cards */
+    .hf-paper-card{padding:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .3s ease;margin-bottom:12px}
+    .hf-paper-card:hover{border-color:rgba(59,130,246,.3);transform:translateX(4px)}
+    .hf-paper-title{font-size:16px;font-weight:700;margin-bottom:6px}
+    .hf-paper-title a{color:var(--text);transition:color .2s}
+    .hf-paper-title a:hover{color:var(--primary)}
+    .hf-paper-authors{font-size:12px;color:var(--text-muted);margin-bottom:6px}
+    .hf-paper-summary{font-size:13px;color:var(--text-muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+    .hf-paper-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)}
+    .hf-paper-meta span{display:flex;align-items:center;gap:4px}
+    .hf-paper-gh{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--border);color:var(--text-muted);transition:all .2s}
+    .hf-paper-gh:hover{border-color:var(--primary);color:var(--primary)}
+
     /* Weekly recap banner */
     .recap-banner{display:flex;align-items:center;gap:14px;padding:16px 24px;border-radius:14px;border:1px solid rgba(139,92,246,.3);background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(59,130,246,.08));margin-bottom:24px;position:relative}
     .recap-banner-icon{font-size:24px;flex-shrink:0}
@@ -577,6 +669,11 @@
       .view-toggle{margin-left:0;margin-top:8px}
       .recap-banner{flex-direction:column;gap:10px;padding:14px 16px;text-align:center}
       .recap-banner-dismiss{position:static;align-self:flex-end}
+      .hf-model-card{padding:14px;gap:10px}
+      .hf-card-name{font-size:15px}
+      .hf-paper-card{padding:14px}
+      .hf-paper-title{font-size:14px}
+      .source-toggle{flex-wrap:wrap}
     }
   </style>
 </head>
@@ -692,8 +789,19 @@
           <button class="time-btn" data-range="30d">30d</button>
           <button class="time-btn" data-range="all">All</button>
         </div>
+        <div class="source-toggle" id="source-toggle">
+          <button class="source-toggle-btn active" data-source="github">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            GitHub
+          </button>
+          <button class="source-toggle-btn" data-source="huggingface">
+            <svg width="16" height="16" viewBox="0 0 120 120" fill="currentColor"><path d="M41.7 49.5c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zm36.6 0c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zM60 0C26.9 0 0 26.9 0 60s26.9 60 60 60 60-26.9 60-60S93.1 0 60 0zm0 108c-26.5 0-48-21.5-48-48S33.5 12 60 12s48 21.5 48 48-21.5 48-48 48zm24.5-38.5c-1.2-1.2-3.1-1.2-4.2 0-5.6 5.6-14.7 8.4-20.3 8.4s-14.7-2.8-20.3-8.4c-1.2-1.2-3.1-1.2-4.2 0-1.2 1.2-1.2 3.1 0 4.2 6.8 6.8 17.4 10.2 24.5 10.2s17.7-3.4 24.5-10.2c1.2-1.1 1.2-3 0-4.2z"/></svg>
+            Hugging Face
+          </button>
+        </div>
       </section>
 
+      <div id="github-sections">
       <div id="recap-banner-container" class="section-container" style="display:none"></div>
 
       <section id="category-leaderboard-section">
@@ -814,6 +922,98 @@
           <div class="dev-grid" id="dev-grid"></div>
         </div>
       </section>
+      </div><!-- #github-sections -->
+
+      <div id="hf-sections" style="display:none">
+
+        <!-- Section 1: Task Leaderboards -->
+        <section id="hf-task-lb-section">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg> Task Leaderboards</h2>
+              <p class="section-subtitle">Top models by trending score in each task category</p>
+            </div>
+            <div class="cat-lb-tabs" id="hf-task-tabs"></div>
+            <div id="hf-task-content"></div>
+          </div>
+        </section>
+
+        <!-- Section 2: Trending Models Top 25 -->
+        <section id="hf-models-section">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg> Trending Models &mdash; Top 25</h2>
+              <p class="section-subtitle">The hottest models on Hugging Face right now</p>
+            </div>
+            <div class="filter-bar" id="hf-models-filter-bar">
+              <div class="filter-group">
+                <span class="filter-label">Task</span>
+                <select class="filter-select" id="hf-models-filter-task"><option value="All">All Tasks</option></select>
+              </div>
+              <div class="filter-group">
+                <div class="trnd-search-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" class="trnd-search-input" id="hf-models-filter-search" placeholder="Search models...">
+                </div>
+              </div>
+            </div>
+            <div id="hf-models-list"></div>
+            <div class="pagination" id="hf-models-pagination"></div>
+          </div>
+        </section>
+
+        <!-- Section 3: Trending Spaces Top 25 -->
+        <section id="hf-spaces-section">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Trending Spaces &mdash; Top 25</h2>
+              <p class="section-subtitle">Most popular interactive AI demos and apps</p>
+            </div>
+            <div class="filter-bar" id="hf-spaces-filter-bar">
+              <div class="filter-group">
+                <div class="trnd-search-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" class="trnd-search-input" id="hf-spaces-filter-search" placeholder="Search spaces...">
+                </div>
+              </div>
+            </div>
+            <div id="hf-spaces-list"></div>
+            <div class="pagination" id="hf-spaces-pagination"></div>
+          </div>
+        </section>
+
+        <!-- Section 4: Daily Papers -->
+        <section id="hf-papers-section">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v5h5"/><path d="M3 15h6"/><path d="M3 18h6"/><path d="M3 12h2"/></svg> Daily Papers</h2>
+              <p class="section-subtitle">Today's trending AI research from Hugging Face</p>
+            </div>
+            <div class="filter-bar" id="hf-papers-filter-bar">
+              <div class="filter-group">
+                <div class="trnd-search-wrap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" class="trnd-search-input" id="hf-papers-filter-search" placeholder="Search papers...">
+                </div>
+              </div>
+            </div>
+            <div id="hf-papers-list"></div>
+            <div class="pagination" id="hf-papers-pagination"></div>
+          </div>
+        </section>
+
+        <!-- Section 5: Trending Authors -->
+        <section id="hf-authors-section">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Trending Authors</h2>
+              <p class="section-subtitle">Authors with the most trending models</p>
+            </div>
+            <div class="dev-grid" id="hf-authors-grid"></div>
+          </div>
+        </section>
+
+      </div><!-- #hf-sections -->
     </div>
   </main>
 
@@ -847,6 +1047,24 @@
       AI Digital Crew &copy; 2026 — Open source, community driven
     </div>
   </footer>
+
+  <noscript>
+    <div style="max-width:800px;margin:60px auto;padding:24px;color:#f1f5f9">
+      <h1>AI Digital Crew — Trending AI Tools & Research</h1>
+      <p>AI Digital Crew is a real-time intelligence platform for the AI community. Track trending AI tools and open-source projects on GitHub, discover the hottest Hugging Face models, and stay updated with the latest AI research papers.</p>
+      <h2>Features</h2>
+      <ul>
+        <li>Trending AI Projects — GitHub repositories ranked by stars, momentum, and growth</li>
+        <li>Trending Hugging Face Models — Top AI models by trending score, downloads, and likes</li>
+        <li>Trending Spaces — Interactive AI demos and applications</li>
+        <li>Daily AI Research Papers — The latest AI and machine learning papers with upvotes</li>
+        <li>AI Developer Leaderboards — Top contributors and model authors</li>
+        <li>Semantic AI Search — Find AI tools using natural language queries</li>
+      </ul>
+      <h2>AI Industry Trends</h2>
+      <p>Stay on the cutting edge of AI industry trends including large language models (LLMs), generative AI, computer vision, AI agents, and more. Updated daily with real-time data from GitHub and Hugging Face.</p>
+    </div>
+  </noscript>
 
   <div id="toast-container"></div>
   <div class="auth-overlay" id="auth-overlay"><div class="auth-overlay-spinner"></div><div class="auth-overlay-text">Connecting...</div></div>
@@ -1020,7 +1238,7 @@
       return addedDate.getTime() > weekAgo;
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, hfSource: 'github', hfModels: [], hfSpaces: [], hfPapers: [], hfLoaded: false, hfLoading: false, hfModelsFilter: { task: 'All', search: '', page: 1 }, hfSpacesFilter: { search: '', page: 1 }, hfPapersFilter: { search: '', page: 1 }, hfTaskActive: null };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -1731,6 +1949,11 @@
       'trash-2': '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
       'external-link': '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
       'radar': '<path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67"/><path d="M12 18h.01"/><path d="M17.99 11.66A6 6 0 0 1 15.77 16.67"/><circle cx="12" cy="12" r="2"/><path d="m13.41 10.59 5.66-5.66"/>',
+      'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+      'heart': '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+      'arrow-up': '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+      'file-text': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+      'rocket': '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
     };
     function icon(name, size, extra) {
       return `<svg width="${size || 24}" height="${size || 24}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra ? ' ' + extra : ''}>${ICONS[name] || ''}</svg>`;
@@ -2977,6 +3200,416 @@
       renderMovers();
       renderDevelopers();
     }
+
+    // ── Hugging Face: Helpers ──────────────────────────────
+    const HF_PAGE_SIZE = 10;
+
+    function fmtNum(n) {
+      if (n == null) return '0';
+      if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+      return n.toString();
+    }
+
+    function formatPipelineTag(tag) {
+      if (!tag) return 'Unknown';
+      return tag.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    function isNewModel(createdAt) {
+      if (!createdAt) return false;
+      const d = new Date(createdAt);
+      return (Date.now() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
+    }
+
+    function hfTrendBar(score, maxScore) {
+      const pct = maxScore > 0 ? Math.min(100, (score / maxScore) * 100) : 0;
+      return `<div class="hf-trend-bar">
+        <div class="hf-trend-track"><div class="hf-trend-fill" style="width:${pct.toFixed(0)}%"></div></div>
+        <span class="hf-trend-val">${typeof score === 'number' ? score.toFixed(1) : '0'}</span>
+      </div>`;
+    }
+
+    // ── Hugging Face: Source Toggle ──────────────────────
+    document.getElementById('source-toggle').addEventListener('click', e => {
+      const btn = e.target.closest('.source-toggle-btn');
+      if (!btn) return;
+      const source = btn.dataset.source;
+      if (source === state.hfSource) return;
+      state.hfSource = source;
+      document.querySelectorAll('.source-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('github-sections').style.display = source === 'github' ? '' : 'none';
+      document.getElementById('hf-sections').style.display = source === 'huggingface' ? '' : 'none';
+      updateHeroForSource(source);
+      if (source === 'huggingface' && !state.hfLoaded) {
+        fetchAllHFData();
+      }
+    });
+
+    function updateHeroForSource(source) {
+      const heroH1 = document.querySelector('.radar-hero h1');
+      const heroSub = document.querySelector('.radar-hero .subtitle');
+      const freshEl = document.getElementById('hero-freshness');
+      if (source === 'huggingface') {
+        heroH1.textContent = 'Hugging Face Trending';
+        heroSub.textContent = 'Track trending models, spaces, and papers on Hugging Face. Updated live.';
+        freshEl.textContent = '';
+        document.getElementById('time-toggle').style.display = 'none';
+        // Update hero stats
+        document.getElementById('stat-tracked').textContent = state.hfModels.length || '\u2014';
+        document.querySelector('#stat-tracked').nextElementSibling.textContent = 'Models';
+        document.getElementById('stat-hot').textContent = state.hfSpaces.length || '\u2014';
+        document.querySelector('#stat-hot').nextElementSibling.textContent = 'Spaces';
+        document.getElementById('stat-rising').textContent = state.hfPapers.length || '\u2014';
+        document.querySelector('#stat-rising').nextElementSibling.textContent = 'Papers';
+        const totalLikes = state.hfModels.reduce((s, m) => s + (m.likes || 0), 0);
+        document.getElementById('stat-stars-week').textContent = totalLikes ? fmtNum(totalLikes) : '\u2014';
+        document.querySelector('#stat-stars-week').nextElementSibling.textContent = 'Total Likes';
+      } else {
+        heroH1.textContent = 'Trending Projects';
+        heroSub.textContent = 'Track which AI projects are gaining stars, forks, and momentum. Updated daily.';
+        document.getElementById('time-toggle').style.display = '';
+        // Restore labels
+        document.querySelector('#stat-tracked').nextElementSibling.textContent = 'Tracked';
+        document.querySelector('#stat-hot').nextElementSibling.textContent = 'Hot';
+        document.querySelector('#stat-rising').nextElementSibling.textContent = 'Rising';
+        document.querySelector('#stat-stars-week').nextElementSibling.textContent = 'Stars This Week';
+        updateTrendingHeroStats();
+      }
+    }
+
+    // ── Hugging Face: Fetch ─────────────────────────────
+    function renderHFSkeletons() {
+      const skel = '<div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>'.repeat(3);
+      ['hf-models-list', 'hf-spaces-list', 'hf-papers-list', 'hf-task-content'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = skel;
+      });
+    }
+
+    async function fetchAllHFData() {
+      state.hfLoading = true;
+      renderHFSkeletons();
+      try {
+        const [models, spaces, papers] = await Promise.all([
+          fetch('https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=50').then(r => r.json()),
+          fetch('https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=25').then(r => r.json()),
+          fetch('https://huggingface.co/api/daily_papers').then(r => r.json()),
+        ]);
+        state.hfModels = models;
+        state.hfSpaces = spaces;
+        state.hfPapers = Array.isArray(papers) ? papers : [];
+        state.hfLoaded = true;
+      } catch (err) {
+        console.warn('HF fetch failed:', err);
+      }
+      state.hfLoading = false;
+      renderAllHF();
+      populateHFFilters();
+      updateHeroForSource('huggingface');
+    }
+
+    // ── Hugging Face: Render All ────────────────────────
+    function renderAllHF() {
+      renderHFTaskLeaderboards();
+      renderHFModels();
+      renderHFSpaces();
+      renderHFPapers();
+      renderHFAuthors();
+    }
+
+    // ── HF: Task Leaderboards ───────────────────────────
+    function renderHFTaskLeaderboards() {
+      const taskMap = new Map();
+      state.hfModels.forEach(m => {
+        const tag = m.pipeline_tag || 'other';
+        if (!taskMap.has(tag)) taskMap.set(tag, []);
+        taskMap.get(tag).push(m);
+      });
+      const validTasks = [...taskMap.entries()]
+        .filter(([, list]) => list.length >= 2)
+        .sort((a, b) => b[1].length - a[1].length);
+      const tabsEl = document.getElementById('hf-task-tabs');
+      const contentEl = document.getElementById('hf-task-content');
+      if (validTasks.length === 0) {
+        tabsEl.innerHTML = '';
+        contentEl.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">No task data available</p>';
+        return;
+      }
+      if (!state.hfTaskActive || !taskMap.has(state.hfTaskActive)) {
+        state.hfTaskActive = validTasks[0][0];
+      }
+      tabsEl.innerHTML = validTasks.map(([tag]) =>
+        `<button class="cat-lb-tab${tag === state.hfTaskActive ? ' active' : ''}" data-hftask="${esc(tag)}">${esc(formatPipelineTag(tag))}</button>`
+      ).join('');
+      const maxScore = state.hfModels.length ? Math.max(...state.hfModels.map(m => m.trendingScore || 0)) : 1;
+      const taskModels = (taskMap.get(state.hfTaskActive) || [])
+        .sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0))
+        .slice(0, 5);
+      contentEl.innerHTML = taskModels.map((m, i) => renderHFModelCard(m, i + 1, maxScore)).join('');
+    }
+
+    document.getElementById('hf-task-tabs')?.addEventListener('click', (e) => {
+      const tab = e.target.closest('.cat-lb-tab');
+      if (!tab) return;
+      document.querySelectorAll('#hf-task-tabs .cat-lb-tab').forEach(b => b.classList.remove('active'));
+      tab.classList.add('active');
+      state.hfTaskActive = tab.dataset.hftask;
+      renderHFTaskLeaderboards();
+    });
+
+    // ── HF: Model Card Renderer ─────────────────────────
+    function renderHFModelCard(m, rank, maxScore) {
+      const id = m.id || m.modelId || '';
+      const author = id.includes('/') ? id.split('/')[0] : '';
+      const name = id.includes('/') ? id.split('/').slice(1).join('/') : id;
+      const rankClass = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
+      return `<div class="hf-model-card">
+        <span class="rank-num${rankClass}">${rank}</span>
+        <div class="hf-card-body">
+          <div class="hf-card-header">
+            <span class="hf-card-name"><a href="https://huggingface.co/${esc(id)}" target="_blank" rel="noopener">${esc(name)}</a></span>
+            ${m.pipeline_tag ? `<span class="hf-badge task">${esc(formatPipelineTag(m.pipeline_tag))}</span>` : ''}
+            ${isNewModel(m.createdAt) ? '<span class="hf-badge new">New</span>' : ''}
+          </div>
+          ${author ? `<div class="hf-card-author">by <a href="https://huggingface.co/${esc(author)}" target="_blank" rel="noopener">${esc(author)}</a></div>` : ''}
+          <div class="hf-card-meta">
+            <span>${icon('download', 14)} ${fmtNum(m.downloads)}</span>
+            <span>${icon('heart', 14)} ${fmtNum(m.likes)}</span>
+          </div>
+          ${hfTrendBar(m.trendingScore || 0, maxScore)}
+        </div>
+      </div>`;
+    }
+
+    // ── HF: Trending Models ─────────────────────────────
+    function renderHFModels() {
+      const container = document.getElementById('hf-models-list');
+      let list = [...state.hfModels];
+      if (state.hfModelsFilter.task !== 'All') {
+        list = list.filter(m => m.pipeline_tag === state.hfModelsFilter.task);
+      }
+      if (state.hfModelsFilter.search) {
+        const q = state.hfModelsFilter.search.toLowerCase();
+        list = list.filter(m => (m.id || '').toLowerCase().includes(q));
+      }
+      list.sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0));
+      if (list.length === 0) {
+        renderTrendingEmptyState(container, 'bot',
+          state.hfModelsFilter.search || state.hfModelsFilter.task !== 'All'
+            ? 'No models match these filters'
+            : 'No model data yet');
+        document.getElementById('hf-models-pagination').innerHTML = '';
+        return;
+      }
+      const maxScore = Math.max(...list.map(m => m.trendingScore || 0));
+      const start = (state.hfModelsFilter.page - 1) * HF_PAGE_SIZE;
+      const page = list.slice(start, start + HF_PAGE_SIZE);
+      container.innerHTML = page.map((m, i) => renderHFModelCard(m, start + i + 1, maxScore)).join('');
+      renderHFPagination('hf-models-pagination', state.hfModelsFilter, list.length, renderHFModels);
+    }
+
+    // ── HF: Trending Spaces ─────────────────────────────
+    function renderHFSpaces() {
+      const container = document.getElementById('hf-spaces-list');
+      let list = [...state.hfSpaces];
+      if (state.hfSpacesFilter.search) {
+        const q = state.hfSpacesFilter.search.toLowerCase();
+        list = list.filter(s => (s.id || '').toLowerCase().includes(q));
+      }
+      list.sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0));
+      if (list.length === 0) {
+        renderTrendingEmptyState(container, 'rocket',
+          state.hfSpacesFilter.search ? 'No spaces match this search' : 'No space data yet');
+        document.getElementById('hf-spaces-pagination').innerHTML = '';
+        return;
+      }
+      const maxScore = Math.max(...list.map(s => s.trendingScore || 0));
+      const start = (state.hfSpacesFilter.page - 1) * HF_PAGE_SIZE;
+      const page = list.slice(start, start + HF_PAGE_SIZE);
+      container.innerHTML = page.map((s, i) => {
+        const id = s.id || '';
+        const author = id.includes('/') ? id.split('/')[0] : '';
+        const name = id.includes('/') ? id.split('/').slice(1).join('/') : id;
+        const rank = start + i + 1;
+        const rankClass = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
+        const sdk = s.sdk || s.runtime?.stage || '';
+        return `<div class="hf-model-card">
+          <span class="rank-num${rankClass}">${rank}</span>
+          <div class="hf-card-body">
+            <div class="hf-card-header">
+              <span class="hf-card-name"><a href="https://huggingface.co/spaces/${esc(id)}" target="_blank" rel="noopener">${esc(name)}</a></span>
+              ${sdk ? `<span class="hf-badge sdk">${esc(sdk)}</span>` : ''}
+            </div>
+            ${author ? `<div class="hf-card-author">by <a href="https://huggingface.co/${esc(author)}" target="_blank" rel="noopener">${esc(author)}</a></div>` : ''}
+            <div class="hf-card-meta">
+              <span>${icon('heart', 14)} ${fmtNum(s.likes)}</span>
+            </div>
+            ${hfTrendBar(s.trendingScore || 0, maxScore)}
+          </div>
+        </div>`;
+      }).join('');
+      renderHFPagination('hf-spaces-pagination', state.hfSpacesFilter, list.length, renderHFSpaces);
+    }
+
+    // ── HF: Daily Papers ────────────────────────────────
+    function renderHFPapers() {
+      const container = document.getElementById('hf-papers-list');
+      let list = [...state.hfPapers];
+      // Sort by upvotes desc
+      list.sort((a, b) => ((b.paper?.upvotes || 0) - (a.paper?.upvotes || 0)));
+      if (state.hfPapersFilter.search) {
+        const q = state.hfPapersFilter.search.toLowerCase();
+        list = list.filter(p => {
+          const paper = p.paper || p;
+          return (paper.title || '').toLowerCase().includes(q) ||
+                 (paper.summary || '').toLowerCase().includes(q);
+        });
+      }
+      if (list.length === 0) {
+        renderTrendingEmptyState(container, 'file-text',
+          state.hfPapersFilter.search ? 'No papers match this search' : 'No papers available today');
+        document.getElementById('hf-papers-pagination').innerHTML = '';
+        return;
+      }
+      const start = (state.hfPapersFilter.page - 1) * HF_PAGE_SIZE;
+      const page = list.slice(start, start + HF_PAGE_SIZE);
+      container.innerHTML = page.map(item => {
+        const p = item.paper || item;
+        const paperId = p.id || '';
+        const authors = (p.authors || []).slice(0, 3).map(a => esc(a.name || a.user || a)).join(', ');
+        const moreAuthors = (p.authors || []).length > 3 ? ` et al.` : '';
+        const pubDate = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const ghRepo = p.githubRepo || item.githubRepo || '';
+        return `<div class="hf-paper-card">
+          <div class="hf-paper-title"><a href="https://huggingface.co/papers/${esc(paperId)}" target="_blank" rel="noopener">${esc(p.title || 'Untitled')}</a></div>
+          ${authors ? `<div class="hf-paper-authors">${authors}${moreAuthors}</div>` : ''}
+          ${p.summary ? `<div class="hf-paper-summary">${esc(p.summary)}</div>` : ''}
+          <div class="hf-paper-meta">
+            <span class="hf-badge upvotes">${icon('arrow-up', 12)} ${p.upvotes || 0} upvotes</span>
+            ${pubDate ? `<span>${pubDate}</span>` : ''}
+            ${ghRepo ? `<a href="https://github.com/${esc(ghRepo)}" target="_blank" rel="noopener" class="hf-paper-gh">${icon('github', 12)} GitHub</a>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      renderHFPagination('hf-papers-pagination', state.hfPapersFilter, list.length, renderHFPapers);
+    }
+
+    // ── HF: Trending Authors ────────────────────────────
+    function renderHFAuthors() {
+      const container = document.getElementById('hf-authors-grid');
+      const authorMap = new Map();
+      state.hfModels.forEach(m => {
+        const id = m.id || m.modelId || '';
+        const author = id.includes('/') ? id.split('/')[0] : '';
+        if (!author) return;
+        if (!authorMap.has(author)) {
+          authorMap.set(author, { author, models: [], totalLikes: 0, totalDownloads: 0, totalTrending: 0 });
+        }
+        const a = authorMap.get(author);
+        a.models.push(id);
+        a.totalLikes += (m.likes || 0);
+        a.totalDownloads += (m.downloads || 0);
+        a.totalTrending += (m.trendingScore || 0);
+      });
+      const authors = [...authorMap.values()]
+        .sort((a, b) => b.totalTrending - a.totalTrending)
+        .slice(0, 15);
+      if (authors.length === 0) {
+        renderTrendingEmptyState(container, 'users', 'No author data yet');
+        return;
+      }
+      container.innerHTML = authors.map((a, i) => {
+        const topModel = a.models[0] ? a.models[0].split('/').slice(1).join('/') : '';
+        return `<div class="dev-card">
+          <span class="dev-rank">#${i + 1}</span>
+          <div class="dev-info">
+            <div class="dev-name"><a href="https://huggingface.co/${esc(a.author)}" target="_blank" rel="noopener">${esc(a.author)}</a></div>
+            <div class="dev-stats">
+              <span>${a.models.length} model${a.models.length > 1 ? 's' : ''}</span>
+              <span>${icon('heart', 12)} ${fmtNum(a.totalLikes)}</span>
+              <span>${icon('download', 12)} ${fmtNum(a.totalDownloads)}</span>
+            </div>
+            ${topModel ? `<div class="dev-repos">Top: ${esc(topModel)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── HF: Pagination ──────────────────────────────────
+    function renderHFPagination(containerId, filter, total, renderFn) {
+      const pag = document.getElementById(containerId);
+      const pages = Math.ceil(total / HF_PAGE_SIZE);
+      if (pages <= 1) { pag.innerHTML = ''; return; }
+      let html = `<button class="page-btn" data-page="prev" ${filter.page <= 1 ? 'disabled' : ''}>&laquo;</button>`;
+      const cur = filter.page;
+      for (let i = 1; i <= pages; i++) {
+        html += `<button class="page-btn${cur === i ? ' active' : ''}" data-page="${i}">${i}</button>`;
+      }
+      html += `<button class="page-btn" data-page="next" ${filter.page >= pages ? 'disabled' : ''}>&raquo;</button>`;
+      html += `<span class="page-info">${total} items</span>`;
+      pag.innerHTML = html;
+      pag.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.dataset.page;
+          if (v === 'prev') filter.page = Math.max(1, filter.page - 1);
+          else if (v === 'next') filter.page = Math.min(pages, filter.page + 1);
+          else filter.page = parseInt(v, 10);
+          renderFn();
+        });
+      });
+    }
+
+    // ── HF: Filters ─────────────────────────────────────
+    function populateHFFilters() {
+      const tasks = new Set(state.hfModels.map(m => m.pipeline_tag).filter(Boolean));
+      const sel = document.getElementById('hf-models-filter-task');
+      sel.innerHTML = '<option value="All">All Tasks</option>';
+      [...tasks].sort().forEach(t => {
+        sel.innerHTML += `<option value="${esc(t)}">${esc(formatPipelineTag(t))}</option>`;
+      });
+    }
+
+    // HF filter wiring
+    document.getElementById('hf-models-filter-task').addEventListener('change', e => {
+      state.hfModelsFilter.task = e.target.value;
+      state.hfModelsFilter.page = 1;
+      renderHFModels();
+    });
+    (function wireHFSearch(inputId, filter, renderFn) {
+      let timer;
+      document.getElementById(inputId).addEventListener('input', e => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          filter.search = e.target.value.trim();
+          filter.page = 1;
+          renderFn();
+        }, 300);
+      });
+    })('hf-models-filter-search', state.hfModelsFilter, renderHFModels);
+    (function wireHFSearch(inputId, filter, renderFn) {
+      let timer;
+      document.getElementById(inputId).addEventListener('input', e => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          filter.search = e.target.value.trim();
+          filter.page = 1;
+          renderFn();
+        }, 300);
+      });
+    })('hf-spaces-filter-search', state.hfSpacesFilter, renderHFSpaces);
+    (function wireHFSearch(inputId, filter, renderFn) {
+      let timer;
+      document.getElementById(inputId).addEventListener('input', e => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          filter.search = e.target.value.trim();
+          filter.page = 1;
+          renderFn();
+        }, 300);
+      });
+    })('hf-papers-filter-search', state.hfPapersFilter, renderHFPapers);
 
     function initTrendingControls() {
       // Per-section filters
