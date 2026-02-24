@@ -3382,11 +3382,44 @@
       animateStats();
     }
 
+    // Pick a deterministic daily index from the top N using the date as seed.
+    // Same calendar day always picks the same item; rotates to a new one each day.
+    function dailyPick(arr, poolSize) {
+      if (!arr || arr.length === 0) return null;
+      const pool = Math.min(poolSize || 10, arr.length);
+      const today = new Date();
+      const dayNum = Math.floor(today.getTime() / (24 * 60 * 60 * 1000));
+      return arr[dayNum % pool];
+    }
+
+    function modelWriteup(m) {
+      const task = m.pipeline_tag ? formatPipelineTag(m.pipeline_tag) : '';
+      const lib = m.library_name || '';
+      const dl = fmtNum(m.downloads);
+      const parts = [];
+      if (task) parts.push(`A trending ${task.toLowerCase()} model`);
+      else parts.push('A trending AI model');
+      if (lib) parts.push(`built with ${lib}`);
+      parts.push(`with ${dl} downloads and ${fmtNum(m.likes)} likes on Hugging Face.`);
+      if (m.tags) {
+        const license = (m.tags || []).find(t => t.startsWith('license:'));
+        if (license) parts.push(`Licensed under ${license.replace('license:', '').toUpperCase()}.`);
+      }
+      return parts.join(' ');
+    }
+
+    function spaceWriteup(s) {
+      const sdk = s.sdk || 'web';
+      return `An interactive AI demo built with ${esc(sdk)}, with ${fmtNum(s.likes)} likes on Hugging Face. Try it live — no setup required.`;
+    }
+
     function renderHomeHFPicks() {
       const grid = document.getElementById('hf-picks-grid');
-      const topModel = state.hfModels[0];
-      const topPaper = (state.hfPapers.sort((a, b) => ((b.paper?.upvotes || 0) - (a.paper?.upvotes || 0))))[0];
-      const topSpace = state.hfSpaces[0];
+      const topModel = dailyPick(state.hfModels, 10);
+      const sortedPapers = [...state.hfPapers].sort((a, b) => ((b.paper?.upvotes || 0) - (a.paper?.upvotes || 0)));
+      const topPaper = dailyPick(sortedPapers, 10);
+      const topSpace = dailyPick(state.hfSpaces, 10);
+      const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       let html = '';
 
       // Model of the Day
@@ -3395,16 +3428,17 @@
         const mAuthor = mId.includes('/') ? mId.split('/')[0] : '';
         const mName = mId.includes('/') ? mId.split('/').slice(1).join('/') : mId;
         html += `<div class="hf-pick-card">
-          <div class="hf-pick-label model">${icon('bot', 14)} Model of the Day</div>
+          <div class="hf-pick-label model">${icon('bot', 14)} Model of the Day <span style="margin-left:auto;font-size:10px;font-weight:400;opacity:.6;text-transform:none;letter-spacing:0">${today}</span></div>
           <div class="hf-pick-body">
             <div class="hf-pick-name"><a href="https://huggingface.co/${esc(mId)}" target="_blank" rel="noopener">${esc(mName)}</a></div>
-            <div class="hf-pick-sub">by ${esc(mAuthor)}${topModel.pipeline_tag ? ' · ' + esc(formatPipelineTag(topModel.pipeline_tag)) : ''}</div>
+            <div class="hf-pick-sub">by <a href="https://huggingface.co/${esc(mAuthor)}" target="_blank" rel="noopener" style="color:var(--primary)">${esc(mAuthor)}</a>${topModel.pipeline_tag ? ' · ' + esc(formatPipelineTag(topModel.pipeline_tag)) : ''}</div>
+            <div class="hf-pick-desc">${modelWriteup(topModel)}</div>
             <div class="hf-pick-stats">
               <span>${icon('download', 13)} ${fmtNum(topModel.downloads)}</span>
               <span>${icon('heart', 13)} ${fmtNum(topModel.likes)}</span>
-              <span style="color:#8b5cf6;font-weight:600">Score: ${(topModel.trendingScore || 0).toFixed(1)}</span>
+              <span style="color:#8b5cf6;font-weight:600">Trending: ${(topModel.trendingScore || 0).toFixed(0)}</span>
             </div>
-            <a href="https://huggingface.co/${esc(mId)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} View on Hugging Face</a>
+            <a href="https://huggingface.co/${esc(mId)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} View Model on Hugging Face</a>
           </div>
         </div>`;
       }
@@ -3412,19 +3446,25 @@
       // Paper of the Day
       if (topPaper) {
         const p = topPaper.paper || topPaper;
-        const authors = (p.authors || []).slice(0, 2).map(a => esc(a.name || a.user || a)).join(', ');
-        const moreAuthors = (p.authors || []).length > 2 ? ' et al.' : '';
+        const authors = (p.authors || []).slice(0, 3).map(a => esc(a.name || a.user || a)).join(', ');
+        const moreAuthors = (p.authors || []).length > 3 ? ' et al.' : '';
+        const writeup = p.ai_summary || p.summary || '';
+        const org = p.organization || topPaper.organization;
+        const ghRepo = p.githubRepo || topPaper.paper?.githubRepo || '';
         html += `<div class="hf-pick-card">
-          <div class="hf-pick-label paper">${icon('file-text', 14)} Paper of the Day</div>
+          <div class="hf-pick-label paper">${icon('file-text', 14)} Paper of the Day <span style="margin-left:auto;font-size:10px;font-weight:400;opacity:.6;text-transform:none;letter-spacing:0">${today}</span></div>
           <div class="hf-pick-body">
             <div class="hf-pick-name"><a href="https://huggingface.co/papers/${esc(p.id || '')}" target="_blank" rel="noopener">${esc(p.title || 'Untitled')}</a></div>
-            <div class="hf-pick-sub">${authors}${moreAuthors}</div>
-            <div class="hf-pick-desc">${esc(p.summary || '')}</div>
+            <div class="hf-pick-sub">${authors}${moreAuthors}${org ? ' · ' + esc(org.fullname || org.name) : ''}</div>
+            <div class="hf-pick-desc">${esc(writeup)}</div>
             <div class="hf-pick-stats">
               <span style="color:#fbbf24;font-weight:600">${icon('arrow-up', 13)} ${p.upvotes || 0} upvotes</span>
-              ${p.githubRepo || topPaper.githubRepo ? `<span>${icon('github', 13)} Has code</span>` : ''}
+              ${ghRepo ? `<span>${icon('star', 13)} ${p.githubStars || 0} stars</span>` : ''}
             </div>
-            <a href="https://huggingface.co/papers/${esc(p.id || '')}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} Read Paper</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <a href="https://huggingface.co/papers/${esc(p.id || '')}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} Read Paper</a>
+              ${ghRepo ? `<a href="${esc(ghRepo.startsWith('http') ? ghRepo : 'https://github.com/' + ghRepo)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('github', 12)} View Code</a>` : ''}
+            </div>
           </div>
         </div>`;
       }
@@ -3434,17 +3474,17 @@
         const sId = topSpace.id || '';
         const sAuthor = sId.includes('/') ? sId.split('/')[0] : '';
         const sName = sId.includes('/') ? sId.split('/').slice(1).join('/') : sId;
-        const sdk = topSpace.sdk || '';
         html += `<div class="hf-pick-card">
-          <div class="hf-pick-label space">${icon('rocket', 14)} Space of the Day</div>
+          <div class="hf-pick-label space">${icon('rocket', 14)} Space of the Day <span style="margin-left:auto;font-size:10px;font-weight:400;opacity:.6;text-transform:none;letter-spacing:0">${today}</span></div>
           <div class="hf-pick-body">
             <div class="hf-pick-name"><a href="https://huggingface.co/spaces/${esc(sId)}" target="_blank" rel="noopener">${esc(sName)}</a></div>
-            <div class="hf-pick-sub">by ${esc(sAuthor)}${sdk ? ' · ' + esc(sdk) : ''}</div>
+            <div class="hf-pick-sub">by <a href="https://huggingface.co/${esc(sAuthor)}" target="_blank" rel="noopener" style="color:var(--primary)">${esc(sAuthor)}</a>${topSpace.sdk ? ' · ' + esc(topSpace.sdk) : ''}</div>
+            <div class="hf-pick-desc">${spaceWriteup(topSpace)}</div>
             <div class="hf-pick-stats">
               <span>${icon('heart', 13)} ${fmtNum(topSpace.likes)}</span>
-              <span style="color:#34d399;font-weight:600">Score: ${(topSpace.trendingScore || 0).toFixed(1)}</span>
+              <span style="color:#34d399;font-weight:600">Trending: ${(topSpace.trendingScore || 0).toFixed(0)}</span>
             </div>
-            <a href="https://huggingface.co/spaces/${esc(sId)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('external-link', 12)} Try it live</a>
+            <a href="https://huggingface.co/spaces/${esc(sId)}" target="_blank" rel="noopener" class="hf-pick-link">${icon('rocket', 12)} Try it live</a>
           </div>
         </div>`;
       }
