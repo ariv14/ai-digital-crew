@@ -125,9 +125,9 @@
     .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150;background:rgba(15,23,42,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius)}
     .mobile-menu.open{display:flex}
     .mobile-menu a,.mobile-menu button{color:var(--text-muted);font-size:16px;padding:10px;border-radius:8px;transition:all .2s;text-align:left}
-    .mobile-nav-icons{display:none;align-items:center;gap:10px}
-    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;text-decoration:none;transition:color .2s}
-    .mobile-nav-icon:hover{color:var(--text)}
+    .mobile-nav-icons{display:none;align-items:center;gap:12px}
+    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:var(--text);cursor:pointer;padding:8px;text-decoration:none;transition:all .2s;border-radius:10px}
+    .mobile-nav-icon:hover{color:var(--text);background:rgba(255,255,255,0.15)}
 
     /* Hero */
     .hero{position:relative;z-index:1;min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px}
@@ -595,8 +595,8 @@
     </div>
     <div class="nav-right" id="nav-right" style="visibility:hidden"></div>
     <div class="mobile-nav-icons">
-      <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
-      <button class="mobile-nav-icon" id="mobile-trending-btn" aria-label="Trending"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button>
+      <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+      <button class="mobile-nav-icon" id="mobile-trending-btn" aria-label="Trending"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button>
     </div>
     <button class="hamburger" id="hamburger" aria-label="Open menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button>
     <div class="mobile-menu" id="mobile-menu"></div>
