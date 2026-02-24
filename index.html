@@ -93,6 +93,9 @@
     .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
     .btn-outlined{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:transparent;color:var(--text);font-weight:600;font-size:15px;border-radius:12px;border:1px solid var(--border);transition:all .3s ease}
     .btn-outlined:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-2px)}
+    .btn-gold{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:linear-gradient(135deg,#b8860b,#d4a84b,#f5d680,#d4a84b,#b8860b);background-size:300% 300%;color:#1a1a2e;font-weight:600;font-size:15px;border-radius:12px;border:1px solid rgba(212,168,75,.4);transition:all .3s ease;animation:goldShimmer 4s ease infinite}
+    .btn-gold:hover{transform:translateY(-2px);box-shadow:0 0 24px rgba(212,168,75,.4);border-color:rgba(245,214,128,.6)}
+    @keyframes goldShimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
     .btn-small{padding:8px 16px;font-size:13px;border-radius:8px}
 
     html{background:#0a0f1c}
@@ -606,7 +609,7 @@
       <p class="subtitle">Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.</p>
       <div class="hero-ctas">
         <a href="#projects" class="btn-primary">Browse Projects</a>
-        <a href="#featured-section" class="btn-outlined">Project of the Day</a>
+        <a href="#featured-section" class="btn-gold">Project of the Day</a>
       </div>
       <div class="stats-bar" id="stats-bar">
         <div class="stat-pill glass"><span class="stat-number" id="stat-projects" data-target="0">0</span><span class="stat-label"> Projects</span></div>
