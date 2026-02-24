@@ -217,12 +217,20 @@
     .quick-start ol{padding-left:18px;color:var(--text-muted);line-height:1.6}
     .quick-start ol li{margin-bottom:4px}
 
+    /* Sub-nav bar (sticky below nav, holds source toggles) */
+    .sub-nav-bar{position:sticky;top:60px;z-index:99;display:flex;justify-content:center;padding:10px 0;background:rgba(10,10,20,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06)}
+
     /* Home source toggle */
-    .home-source-toggle{display:flex;gap:4px;justify-content:center;margin-top:20px}
-    .home-source-btn{padding:10px 24px;font-size:14px;font-weight:600;border-radius:12px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .3s ease;display:inline-flex;align-items:center;gap:8px}
-    .home-source-btn:hover{border-color:var(--primary);color:var(--text);transform:translateY(-1px)}
-    .home-source-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff;box-shadow:0 0 20px rgba(59,130,246,.3)}
+    .home-source-toggle{display:flex;gap:4px;justify-content:center}
+    .home-source-btn{padding:10px 20px;font-size:14px;font-weight:600;border-radius:12px;border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);background:linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03));cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 0 rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1);transform:translateY(-1px)}
+    .home-source-btn:hover{background:linear-gradient(145deg,rgba(255,255,255,0.14),rgba(255,255,255,0.06));box-shadow:0 4px 0 rgba(0,0,0,0.3),0 4px 12px rgba(124,58,237,0.2),inset 0 1px 0 rgba(255,255,255,0.15);transform:translateY(-2px);color:var(--text)}
+    .home-source-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05)}
+    .home-source-btn.active{background:linear-gradient(145deg,#7c3aed,#6d28d9 40%,#8b5cf6 100%);box-shadow:0 4px 0 #4c1d95,0 6px 12px rgba(124,58,237,0.4),inset 0 1px 0 rgba(255,255,255,0.3);border:1px solid rgba(167,139,250,0.5);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.3);transform:translateY(-1px)}
+    .home-source-btn.active:hover{transform:translateY(0);box-shadow:0 2px 0 #4c1d95,0 3px 8px rgba(124,58,237,0.3),inset 0 1px 0 rgba(255,255,255,0.3)}
     .home-source-btn .src-icon{width:18px;height:18px;flex-shrink:0}
+
+    /* HF Explore CTA (below HF picks) */
+    .hf-explore-cta{text-align:center;padding:24px 0 40px}
 
     /* HF Picks Grid */
     .hf-picks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:0}
@@ -243,7 +251,7 @@
     .hf-pick-link{display:inline-flex;align-items:center;gap:4px;margin-top:10px;padding:6px 14px;font-size:12px;font-weight:600;border-radius:8px;border:1px solid var(--border);color:var(--text-muted);transition:all .2s}
     .hf-pick-link:hover{border-color:var(--primary);color:var(--primary)}
     @media(max-width:768px){.hf-picks-grid{grid-template-columns:1fr}.hf-pick-name{font-size:16px}}
-    @media(max-width:480px){.home-source-btn{padding:8px 16px;font-size:13px}}
+    @media(max-width:480px){.home-source-btn,.source-toggle-btn{padding:8px 14px;font-size:13px}.sub-nav-bar{top:50px}}
 
     /* Featured Spotlight */
     .featured-section{padding-top:0}
@@ -617,11 +625,13 @@
     .cat-lb-tab:hover{border-color:var(--primary);color:var(--text)}
     .cat-lb-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
 
-    /* Source toggle (GitHub / Hugging Face) */
-    .source-toggle{display:flex;gap:4px;justify-content:center;margin-top:16px}
-    .source-toggle-btn{padding:8px 16px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
-    .source-toggle-btn:hover{border-color:var(--primary);color:var(--text)}
-    .source-toggle-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
+    /* Source toggle (GitHub / Hugging Face) — trending page */
+    .source-toggle{display:flex;gap:4px;justify-content:center}
+    .source-toggle-btn{padding:10px 20px;font-size:14px;font-weight:600;border-radius:12px;border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);background:linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03));cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 0 rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1);transform:translateY(-1px)}
+    .source-toggle-btn:hover{background:linear-gradient(145deg,rgba(255,255,255,0.14),rgba(255,255,255,0.06));box-shadow:0 4px 0 rgba(0,0,0,0.3),0 4px 12px rgba(124,58,237,0.2),inset 0 1px 0 rgba(255,255,255,0.15);transform:translateY(-2px);color:var(--text)}
+    .source-toggle-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05)}
+    .source-toggle-btn.active{background:linear-gradient(145deg,#7c3aed,#6d28d9 40%,#8b5cf6 100%);box-shadow:0 4px 0 #4c1d95,0 6px 12px rgba(124,58,237,0.4),inset 0 1px 0 rgba(255,255,255,0.3);border:1px solid rgba(167,139,250,0.5);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.3);transform:translateY(-1px)}
+    .source-toggle-btn.active:hover{transform:translateY(0);box-shadow:0 2px 0 #4c1d95,0 3px 8px rgba(124,58,237,0.3),inset 0 1px 0 rgba(255,255,255,0.3)}
 
     /* HF model cards */
     .hf-model-card{display:flex;align-items:flex-start;gap:16px;padding:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .3s ease;margin-bottom:12px}
@@ -701,7 +711,7 @@
       .hf-card-name{font-size:15px}
       .hf-paper-card{padding:14px}
       .hf-paper-title{font-size:14px}
-      .source-toggle{flex-wrap:wrap}
+      .source-toggle,.home-source-toggle{flex-wrap:wrap}
     }
   </style>
 </head>
@@ -728,20 +738,33 @@
     <div class="avatar-dropdown glass" id="avatar-dropdown"></div>
   </nav>
 
+  <div class="sub-nav-bar" id="sub-nav-bar">
+    <div class="home-source-toggle" id="home-source-toggle">
+      <button class="home-source-btn active" data-hsrc="github">
+        <svg class="src-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        GitHub Projects
+      </button>
+      <button class="home-source-btn" data-hsrc="huggingface">
+        <svg class="src-icon" viewBox="0 0 120 120" fill="currentColor"><path d="M41.7 49.5c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zm36.6 0c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zM60 0C26.9 0 0 26.9 0 60s26.9 60 60 60 60-26.9 60-60S93.1 0 60 0zm0 108c-26.5 0-48-21.5-48-48S33.5 12 60 12s48 21.5 48 48-21.5 48-48 48zm24.5-38.5c-1.2-1.2-3.1-1.2-4.2 0-5.6 5.6-14.7 8.4-20.3 8.4s-14.7-2.8-20.3-8.4c-1.2-1.2-3.1-1.2-4.2 0-1.2 1.2-1.2 3.1 0 4.2 6.8 6.8 17.4 10.2 24.5 10.2s17.7-3.4 24.5-10.2c1.2-1.1 1.2-3 0-4.2z"/></svg>
+        Hugging Face
+      </button>
+    </div>
+    <div class="source-toggle" id="source-toggle" style="display:none">
+      <button class="source-toggle-btn active" data-source="github">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </button>
+      <button class="source-toggle-btn" data-source="huggingface">
+        <svg width="16" height="16" viewBox="0 0 120 120" fill="currentColor"><path d="M41.7 49.5c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zm36.6 0c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zM60 0C26.9 0 0 26.9 0 60s26.9 60 60 60 60-26.9 60-60S93.1 0 60 0zm0 108c-26.5 0-48-21.5-48-48S33.5 12 60 12s48 21.5 48 48-21.5 48-48 48zm24.5-38.5c-1.2-1.2-3.1-1.2-4.2 0-5.6 5.6-14.7 8.4-20.3 8.4s-14.7-2.8-20.3-8.4c-1.2-1.2-3.1-1.2-4.2 0-1.2 1.2-1.2 3.1 0 4.2 6.8 6.8 17.4 10.2 24.5 10.2s17.7-3.4 24.5-10.2c1.2-1.1 1.2-3 0-4.2z"/></svg>
+        Hugging Face
+      </button>
+    </div>
+  </div>
+
   <main>
     <section id="home" class="hero">
       <h1>AI Tools Built by the Community</h1>
       <p class="subtitle">Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.</p>
-      <div class="home-source-toggle" id="home-source-toggle">
-        <button class="home-source-btn active" data-hsrc="github">
-          <svg class="src-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-          GitHub Projects
-        </button>
-        <button class="home-source-btn" data-hsrc="huggingface">
-          <svg class="src-icon" viewBox="0 0 120 120" fill="currentColor"><path d="M41.7 49.5c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zm36.6 0c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zM60 0C26.9 0 0 26.9 0 60s26.9 60 60 60 60-26.9 60-60S93.1 0 60 0zm0 108c-26.5 0-48-21.5-48-48S33.5 12 60 12s48 21.5 48 48-21.5 48-48 48zm24.5-38.5c-1.2-1.2-3.1-1.2-4.2 0-5.6 5.6-14.7 8.4-20.3 8.4s-14.7-2.8-20.3-8.4c-1.2-1.2-3.1-1.2-4.2 0-1.2 1.2-1.2 3.1 0 4.2 6.8 6.8 17.4 10.2 24.5 10.2s17.7-3.4 24.5-10.2c1.2-1.1 1.2-3 0-4.2z"/></svg>
-          Hugging Face
-        </button>
-      </div>
       <div class="hero-ctas" id="home-hero-ctas">
         <a href="#projects" class="btn-primary" id="home-cta-browse">Browse Projects</a>
         <a href="#featured-section" class="btn-gold" id="home-cta-potd">Project of the Day</a>
@@ -764,6 +787,10 @@
         <div class="hf-picks-grid" id="hf-picks-grid"></div>
       </div>
     </section>
+
+    <div id="hf-explore-cta" class="hf-explore-cta" style="display:none">
+      <a href="#trending" class="btn-primary" id="hf-explore-btn">Explore Trending</a>
+    </div>
 
     <section id="search-page" style="display:none;min-height:100vh;padding-top:120px">
       <div class="section-container">
@@ -806,7 +833,7 @@
     <!-- Trending Page (lazy-loaded SPA view) -->
     <div id="trending-page" style="display:none">
       <section class="radar-hero">
-        <h1>Trending Projects</h1>
+        <h1>GitHub Trending</h1>
         <p class="subtitle">Track which AI projects are gaining stars, forks, and momentum. Updated daily.</p>
         <p class="hero-freshness" id="hero-freshness"></p>
         <div class="hero-stats">
@@ -832,16 +859,6 @@
           <button class="time-btn active" data-range="7d">7d</button>
           <button class="time-btn" data-range="30d">30d</button>
           <button class="time-btn" data-range="all">All</button>
-        </div>
-        <div class="source-toggle" id="source-toggle">
-          <button class="source-toggle-btn active" data-source="github">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-            GitHub
-          </button>
-          <button class="source-toggle-btn" data-source="huggingface">
-            <svg width="16" height="16" viewBox="0 0 120 120" fill="currentColor"><path d="M41.7 49.5c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zm36.6 0c-2.9 0-5.3-3.7-5.3-8.2s2.4-8.2 5.3-8.2 5.3 3.7 5.3 8.2-2.4 8.2-5.3 8.2zM60 0C26.9 0 0 26.9 0 60s26.9 60 60 60 60-26.9 60-60S93.1 0 60 0zm0 108c-26.5 0-48-21.5-48-48S33.5 12 60 12s48 21.5 48 48-21.5 48-48 48zm24.5-38.5c-1.2-1.2-3.1-1.2-4.2 0-5.6 5.6-14.7 8.4-20.3 8.4s-14.7-2.8-20.3-8.4c-1.2-1.2-3.1-1.2-4.2 0-1.2 1.2-1.2 3.1 0 4.2 6.8 6.8 17.4 10.2 24.5 10.2s17.7-3.4 24.5-10.2c1.2-1.1 1.2-3 0-4.2z"/></svg>
-            Hugging Face
-          </button>
         </div>
       </section>
 
@@ -1316,19 +1333,29 @@
       searchPage.style.display = 'none';
       trendingPage.style.display = 'none';
       document.getElementById('hf-picks-section').style.display = 'none';
+      document.getElementById('hf-explore-cta').style.display = 'none';
+
+      // Show/hide sub-nav toggles based on active view
+      const homeToggle = document.getElementById('home-source-toggle');
+      const trendingToggle = document.getElementById('source-toggle');
+      homeToggle.style.display = 'none';
+      trendingToggle.style.display = 'none';
 
       if (view === 'search') {
         searchPage.style.display = '';
         document.getElementById('search-input').focus();
       } else if (view === 'trending') {
         trendingPage.style.display = '';
+        trendingToggle.style.display = '';
         loadTrendingData();
       } else {
         // home view
         home.style.display = '';
+        homeToggle.style.display = '';
         const isHfHome = state.homeSource === 'huggingface';
         if (isHfHome) {
           document.getElementById('hf-picks-section').style.display = '';
+          document.getElementById('hf-explore-cta').style.display = '';
         } else {
           if (state.projects.find(p => p.source === 'auto')) featured.style.display = '';
         }
@@ -3316,12 +3343,11 @@
       if (src === 'huggingface') {
         heroH1.textContent = 'AI Models, Papers & Spaces';
         heroSub.textContent = 'Discover the hottest Hugging Face models, trending AI research papers, and interactive demos — updated live.';
-        ctaBrowse.textContent = 'Explore Trending';
-        ctaBrowse.href = '#trending';
-        ctaBrowse.onclick = (ev) => { ev.preventDefault(); navigateTo('trending'); document.querySelectorAll('.source-toggle-btn').forEach(b => b.classList.remove('active')); document.querySelector('.source-toggle-btn[data-source="huggingface"]').classList.add('active'); document.getElementById('source-toggle').dispatchEvent(new MouseEvent('click', {bubbles:true})); const hfBtn = document.querySelector('.source-toggle-btn[data-source="huggingface"]'); if (hfBtn && !hfBtn.classList.contains('active')) hfBtn.click(); };
+        ctaBrowse.style.display = 'none';
         ctaPotd.style.display = 'none';
         featuredSection.style.display = 'none';
         hfPicksSection.style.display = '';
+        document.getElementById('hf-explore-cta').style.display = '';
         projectsSection.style.display = 'none';
         // Update stats
         document.getElementById('stat-projects-lbl').textContent = ' Models';
@@ -3337,11 +3363,13 @@
       } else {
         heroH1.textContent = 'AI Tools Built by the Community';
         heroSub.textContent = 'Discover open-source AI projects, share your own, and connect with builders. Every project syncs live from GitHub.';
+        ctaBrowse.style.display = '';
         ctaBrowse.textContent = 'Browse Projects';
         ctaBrowse.href = '#projects';
         ctaBrowse.onclick = null;
         ctaPotd.style.display = '';
         hfPicksSection.style.display = 'none';
+        document.getElementById('hf-explore-cta').style.display = 'none';
         if (state.projects.find(p => p.source === 'auto')) featuredSection.style.display = '';
         projectsSection.style.display = '';
         // Restore stats
@@ -3350,6 +3378,15 @@
         document.getElementById('stat-oss-lbl').textContent = '% Open Source';
         updateStats();
       }
+    });
+
+    // Wire HF Explore CTA button
+    document.getElementById('hf-explore-btn').addEventListener('click', (ev) => {
+      ev.preventDefault();
+      navigateTo('trending');
+      // Switch trending page to HF mode
+      const hfBtn = document.querySelector('.source-toggle-btn[data-source="huggingface"]');
+      if (hfBtn && !hfBtn.classList.contains('active')) hfBtn.click();
     });
 
     async function fetchHomeHFPicks() {
@@ -3529,7 +3566,7 @@
         document.getElementById('stat-stars-week').textContent = totalLikes ? fmtNum(totalLikes) : '\u2014';
         document.querySelector('#stat-stars-week').nextElementSibling.textContent = 'Total Likes';
       } else {
-        heroH1.textContent = 'Trending Projects';
+        heroH1.textContent = 'GitHub Trending';
         heroSub.textContent = 'Track which AI projects are gaining stars, forks, and momentum. Updated daily.';
         document.getElementById('time-toggle').style.display = '';
         // Restore labels
