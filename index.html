@@ -3196,6 +3196,7 @@
     let heroStatsGeneration = 0;
 
     function updateTrendingHeroStats() {
+      if (state.hfSource === 'huggingface') return;
       const gen = ++heroStatsGeneration;
       const tracked = state.trendingProjects.length;
       const hot = state.trendingProjects.filter(p => p.trend_label === 'hot').length;
