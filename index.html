@@ -3409,6 +3409,8 @@
     });
 
     async function fetchHomeHFPicks() {
+      if (state.hfLoading) return;
+      state.hfLoading = true;
       const grid = document.getElementById('hf-picks-grid');
       grid.innerHTML = '<div class="skeleton-card" style="min-height:180px"><div class="skeleton-body"><div class="skeleton-line title"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div></div>'.repeat(3);
       try {
@@ -3424,6 +3426,7 @@
       } catch (err) {
         console.warn('HF fetch failed:', err);
       }
+      state.hfLoading = false;
       renderHomeHFPicks();
       updateHomeHFStats();
     }
