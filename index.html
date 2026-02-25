@@ -3193,7 +3193,10 @@
       });
     }
 
+    let heroStatsGeneration = 0;
+
     function updateTrendingHeroStats() {
+      const gen = ++heroStatsGeneration;
       const tracked = state.trendingProjects.length;
       const hot = state.trendingProjects.filter(p => p.trend_label === 'hot').length;
       const rising = state.trendingProjects.filter(p => p.trend_label === 'rising').length;
@@ -3209,6 +3212,7 @@
         if (target === 0) return;
         const duration = 1200, start = performance.now();
         function tick(now) {
+          if (gen !== heroStatsGeneration) return;
           const elapsed = now - start;
           const progress = Math.min(elapsed / duration, 1);
           const eased = 1 - Math.pow(1 - progress, 3);
@@ -3579,6 +3583,7 @@
       const heroSub = document.querySelector('.radar-hero .subtitle');
       const freshEl = document.getElementById('hero-freshness');
       if (source === 'huggingface') {
+        heroStatsGeneration++;
         heroH1.textContent = 'Hugging Face Trending';
         heroSub.textContent = 'Track trending models, spaces, and papers on Hugging Face. Updated live.';
         freshEl.textContent = '';
