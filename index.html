@@ -3541,8 +3541,14 @@
       document.getElementById('github-sections').style.display = source === 'github' ? '' : 'none';
       document.getElementById('hf-sections').style.display = source === 'huggingface' ? '' : 'none';
       updateHeroForSource(source);
-      if (source === 'huggingface' && !state.hfLoaded) {
-        fetchAllHFData();
+      if (source === 'huggingface') {
+        if (!state.hfLoaded) {
+          fetchAllHFData();
+        } else {
+          renderAllHF();
+          populateHFFilters();
+          updateHeroForSource('huggingface');
+        }
       }
     });
 
@@ -3592,9 +3598,9 @@
       renderHFSkeletons();
       try {
         const [models, spaces, papers] = await Promise.all([
-          fetch('https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=50').then(r => r.json()),
-          fetch('https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=25').then(r => r.json()),
-          fetch('https://huggingface.co/api/daily_papers').then(r => r.json()),
+          state.hfModels.length ? Promise.resolve(state.hfModels) : fetch('https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=50').then(r => r.json()),
+          state.hfSpaces.length ? Promise.resolve(state.hfSpaces) : fetch('https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=25').then(r => r.json()),
+          state.hfPapers.length ? Promise.resolve(state.hfPapers) : fetch('https://huggingface.co/api/daily_papers').then(r => r.json()),
         ]);
         state.hfModels = models;
         state.hfSpaces = spaces;
@@ -3998,8 +4004,19 @@
         initTrendingControls();
         return;
       }
-      // Data not yet loaded (unlikely — loadAllProjects runs on init)
-      // Wait for it instead of making a separate Firestore call
+      // Data not yet loaded — wait for loadAllProjects to finish
+      const poll = setInterval(() => {
+        if (state.trendingLoaded) {
+          clearInterval(poll);
+          renderTrendingAll();
+          populateTrendingFilters();
+          updateTrendingHeroStats();
+          renderWeeklyRecap();
+          initTrendingControls();
+        }
+      }, 100);
+      // Safety: stop polling after 10s
+      setTimeout(() => clearInterval(poll), 10000);
     }
 
     // ── Init ────────────────────────────────────────────
