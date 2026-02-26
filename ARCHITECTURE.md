@@ -1,7 +1,7 @@
 # AI Digital Crew — Architecture Document
 
 > **Domain:** [aidigitalcrew.com](https://aidigitalcrew.com)
-> **Last updated:** 2026-02-21 | **Version:** 3.0.0
+> **Last updated:** 2026-02-26 | **Version:** 4.0.0
 >
 > **Related docs:** [ROADMAP.md](./ROADMAP.md) (future feature directions) | [CLAUDE.md](./CLAUDE.md) (AI assistant guidelines)
 
@@ -11,70 +11,128 @@
 
 AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub projects. Users authenticate via OAuth, submit repositories, and browse curated projects. A daily automation pipeline discovers trending repos, generates AI summaries, and publishes a newsletter.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         USERS (Browser)                             │
-│                                                                     │
-│   index.html (Single-file Vanilla JS SPA — no build step)          │
-│   ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌──────────────────┐ │
-│   │ Auth UI  │  │ Submit   │  │ Project   │  │ Featured "Pick   │ │
-│   │ (OAuth)  │  │ Modal    │  │ Grid      │  │  of the Day"     │ │
-│   └────┬─────┘  └────┬─────┘  └─────┬─────┘  └───────┬──────────┘ │
-│                                                                     │
-│   ┌──────────────────────────────────────────────────────────────┐  │
-│   │  Search Page (dedicated view)                                │  │
-│   │  Fuse.js (keyword) + Embedding cosine similarity (semantic)  │  │
-│   │  GitHub Discovery (live GitHub API search)                   │  │
-│   └──────────┬───────────────────────────────────────────────────┘  │
-└──────────────┼──────────────────────────────────────────────────────┘
-               │ getQueryEmbedding()
-               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        FIREBASE                                     │
-│   ┌──────────────────┐   ┌────────────────────────────────────┐    │
-│   │   Auth            │   │   Firestore                        │    │
-│   │ - GitHub OAuth    │   │   projects/        (public read)   │    │
-│   │ - Google OAuth    │   │   searchCache/     (read-only)     │    │
-│   │ - Facebook OAuth  │   │   searchAnalytics/ (auth write)    │    │
-│   └──────────────────┘   └────────────────────────────────────┘    │
-│                                                                     │
-│   ┌──────────────────────────────────────────────────────────────┐  │
-│   │   Cloud Functions (2nd Gen, Node.js 20)                      │  │
-│   │   getQueryEmbedding — returns embedding for search query     │  │
-│   │   Gemini (primary) → Cloudflare Workers AI (fallback)        │  │
-│   │   Caches results in searchCache/ (24h TTL)                   │  │
-│   └──────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-         │                             ▲
-         │                             │ writes
-         │         ┌───────────────────┘
-         │         │
-┌────────┼─────────┼──────────────────────────────────────────────────┐
-│        │  DAILY AUTOMATION PIPELINE (GitHub Actions cron)           │
-│        │         │                                                  │
-│  ┌─────▼─────────┴───────┐                                         │
-│  │   daily-scrape.js     │                                         │
-│  │                       │                                         │
-│  │  1. Search GitHub API ─────────────► GitHub REST API            │
-│  │  2. Fetch README      ─────────────► GitHub REST API            │
-│  │  3. Generate writeup  ─────────────► Google Gemini 2.5 Flash    │
-│  │  4. Write to Firestore│                                         │
-│  │  5. Notify repo owner ─────────────► GitHub Issues API          │
-│  │  6. Publish newsletter│                                         │
-│  │         │              │                                         │
-│  └─────────┼──────────────┘                                         │
-│            ▼                                                        │
-│  ┌─────────────────────┐     ┌──────────────────┐                  │
-│  │ substack-publish.js │────►│ Pipedream        │                  │
-│  │ (build payload)     │     │ (webhook proxy)  │                  │
-│  └─────────────────────┘     └────────┬─────────┘                  │
-│                                       │                             │
-│                                       ▼                             │
-│                              ┌──────────────────┐                  │
-│                              │ Substack API     │                  │
-│                              │ (draft + publish)│                  │
-│                              └──────────────────┘                  │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    %% ── Layer 1: Browser ──────────────────────────────
+    subgraph BROWSER["🖥️ Browser — Frontend"]
+        direction TB
+        SPA["index.html SPA<br/><i>Vanilla JS, no build step</i>"]
+        PROJECT_PAGE["project.html<br/><i>Individual project view</i>"]
+
+        subgraph VIEWS["Views (navigateTo)"]
+            HOME["Home<br/>Hero + Featured + Projects"]
+            SEARCH["Search Page<br/>Fuse.js keyword + Embedding semantic<br/>+ GitHub Discovery"]
+            TRENDING["Trending Page<br/>AI & Global pools + Movers<br/>+ Hugging Face Mode"]
+        end
+
+        subgraph UI_COMPONENTS["UI Components"]
+            AUTH_UI["Auth UI<br/>(OAuth popup)"]
+            SUBMIT["Submit Modal<br/>(600ms debounce)"]
+            GRID["Project Grid<br/>(category tabs)"]
+        end
+    end
+
+    %% ── Layer 2: CDN / Static Assets ──────────────────
+    subgraph CDN["📦 CDN / Static Assets"]
+        FONTS["Google Fonts<br/>Inter + Space Grotesk"]
+        FUSE["Fuse.js v7.0.0<br/><i>jsDelivr</i>"]
+        CONFETTI["canvas-confetti v1.6.0<br/><i>jsDelivr</i>"]
+        FIREBASE_SDK["Firebase JS SDK v10.12<br/><i>gstatic.com</i>"]
+    end
+
+    %% ── Layer 3: Firebase ─────────────────────────────
+    subgraph FIREBASE["🔥 Firebase"]
+        direction TB
+        AUTH["Auth<br/>GitHub · Google · Facebook OAuth"]
+
+        subgraph FIRESTORE["Firestore Collections"]
+            PROJECTS_COL["projects/<br/><i>public read, auth create</i>"]
+            PROJECTS_CACHE["projectsCache/latest<br/><i>single-doc cache, public read</i>"]
+            EMBEDDINGS_CACHE["embeddingsCache/<br/>meta + part{i}<br/><i>chunked embeddings</i>"]
+            SEARCH_CACHE["searchCache/{hash}<br/><i>query embeddings, 24h TTL</i>"]
+            SEARCH_ANALYTICS["searchAnalytics/<br/><i>auth write-only</i>"]
+        end
+
+        subgraph FUNCTIONS["Cloud Functions (2nd Gen, Node.js 24)"]
+            GQE["getQueryEmbedding<br/><i>callable, us-central1</i><br/>Modes: embed · rankProjects · findSimilar · findSimilarBatch"]
+            TREND_BADGE["trendBadge<br/><i>HTTP, us-central1</i><br/>Dynamic SVG badge"]
+        end
+    end
+
+    %% ── Layer 4: External APIs (from Browser) ─────────
+    subgraph EXTERNAL_BROWSER["🌐 External APIs (Browser-called)"]
+        GITHUB_API["GitHub REST API<br/>GET /repos/{o}/{r}<br/>GET /search/repositories"]
+        HF_API["Hugging Face API<br/>GET /api/models<br/>GET /api/spaces<br/>GET /api/daily_papers"]
+        DICEBEAR["DiceBear API<br/>GET /7.x/avataaars/svg"]
+    end
+
+    %% ── Layer 5: Daily Pipeline ───────────────────────
+    subgraph PIPELINE["⚙️ Daily Pipeline (GitHub Actions cron, 8 AM UTC)"]
+        SCRAPER["daily-scrape.js<br/>Project discovery + trending + embeddings"]
+        SUBSTACK_PUB["substack-publish.js<br/>ProseMirror payload builder"]
+        PIPEDREAM["Pipedream<br/><i>webhook proxy</i>"]
+        SUBSTACK["Substack API<br/><i>draft + publish</i>"]
+    end
+
+    %% ── Layer 6: AI / Embedding Services ──────────────
+    subgraph AI_SERVICES["🤖 AI & Embedding Services"]
+        GEMINI_EMBED["Gemini gemini-embedding-001<br/><i>3072 dimensions</i>"]
+        GEMINI_GEN["Gemini gemini-2.5-flash<br/><i>writeups + quick-starts</i>"]
+        CF_AI["Cloudflare Workers AI<br/>@cf/baai/bge-large-en-v1.5<br/><i>1024 dims, fallback</i>"]
+    end
+
+    %% ── Layer 7: Deployment / CI/CD ───────────────────
+    subgraph DEPLOY["🚀 Deployment"]
+        CF_PAGES_PROD["Cloudflare Pages<br/><b>main</b> → aidigitalcrew.com"]
+        CF_PAGES_STG["Cloudflare Pages<br/><b>staging</b> → staging.aidigitalcrew.com"]
+        FB_DEPLOY["Firebase CLI<br/><i>manual: Functions + Rules</i>"]
+    end
+
+    %% ── Connections ───────────────────────────────────
+
+    %% Browser → CDN
+    SPA -.->|"lazy import"| FUSE
+    SPA -.->|"dynamic import on submit"| CONFETTI
+    SPA -->|"module import"| FIREBASE_SDK
+    SPA -.->|"preload"| FONTS
+
+    %% Browser → Firebase
+    AUTH_UI -->|"signInWithPopup"| AUTH
+    SPA -->|"getDoc projectsCache/latest"| PROJECTS_CACHE
+    PROJECT_PAGE -->|"getDoc projects/{id}"| PROJECTS_COL
+    SUBMIT -->|"addDoc"| PROJECTS_COL
+    SEARCH -->|"httpsCallable"| GQE
+    SEARCH -->|"addDoc"| SEARCH_ANALYTICS
+
+    %% Browser → External APIs
+    SUBMIT -->|"GET /repos/{o}/{r}<br/>preview metadata"| GITHUB_API
+    SEARCH -->|"GET /search/repositories<br/>stars:>100"| GITHUB_API
+    TRENDING -->|"GET /api/models · /api/spaces<br/>GET /api/daily_papers"| HF_API
+    SPA -->|"GET /7.x/avataaars/svg?seed={uid}"| DICEBEAR
+
+    %% Cloud Functions → AI Services
+    GQE -->|"embed query<br/>(primary)"| GEMINI_EMBED
+    GQE -->|"embed query<br/>(fallback)"| CF_AI
+    GQE -->|"R/W"| SEARCH_CACHE
+    GQE -->|"read parts"| EMBEDDINGS_CACHE
+    TREND_BADGE -->|"read by fullName"| PROJECTS_COL
+
+    %% Pipeline → External
+    SCRAPER -->|"search + README + issues"| GITHUB_API
+    SCRAPER -->|"generate writeup"| GEMINI_GEN
+    SCRAPER -->|"generate embeddings"| GEMINI_EMBED
+    SCRAPER -->|"embeddings fallback"| CF_AI
+    SCRAPER -->|"Admin SDK write"| PROJECTS_COL
+    SCRAPER -->|"write cache"| PROJECTS_CACHE
+    SCRAPER -->|"write chunks"| EMBEDDINGS_CACHE
+    SCRAPER --> SUBSTACK_PUB
+    SUBSTACK_PUB -->|"POST webhook"| PIPEDREAM
+    PIPEDREAM -->|"create draft + publish"| SUBSTACK
+
+    %% Deployment
+    CF_PAGES_PROD -.->|"push to main"| SPA
+    CF_PAGES_STG -.->|"push to staging"| SPA
+    FB_DEPLOY -.->|"deploy --only functions"| FUNCTIONS
 ```
 
 ---
@@ -84,14 +142,14 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | Frontend | Vanilla JS + HTML + CSS | Single-file SPA (`index.html`), no framework, no build step |
-| Hosting (prod) | GitHub Pages | Auto-deploys on push to `main` via GitHub Actions |
-| Hosting (staging) | Firebase Hosting | Auto-deploys on push to `staging` via `deploy-staging.yml` |
+| Hosting (prod) | Cloudflare Pages | Auto-deploys on push to `main` via `deploy-cloudflare.yml` → `aidigitalcrew.com` |
+| Hosting (staging) | Cloudflare Pages | Auto-deploys on push to `staging` via `deploy-staging.yml` → `staging.aidigitalcrew.com` |
 | Auth | Firebase Auth v10.12 | GitHub, Google, Facebook OAuth providers |
-| Database | Cloud Firestore | `projects`, `searchCache`, `searchAnalytics` collections |
-| Cloud Functions | Firebase Functions (2nd Gen) | `getQueryEmbedding` — embedding generation with caching |
+| Database | Cloud Firestore | `projects`, `projectsCache`, `embeddingsCache`, `searchCache`, `searchAnalytics` collections |
+| Cloud Functions | Firebase Functions (2nd Gen, Node.js 24) | `getQueryEmbedding` (callable) + `trendBadge` (HTTP) |
 | Search (keyword) | Fuse.js v7.0.0 (CDN) | Client-side fuzzy search with weighted fields |
 | Search (semantic) | Gemini Embeddings + Cloudflare Workers AI | Server-side embedding via Cloud Function, cosine similarity on client |
-| Automation | GitHub Actions | Cron job (`daily-scrape.yml`) at 6 AM UTC |
+| Automation | GitHub Actions | Cron job (`daily-scrape.yml`) at 8 AM UTC (midnight PST) |
 | AI Content | Google Gemini 2.5 Flash | Generates project writeups + quick-start guides |
 | Newsletter | Substack | Published via Pipedream webhook bridge |
 | Webhook Proxy | Pipedream | Bypasses Cloudflare restrictions on Substack API |
@@ -160,6 +218,26 @@ AI Digital Crew is a community-driven showcase for AI-powered open-source GitHub
 - **Endpoint:** `https://api.dicebear.com/7.x/avataaars/svg?seed={uid}`
 - **Behavior:** Seed-based — same UID always generates the same avatar
 
+### 3.7 Hugging Face API
+
+| Endpoint | Used By | Purpose |
+|----------|---------|---------|
+| `GET /api/models?sort=trendingScore&direction=-1&limit=50` | Frontend (trending page) | Fetch trending HF models |
+| `GET /api/spaces?sort=trendingScore&direction=-1&limit=25` | Frontend (trending page) | Fetch trending HF spaces |
+| `GET /api/daily_papers` | Frontend (trending page) | Fetch daily research papers |
+
+- **Base URL:** `https://huggingface.co`
+- **Auth:** None required (public API)
+- **Used in:** Trending page's "Hugging Face" mode (toggled via `state.hfSource`)
+
+### 3.8 Cloudflare Workers AI
+
+- **Role:** Fallback embedding provider when Gemini is unavailable
+- **Model:** `@cf/baai/bge-large-en-v1.5` (1024 dimensions)
+- **Endpoint:** `https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/@cf/baai/bge-large-en-v1.5`
+- **Auth:** Bearer token (`CLOUDFLARE_API_TOKEN`)
+- **Used by:** Cloud Function `getQueryEmbedding`, daily pipeline (`embedding-provider.js`)
+
 ---
 
 ## 4. Data Model
@@ -191,10 +269,49 @@ projects/{projectId}
 │
 │  (Embedding vectors for semantic search)
 ├── embedding_gemini: number[]     # Gemini embedding (3072 dimensions)
-└── embedding_cloudflare: number[] # Cloudflare BGE embedding (1024 dimensions)
+├── embedding_cloudflare: number[] # Cloudflare BGE embedding (1024 dimensions)
+│
+│  (Trending / snapshot fields — written by daily pipeline)
+├── trendScore: number             # composite trend score (0-100)
+├── trendLabel: string             # "hot" | "rising" | "steady" | "cooling" | "new"
+├── trendDirection: string         # "up" | "down" | "stable" | "new"
+├── prevStars: number              # stars at previous snapshot
+├── prevForks: number              # forks at previous snapshot
+└── snapshots/                     # subcollection of daily stat snapshots
+    └── {date}/
+        ├── stars: number
+        ├── forks: number
+        └── timestamp: timestamp
 ```
 
-### 4.2 Firestore Collection: `searchCache`
+### 4.2 Firestore Collection: `projectsCache`
+
+```
+projectsCache/latest
+├── projects: array               # all project objects (denormalized)
+├── updatedAt: timestamp          # last pipeline run time
+└── count: number                 # total project count
+```
+
+Single-document cache — the frontend reads this one doc instead of querying the entire `projects` collection. Updated by the daily pipeline via Admin SDK.
+
+### 4.3 Firestore Collection: `embeddingsCache`
+
+```
+embeddingsCache/meta
+├── partCount: number             # number of part documents
+├── totalProjects: number         # total projects with embeddings
+└── updatedAt: timestamp
+
+embeddingsCache/part{i}           # i = 0, 1, 2, ... (30 projects per doc)
+├── projects: array
+│   └── { fullName, embedding_gemini, embedding_cloudflare }
+└── updatedAt: timestamp
+```
+
+Chunked embedding storage for server-side ranking in `getQueryEmbedding`. Written by the daily pipeline, read by Cloud Functions (1h in-memory cache).
+
+### 4.4 Firestore Collection: `searchCache`
 
 ```
 searchCache/{sha256Hash}
@@ -207,7 +324,7 @@ searchCache/{sha256Hash}
 
 Written by Cloud Functions only (Admin SDK). Client has read-only access.
 
-### 4.3 Firestore Collection: `searchAnalytics`
+### 4.5 Firestore Collection: `searchAnalytics`
 
 ```
 searchAnalytics/{docId}
@@ -221,7 +338,7 @@ searchAnalytics/{docId}
 
 Write-only from authenticated clients. No client reads (analytics are backend-only).
 
-### 4.4 Security Rules
+### 4.6 Security Rules
 
 ```
 projects:        public read, authenticated create only
@@ -231,7 +348,7 @@ searchAnalytics: authenticated create/update, no read
 
 No update/delete rules on projects — defaults to deny. Daily bot writes via Firebase Admin SDK (bypasses rules).
 
-### 4.3 Quotas & Limits
+### 4.7 Quotas & Limits
 
 | Resource | Limit | Current Usage |
 |----------|-------|---------------|
@@ -268,7 +385,7 @@ User → OAuth Login → Enter GitHub URL
 ### 5.2 Daily "Project of the Day" Pipeline
 
 ```
-GitHub Actions cron (6 AM UTC)
+GitHub Actions cron (8 AM UTC / midnight PST)
   │
   ├─ 1. Search GitHub API
   │     For each topic in CATEGORY_TOPICS (5 categories):
@@ -319,9 +436,10 @@ GitHub Actions cron (6 AM UTC)
 ```
 Browser loads index.html
   → Firebase Auth state listener fires
-  → Firestore query: get all projects
+  → Firestore read: getDoc("projectsCache/latest") — single read, all projects
+  → Check localStorage cache (sessionStorage fallback) — skip Firestore if fresh
   → For each project: fetch live stats from GitHub API (parallel via Promise.all)
-  → Merge live stats with stored data (writeup, quickStart preserved)
+  → Merge live stats with stored data (writeup, quickStart, trend fields preserved)
   → If GitHub API fails for a repo, silently preserve old stats
   → Infer categories from topics
   → Render grid with category filter tabs
@@ -370,13 +488,18 @@ Single global object — all UI updates flow from state mutations:
 
 ```js
 state = {
+  // Core
   user,                // FirebaseUser | null
   isLoggedIn,          // boolean
   projects,            // array of project objects
   isLoading,           // boolean
   repoPreview,         // temp preview data during submission
   activeCategory,      // current filter tab ("All", "AI Agents", etc.)
-  currentView,         // "home" | "search" — controls which page is visible
+  currentView,         // "home" | "search" | "trending"
+  pendingLinkCred,     // OAuthCredential for account linking
+  pendingLinkProvider, // string: which provider is pending
+
+  // Search
   searchQuery,         // current search query string
   searchResults,       // scored results array | null
   isSearching,         // boolean — true while embedding API call in progress
@@ -384,8 +507,34 @@ state = {
   searchCache,         // Map — in-memory cache of search results (per session)
   githubResultsCache,  // Map — in-memory cache of GitHub API results (per session)
   lastGitHubApiCall,   // timestamp — rate limiting for GitHub search API
-  pendingLinkCred,     // OAuthCredential for account linking
-  pendingLinkProvider  // string: which provider is pending
+
+  // Trending
+  trendingLoaded,      // boolean — true once trending data fetched
+  trendingProjects,    // all projects with trend data
+  trendingAiProjects,  // AI-category trending pool
+  trendingGlobalProjects, // global trending pool
+  trendSort,           // current sort column
+  trendTimeRange,      // time range filter
+  aiFilter,            // { category, language, search, page }
+  globalFilter,        // { category, language, search, page }
+  globalView,          // "grid" | "table"
+  globalTableSort,     // { col, dir }
+  moversTab,           // "risers" | "fallers"
+  moversRange,         // time range for movers
+  catLbActive,         // active category in leaderboard
+  homeSource,          // "github" | "hf" — home page source toggle
+
+  // Hugging Face
+  hfSource,            // "models" | "spaces" | "papers"
+  hfModels,            // HF trending models array
+  hfSpaces,            // HF trending spaces array
+  hfPapers,            // HF daily papers array
+  hfLoaded,            // boolean
+  hfLoading,           // boolean
+  hfModelsFilter,      // { task, search, page }
+  hfSpacesFilter,      // { search, page }
+  hfPapersFilter,      // { search, page }
+  hfTaskActive         // active HF task filter
 }
 ```
 
@@ -417,14 +566,15 @@ state = {
 
 ### 7.4 Navigation & View System
 
-The SPA has two views controlled by `navigateTo(view)`:
+The SPA has three views controlled by `navigateTo(view)`:
 
 | View | Visible Sections | Trigger |
 |------|-----------------|---------|
 | `home` | Hero, Featured, Projects (with category tabs) | "Home" or "Projects" nav link |
 | `search` | Search Page (full-screen) | "Search" nav link |
+| `trending` | Trending Page — AI pool, global pool, movers, category leaderboard, Hugging Face mode | "Trending" nav link |
 
-`navigateTo()` toggles `display` on sections, scrolls to top, updates `.nav-active` on nav links, and sets `state.currentView`.
+`navigateTo()` toggles `display` on sections, scrolls to top, updates `.nav-active` on nav links, sets `state.currentView`, and updates the URL hash (`#home`, `#search`, `#trending`).
 
 ### 7.5 Search System
 
@@ -467,15 +617,28 @@ User types query
 
 ### 7.6 Cloud Functions
 
-**`getQueryEmbedding`** (2nd Gen, `us-central1`, Node.js 20):
+**`getQueryEmbedding`** (2nd Gen, `us-central1`, Node.js 24):
 
 - **Trigger:** Callable from frontend via `httpsCallable(functions, 'getQueryEmbedding')`
-- **Input:** `{ query: string }`
-- **Output:** `{ embedding: number[], provider: string, dimensions: number, cached: boolean }`
+- **Modes of operation (all via same callable):**
+  - **Standard embed** — Input: `{ query: string }` → Output: `{ embedding, provider, dimensions, cached }`
+  - **`rankProjects`** — Input: `{ query, rankProjects: true }` → Embeds query + ranks against `embeddingsCache` server-side
+  - **`findSimilar`** — Input: `{ findSimilar: "owner/repo" }` → Returns top 12 similar projects from `embeddingsCache`
+  - **`findSimilarBatch`** — Input: `{ findSimilarBatch: ["owner/repo", ...] }` (up to 12) → Batch similar projects
 - **Provider chain:** Gemini `gemini-embedding-001` (3072 dims) → Cloudflare Workers AI `bge-large-en-v1.5` (1024 dims)
-- **Caching:** SHA-256 hash of normalized query → Firestore `searchCache` doc (24h TTL)
+- **Caching:** SHA-256 hash of normalized query → Firestore `searchCache` doc (24h TTL); `embeddingsCache` parts cached 1h in-memory
+- **Rate limiting:** 20 calls/min per UID (in-memory counter)
 - **Secrets:** `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (via Secret Manager)
 - **Max instances:** 10
+
+**`trendBadge`** (2nd Gen, `us-central1`, HTTP):
+
+- **Trigger:** HTTP GET `?repo=owner/repo`
+- **Output:** Dynamic SVG badge (shields.io style) with trend score + label (hot/rising/steady/cooling/new)
+- **Data source:** Reads `projects/` by `fullName`
+- **Caching:** `Cache-Control: public, max-age=3600`
+- **CORS:** Enabled
+- **No external API calls** — pure Firestore read + SVG generation
 
 ### 7.7 Toast Notification System
 
@@ -540,14 +703,14 @@ Only categories with matching projects appear as filter tabs.
 
 ### 8.1 Overview
 
-A staging environment allows testing UI changes, new features, and pipeline behavior before promoting to production. GitHub Pages only supports one site per repo, so staging uses Firebase Hosting.
+A staging environment allows testing UI changes, new features, and pipeline behavior before promoting to production.
 
 | Aspect | Production | Staging |
 |--------|-----------|---------|
 | Branch | `main` | `staging` |
-| URL | `aidigitalcrew.com` (GitHub Pages) | `ai-digital-crew-staging.web.app` (Firebase Hosting) |
+| URL | `aidigitalcrew.com` (Cloudflare Pages) | `staging.aidigitalcrew.com` (Cloudflare Pages preview) |
 | Firebase project | `ai-digital-crew` | `ai-digital-crew-staging` |
-| Scrape schedule | 6 AM UTC | 12 PM UTC |
+| Scrape schedule | 8 AM UTC | 8 AM UTC |
 | Owner notification | Yes | **No** (`SKIP_NOTIFY=true`) |
 | Substack publishing | Yes | **No** (`SKIP_PUBLISH=true`) |
 | Local dev (`localhost`) | — | Points to staging Firebase |
@@ -556,7 +719,7 @@ A staging environment allows testing UI changes, new features, and pipeline beha
 
 `index.html` detects the environment at runtime by hostname:
 
-- **Staging hosts:** `ai-digital-crew-staging.web.app`, `localhost`, `127.0.0.1` → uses staging Firebase config
+- **Staging hosts:** `staging.aidigitalcrew.com`, `localhost`, `127.0.0.1` → uses staging Firebase config
 - **All other hosts** (including `aidigitalcrew.com`) → uses production Firebase config
 - When on staging, `document.title` is prefixed with `[STAGING]`
 
@@ -593,10 +756,10 @@ This is a one-time setup step. Re-deploy to staging whenever `firestore.rules` c
 
 ### 9.1 Web Hosting
 
-- **Production:** GitHub Pages (auto-deploys on push to `main`), domain `aidigitalcrew.com` (via CNAME)
-- **Staging:** Firebase Hosting (auto-deploys on push to `staging`), URL `ai-digital-crew-staging.web.app`
+- **Production:** Cloudflare Pages (auto-deploys on push to `main` via `deploy-cloudflare.yml`), domain `aidigitalcrew.com`
+- **Staging:** Cloudflare Pages (auto-deploys on push to `staging` via `deploy-staging.yml`), URL `staging.aidigitalcrew.com`
 - **No build step** — `index.html` is the deployed artifact
-- **Caching:** `index.html` uses GitHub Pages defaults (no explicit `Cache-Control`), `/assets/*` cached 7 days
+- **Cloudflare Pages project:** `aidigitalcrew` (prod uses `main` branch, staging deploys as branch preview)
 
 ### 9.2 Cloud Functions
 
@@ -619,9 +782,10 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `daily-scrape.yml` | Cron `0 6 * * *` + `workflow_dispatch` | Daily project discovery + newsletter (production) |
-| `deploy-staging.yml` | Push to `staging` | Deploy to Firebase Hosting staging |
-| `daily-scrape-staging.yml` | Cron `0 12 * * *` + `workflow_dispatch` | Daily scrape on staging (no notify/publish) |
+| `deploy-cloudflare.yml` | Push to `main` | Deploy to Cloudflare Pages production (`aidigitalcrew.com`) |
+| `deploy-staging.yml` | Push to `staging` | Deploy to Cloudflare Pages staging (`staging.aidigitalcrew.com`) |
+| `daily-scrape.yml` | Cron `0 8 * * *` + `workflow_dispatch` | Daily project discovery + trending + newsletter (production) |
+| `daily-scrape-staging.yml` | Cron `0 8 * * *` + `workflow_dispatch` | Daily scrape on staging (no notify/publish) |
 
 **Workflow details:**
 - **Node version:** 20 (via `actions/setup-node@v4`)
@@ -640,7 +804,9 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 | `NOTIFY_TOKEN` | daily-scrape.js | Create GitHub issues (owner notification) | Optional — falls back to `GITHUB_TOKEN` if unset. Separate token allows different permission scope |
 | `GEMINI_API_KEY` | daily-scrape.js | AI writeup generation | Google AI Studio key |
 | `PIPEDREAM_WEBHOOK_URL` | substack-publish.js | Trigger Substack publication | URL is the auth mechanism |
-| `STAGING_FIREBASE_SERVICE_ACCOUNT` | deploy-staging.yml, daily-scrape-staging.yml | Admin access to staging Firebase project | JSON service account key for `ai-digital-crew-staging` |
+| `STAGING_FIREBASE_SERVICE_ACCOUNT` | daily-scrape-staging.yml | Admin access to staging Firebase project | JSON service account key for `ai-digital-crew-staging` |
+| `CLOUDFLARE_API_TOKEN` | deploy-cloudflare.yml, deploy-staging.yml | Cloudflare Pages deployment | Wrangler API token |
+| `CLOUDFLARE_ACCOUNT_ID` | deploy-cloudflare.yml, deploy-staging.yml | Cloudflare Pages deployment | Account identifier |
 
 **Cloud Function Secrets (Firebase Secret Manager):**
 
@@ -684,7 +850,7 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
 
 - Static assets (`/assets/*`) cached 7 days: `Cache-Control: public, max-age=604800`
-- `index.html` has no explicit cache header — relies on GitHub Pages defaults
+- `index.html` has no explicit cache header — relies on Cloudflare Pages defaults
 
 ### 10.4 `.gitignore` Protection
 
@@ -827,7 +993,8 @@ doc
 
 ```
 ai-digital-crew/
-├── index.html                  # Entire SPA (HTML + CSS + JS)
+├── index.html                  # Main SPA (HTML + CSS + JS — home, search, trending views)
+├── project.html                # Individual project detail page
 ├── firebase.json               # Firebase project config (hosting + functions + Firestore)
 ├── firestore.rules             # Firestore security rules
 ├── _headers                    # HTTP security headers
@@ -838,7 +1005,7 @@ ai-digital-crew/
 ├── .gitignore                  # Protects secrets & vendor files from commit
 │
 ├── functions/
-│   ├── index.js                # Cloud Functions: getQueryEmbedding (Gemini + Cloudflare fallback)
+│   ├── index.js                # Cloud Functions: getQueryEmbedding (callable) + trendBadge (HTTP)
 │   ├── package.json            # Node deps (firebase-admin, firebase-functions, generative-ai)
 │   └── package-lock.json
 │
@@ -853,8 +1020,9 @@ ai-digital-crew/
 │
 ├── .github/
 │   └── workflows/
-│       ├── daily-scrape.yml          # Production cron + manual trigger
-│       ├── deploy-staging.yml        # Deploy staging branch to Firebase Hosting
+│       ├── deploy-cloudflare.yml     # Deploy main → Cloudflare Pages production
+│       ├── deploy-staging.yml        # Deploy staging → Cloudflare Pages staging
+│       ├── daily-scrape.yml          # Production cron (8 AM UTC) + manual trigger
 │       └── daily-scrape-staging.yml  # Staging cron (no notify/publish)
 │
 └── pipenode.txt                # Pipedream Node.js script (Substack API calls, runs on Pipedream infra)
@@ -874,3 +1042,4 @@ ai-digital-crew/
 | 2026-02-20 | 2.0.0 | Comprehensive update: added DiceBear, toast system, CSS architecture, responsive breakpoints, error handling & resilience, observability & monitoring, Substack newsletter details, troubleshooting guide, rate limits & quotas, pipeline implementation details, known gaps, related doc links |
 | 2026-02-20 | 2.1.0 | Added staging environment (section 8): hostname-based config detection, pipeline skip flags, deploy-staging + daily-scrape-staging workflows, staging secrets, Firestore rules deployment |
 | 2026-02-21 | 3.0.0 | Added AI-powered semantic search system: dedicated search page, Cloud Functions (getQueryEmbedding), Fuse.js keyword search, embedding providers (Gemini + Cloudflare), new Firestore collections (searchCache, searchAnalytics), GitHub discovery, navigation/view system, updated system diagram and project structure |
+| 2026-02-26 | 4.0.0 | Comprehensive architecture update: replaced ASCII diagram with Mermaid (renders on GitHub), added trending view + Hugging Face integration, added `projectsCache/` + `embeddingsCache/` collections, added `trendBadge` Cloud Function + `findSimilar`/`rankProjects` modes, updated hosting to Cloudflare Pages, added `deploy-cloudflare.yml` workflow, fixed cron to 8 AM UTC, added trend fields to projects schema, updated state object with trending/HF fields, added `project.html`, updated staging URLs |
