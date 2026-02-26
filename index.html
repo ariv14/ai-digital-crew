@@ -406,6 +406,8 @@
     .discovery-pills{display:flex;flex-wrap:wrap;gap:8px}
     .discovery-pill{padding:6px 14px;font-size:13px;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:all .2s;white-space:nowrap}
     .discovery-pill:hover{border-color:var(--primary);color:var(--primary);background:rgba(59,130,246,.08)}
+    .discovery-pill .pill-clear{margin-left:4px;opacity:0.4;cursor:pointer;font-size:11px;vertical-align:middle}
+    .discovery-pill .pill-clear:hover{opacity:1;color:#ef4444}
 
     /* Autocomplete dropdown */
     .search-autocomplete{display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:60;max-height:280px;overflow-y:auto;padding:6px 0}
@@ -439,6 +441,8 @@
     .similar-card a{color:var(--text);transition:color .2s}
     .similar-card a:hover{color:var(--primary)}
     .similar-card .similar-score{font-size:11px;color:var(--text-muted);margin-left:auto}
+
+    .search-result-count{grid-column:1/-1;color:var(--text-muted);font-size:0.85rem;margin-bottom:4px}
 
     /* GitHub discovery section */
     .github-discovery{margin-top:32px;padding-top:24px;border-top:1px solid var(--border);grid-column:1/-1}
@@ -2214,8 +2218,33 @@
       }
     }
 
+    async function findSimilarProjectsBatch(projects, count = 3) {
+      const fullNames = projects.map(p => p.fullName).filter(Boolean);
+      if (fullNames.length === 0) return {};
+      try {
+        const fn = await loadFunctions();
+        const result = await fn({ findSimilarBatch: fullNames });
+        const batchResults = result.data?.batchResults || {};
+        const projectMap = new Map(state.projects.map(p => [p.fullName, p]));
+        const mapped = {};
+        for (const [name, rankings] of Object.entries(batchResults)) {
+          mapped[name] = rankings.slice(0, count)
+            .filter(r => projectMap.has(r.fullName))
+            .map(r => ({ project: projectMap.get(r.fullName), score: r.score }));
+        }
+        return mapped;
+      } catch {
+        return {};
+      }
+    }
+
     // ── Search: Main handler ────────────────────────────
     async function handleSearch(queryText) {
+      // Abort any in-flight search to prevent stale results
+      if (searchAbortController) searchAbortController.abort();
+      searchAbortController = new AbortController();
+      const searchSignal = searchAbortController.signal;
+
       const q = queryText.trim();
       state.searchQuery = q;
 
@@ -2277,14 +2306,26 @@
 
       // Server-side semantic rankings via Cloud Function
       let serverRankings = null;
+      let semanticFailed = false;
       try {
         const data = await getServerRankings(q, { rankProjects: true });
         if (data?.rankings) serverRankings = new Map(data.rankings.map(r => [r.fullName, r.score]));
       } catch (err) {
         console.warn('Server ranking failed, falling back to keyword search:', err.message);
+        semanticFailed = true;
       }
 
+      // Abort check — if a newer search started, discard this one
+      if (searchSignal.aborted) return;
+
       spinnerEl.classList.remove('visible');
+
+      // Show fallback notice when semantic search is unavailable
+      if (semanticFailed) {
+        statusEl.textContent = 'Using keyword search (AI unavailable)';
+        statusEl.classList.add('visible');
+        setTimeout(() => statusEl.classList.remove('visible'), 3000);
+      }
 
       // Score all projects
       const scored = [];
@@ -2340,10 +2381,15 @@
 
       scored.sort((a, b) => b.score - a.score);
       scored.splice(12);
+
+      // Abort check — discard if a newer search superseded this one
+      if (searchSignal.aborted) return;
+
       state.searchResults = scored;
       state.isSearching = false;
 
-      // Cache results
+      // Cache results (FIFO eviction at 50 entries)
+      if (state.searchCache.size >= 50) state.searchCache.delete(state.searchCache.keys().next().value);
       state.searchCache.set(cacheKey, { results: scored, timestamp: Date.now() });
 
       statusEl.classList.remove('visible');
@@ -2389,7 +2435,7 @@
 
       const searchTerms = queryText.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
 
-      searchResultGrid.innerHTML = results.map(({ project: p, score }) => {
+      searchResultGrid.innerHTML = `<div class="search-result-count">Found ${results.length} project${results.length !== 1 ? 's' : ''} for "${esc(queryText)}"</div>` + results.map(({ project: p, score }) => {
         const langColor = LANG_COLORS[p.language] || '#888';
         const topics = (p.topics || []).slice(0, 5);
         const cat = inferCategory(p);
@@ -2420,15 +2466,18 @@
 
       renderGitHubDiscovery(queryText, ghContainer);
 
-      // Lazy-load similar projects for each result (async, non-blocking)
-      for (const { project: p } of results) {
-        findSimilarProjects(p).then(similar => {
-          if (similar.length === 0) return;
+      // Batch-load similar projects for all results (single Cloud Function call)
+      const resultProjects = results.map(r => r.project);
+      findSimilarProjectsBatch(resultProjects).then(batchMap => {
+        for (const { project: p } of results) {
+          const similar = batchMap[p.fullName] || [];
+          if (similar.length === 0) continue;
           const slot = searchResultGrid.querySelector(`.similar-projects-slot[data-fullname="${CSS.escape(p.fullName || '')}"]`);
-          if (!slot) return;
+          if (!slot) continue;
+          // All dynamic values are escaped via esc() to prevent XSS
           slot.innerHTML = `<details class="similar-projects"><summary>Similar Projects (${similar.length})</summary>${similar.map(s => `<div class="similar-card"><a href="${esc(s.project.url)}" target="_blank" rel="noopener">${esc(s.project.name)}</a><span class="similar-score">${Math.round(s.score * 100)}%</span></div>`).join('')}</details>`;
-        });
-      }
+        }
+      });
     }
 
     // ── Search: GitHub discovery ─────────────────────────
@@ -2527,6 +2576,7 @@
         const filtered = (data.items || []).filter(r => !existingNames.has(r.full_name.toLowerCase()));
 
         state.githubResults = filtered;
+        if (state.githubResultsCache.size >= 30) state.githubResultsCache.delete(state.githubResultsCache.keys().next().value);
         state.githubResultsCache.set(cacheKey, filtered);
 
         if (state.searchQuery.toLowerCase() !== cacheKey) return;
@@ -2620,13 +2670,26 @@
       const recent = getRecentSearches();
       let html = '';
       if (recent.length > 0) {
-        html += `<h4>Recent Searches</h4><div class="discovery-pills">${recent.map(s => `<button class="discovery-pill" data-query="${esc(s)}">${esc(s)}</button>`).join('')}</div>`;
+        html += `<h4>Recent Searches</h4><div class="discovery-pills">${recent.map(s => `<button class="discovery-pill" data-query="${esc(s)}">${esc(s)}<span class="pill-clear" data-remove="${esc(s)}">&times;</span></button>`).join('')}</div>`;
       }
       html += `<h4>Trending</h4><div class="discovery-pills">${TRENDING_QUERIES.map(s => `<button class="discovery-pill" data-query="${esc(s)}">${esc(s)}</button>`).join('')}</div>`;
       // Category chips
       const cats = CATEGORY_ORDER.filter(c => c !== 'All');
       html += `<h4>Categories</h4><div class="discovery-pills">${cats.map(c => `<button class="discovery-pill" data-query="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
       el.innerHTML = html;
+      // Clear individual recent searches
+      el.querySelectorAll('.pill-clear').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const term = btn.dataset.remove;
+          try {
+            const stored = JSON.parse(localStorage.getItem('adc_recent_searches') || '[]');
+            localStorage.setItem('adc_recent_searches', JSON.stringify(stored.filter(s => s !== term)));
+          } catch {}
+          renderDiscoveryPanel();
+          el.classList.add('open');
+        });
+      });
       el.querySelectorAll('.discovery-pill').forEach(pill => {
         pill.addEventListener('click', () => {
           const q = pill.dataset.query;
@@ -2684,6 +2747,7 @@
     }
 
     // ── Search: Input event wiring ──────────────────────
+    let searchAbortController = null;
     const searchInput = document.getElementById('search-input');
     const searchClear = document.getElementById('search-clear');
     const searchDiscovery = document.getElementById('search-discovery');
@@ -2756,6 +2820,22 @@
       if (!container.contains(e.target)) {
         searchDiscovery.classList.remove('open');
         searchAutocomplete.classList.remove('open');
+      }
+    });
+
+    // Close discovery/autocomplete on scroll
+    window.addEventListener('scroll', () => {
+      searchDiscovery.classList.remove('open');
+      searchAutocomplete.classList.remove('open');
+    }, { passive: true });
+
+    // Cmd+K / Ctrl+K → focus search
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        navigateTo('search');
+        searchInput.focus();
+        searchInput.select();
       }
     });
 

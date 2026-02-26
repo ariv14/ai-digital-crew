@@ -19,6 +19,31 @@ const db = getFirestore();
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+// ── Per-user rate limiting (in-memory, resets on cold start) ──────────────────
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_CALLS = 20;
+const rateLimitMap = new Map(); // uid → { count, windowStart }
+
+function checkRateLimit(uid) {
+  const now = Date.now();
+  const key = uid || 'anonymous';
+  let entry = rateLimitMap.get(key);
+  if (!entry || (now - entry.windowStart) > RATE_LIMIT_WINDOW_MS) {
+    entry = { count: 0, windowStart: now };
+    rateLimitMap.set(key, entry);
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT_MAX_CALLS) {
+    throw new HttpsError('resource-exhausted', 'Rate limit exceeded. Try again in a minute.');
+  }
+  // Prevent unbounded growth — evict stale entries periodically
+  if (rateLimitMap.size > 1000) {
+    for (const [k, v] of rateLimitMap) {
+      if ((now - v.windowStart) > RATE_LIMIT_WINDOW_MS) rateLimitMap.delete(k);
+    }
+  }
+}
+
 // ── In-memory embedding cache for server-side ranking ─────────────────────────
 let embCache = null;  // Map<fullName, number[]>
 let embCacheAge = 0;
@@ -98,9 +123,46 @@ export const getQueryEmbedding = onCall(
     region: 'us-central1',
   },
   async (request) => {
+    checkRateLimit(request.auth?.uid);
+
+    // findSimilarBatch — compute similar projects for multiple targets in one call
+    if (request.data?.findSimilarBatch) {
+      const targets = request.data.findSimilarBatch;
+      if (!Array.isArray(targets) || targets.length === 0 || targets.length > 12) {
+        throw new HttpsError('invalid-argument', 'findSimilarBatch must be an array of 1-12 fullNames');
+      }
+      for (const t of targets) {
+        if (typeof t !== 'string' || t.length > 200) {
+          throw new HttpsError('invalid-argument', 'Each fullName must be a string under 200 characters');
+        }
+      }
+      const embMap = await loadEmbeddingsCache();
+      const results = {};
+      if (embMap && embMap.size > 0) {
+        for (const targetName of targets) {
+          const targetEmb = embMap.get(targetName);
+          if (!targetEmb) { results[targetName] = []; continue; }
+          const ranked = [];
+          for (const [fullName, projectEmb] of embMap) {
+            if (fullName === targetName) continue;
+            const score = cosineSimilarity(targetEmb, projectEmb);
+            if (score > 0.25) {
+              ranked.push({ fullName, score: Math.round(score * 10000) / 10000 });
+            }
+          }
+          ranked.sort((a, b) => b.score - a.score);
+          results[targetName] = ranked.slice(0, 3);
+        }
+      }
+      return { batchResults: results, provider: 'cached', cached: true };
+    }
+
     // findSimilar doesn't need a query — use cached project embeddings directly
     if (request.data?.findSimilar) {
       const targetName = request.data.findSimilar;
+      if (typeof targetName !== 'string' || targetName.length > 200) {
+        throw new HttpsError('invalid-argument', 'findSimilar must be a string under 200 characters');
+      }
       const embMap = await loadEmbeddingsCache();
       if (embMap && embMap.size > 0) {
         const targetEmb = embMap.get(targetName);
@@ -123,6 +185,9 @@ export const getQueryEmbedding = onCall(
     const query = request.data?.query;
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       throw new HttpsError('invalid-argument', 'query is required');
+    }
+    if (query.length > 200) {
+      throw new HttpsError('invalid-argument', 'query must be under 200 characters');
     }
 
     const normalizedQuery = query.toLowerCase().trim();
