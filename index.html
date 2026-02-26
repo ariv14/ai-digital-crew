@@ -2484,10 +2484,11 @@
     function ghResultCards(filtered) {
       return filtered.map(r => {
         const owner = r.full_name.split('/')[0];
+        const avatar = r.owner?.avatar_url || `https://avatars.githubusercontent.com/${esc(owner)}`;
         const langColor = LANG_COLORS[r.language] || '#888';
         return `
         <div class="gh-result-card glass">
-          <img class="gh-result-avatar" src="https://github.com/${esc(owner)}.png?size=36" srcset="https://github.com/${esc(owner)}.png?size=36 1x, https://github.com/${esc(owner)}.png?size=72 2x" alt="${esc(owner)}" width="36" height="36" loading="lazy">
+          <img class="gh-result-avatar" src="${avatarSized(avatar, 36)}" srcset="${avatarSized(avatar, 36)} 1x, ${avatarSized(avatar, 72)} 2x" alt="${esc(owner)}" width="36" height="36" loading="lazy">
           <div class="gh-result-body">
             <h4><a href="${esc(r.html_url)}" target="_blank" rel="noopener">${esc(r.full_name)}</a><span class="gh-source-tag">GitHub</span></h4>
             <p>${esc((r.description || 'No description').slice(0, 160))}</p>
