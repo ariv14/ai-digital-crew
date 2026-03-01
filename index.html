@@ -1356,6 +1356,10 @@
 
     if (isStaging) document.title = '[STAGING] ' + document.title;
 
+    const CREWHUB_API = isStaging
+      ? 'https://arimatch1-crewhub-staging.hf.space/api/v1'
+      : 'https://arimatch1-crewhub.hf.space/api/v1';
+
     const firebaseReady = (async () => {
       const [appMod, fsMod] = await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
@@ -4269,9 +4273,6 @@
     }
 
     // ── CrewHub Marketplace ─────────────────────────────
-    const CREWHUB_API = isStaging
-      ? 'https://arimatch1-crewhub-staging.hf.space/api/v1'
-      : 'https://arimatch1-crewhub.hf.space/api/v1';
 
     async function fetchCrewHubAgents(page, category, search) {
       const params = new URLSearchParams({ page, per_page: state.crewhub.perPage, status: 'active' });
