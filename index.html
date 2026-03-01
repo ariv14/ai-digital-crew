@@ -743,90 +743,6 @@
       .hero-stat .stat-num{font-size:24px}
     }
 
-    /* ── CrewHub Marketplace Page ─────────────────────── */
-    .crewhub-hero{text-align:center;padding:120px 24px 40px}
-    .crewhub-hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,5vw,48px);font-weight:700;background:linear-gradient(135deg,var(--primary),var(--primary-end));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
-    .crewhub-hero .subtitle{color:var(--text-muted);font-size:18px;margin-bottom:32px}
-    .crewhub-search{max-width:560px;margin:0 auto 24px}
-    .crewhub-stats-row{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
-    .crewhub-stats-row span{font-size:14px;color:var(--text-muted)}
-    .crewhub-stats-row strong{color:var(--text);font-weight:600}
-
-    .crewhub-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:32px;scrollbar-width:none}
-    .crewhub-filters::-webkit-scrollbar{display:none}
-    .crewhub-filter-btn{flex-shrink:0;padding:7px 16px;font-size:13px;font-weight:600;border-radius:20px;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;background:transparent;white-space:nowrap;transition:all .2s}
-    .crewhub-filter-btn:hover{border-color:var(--primary);color:var(--text)}
-    .crewhub-filter-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-end));border-color:transparent;color:#fff}
-
-    .agent-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;transition:transform .3s ease,opacity .4s ease,box-shadow .3s;opacity:0;transform:scale(0.97);cursor:pointer}
-    .agent-card.visible{opacity:1;transform:scale(1)}
-    .agent-card:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(59,130,246,.15)}
-    .agent-card-header{padding:20px 20px 0;display:flex;align-items:center;gap:12px}
-    .agent-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-    .agent-avatar img{width:100%;height:100%;border-radius:12px;object-fit:cover}
-    .agent-avatar-placeholder{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-end));display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:700}
-    .agent-card-header h3{font-size:16px;font-weight:600;color:var(--text);margin:0;line-height:1.3}
-    .agent-card-header .agent-category{font-size:12px;color:var(--text-muted);text-transform:capitalize}
-    .agent-card-body{padding:12px 20px 16px}
-    .agent-card-body p{font-size:13px;color:var(--text-muted);line-height:1.5;margin:0 0 12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-    .agent-skills-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-    .agent-skill-tag{padding:3px 10px;font-size:11px;font-weight:500;border-radius:12px;background:rgba(139,92,246,.15);color:var(--primary);border:1px solid rgba(139,92,246,.2)}
-    .agent-card-stats{display:flex;gap:16px;font-size:12px;color:var(--text-muted);border-top:1px solid rgba(255,255,255,0.06);padding-top:12px}
-    .agent-card-stats span{display:flex;align-items:center;gap:4px}
-    .agent-card-stats .stat-val{color:var(--text);font-weight:600}
-    .agent-card-footer{display:flex;justify-content:space-between;align-items:center;padding:0 20px 16px;font-size:13px}
-    .agent-price{color:var(--primary);font-weight:600}
-    .agent-reputation{display:flex;align-items:center;gap:4px;color:#fbbf24}
-
-    /* Agent detail modal */
-    .agent-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center;padding:24px;overscroll-behavior:contain}
-    .agent-modal-overlay.open{display:flex}
-    .agent-modal{width:100%;max-width:600px;background:var(--bg-card,rgba(15,20,40,0.95));border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:32px;max-height:90vh;overflow-y:auto;position:relative}
-    .agent-modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;padding:4px 8px;border-radius:8px;transition:color .2s}
-    .agent-modal-close:hover{color:var(--text)}
-    .agent-modal-header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
-    .agent-modal-header h2{font-size:22px;font-weight:700;margin:0}
-    .agent-modal-header .agent-category{font-size:13px;color:var(--text-muted);text-transform:capitalize}
-    .agent-modal-section{margin-bottom:20px}
-    .agent-modal-section h3{font-size:14px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:0 0 10px}
-    .agent-modal-desc{font-size:15px;color:var(--text);line-height:1.6;margin:0}
-    .agent-modal-skills{display:flex;gap:8px;flex-wrap:wrap}
-    .agent-modal-skill{padding:6px 14px;font-size:13px;border-radius:12px;background:rgba(139,92,246,.12);color:var(--primary);border:1px solid rgba(139,92,246,.2)}
-    .agent-modal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
-    .agent-modal-stat{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center}
-    .agent-modal-stat .stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
-    .agent-modal-stat .stat-value{font-size:20px;font-weight:700;color:var(--text);margin-top:4px}
-    .agent-modal-starters{display:flex;flex-direction:column;gap:8px}
-    .agent-modal-starter{padding:10px 16px;font-size:14px;color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;cursor:default;text-align:left}
-    .agent-modal-pricing{display:flex;gap:12px;flex-wrap:wrap}
-    .agent-modal-tier{flex:1;min-width:160px;padding:16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)}
-    .agent-modal-tier .tier-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;text-transform:capitalize}
-    .agent-modal-tier .tier-price{font-size:18px;font-weight:700;color:var(--primary)}
-    .agent-modal-tier .tier-model{font-size:12px;color:var(--text-muted);margin-top:2px}
-
-    /* CrewHub pagination */
-    .crewhub-pagination{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:40px;padding-bottom:40px}
-    .crewhub-pagination button{padding:8px 20px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:14px;font-weight:500;transition:all .2s}
-    .crewhub-pagination button:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
-    .crewhub-pagination button:disabled{opacity:.4;cursor:not-allowed}
-    .crewhub-pagination .page-info{font-size:14px;color:var(--text-muted)}
-
-    /* Mobile FAB */
-    .crewhub-fab{display:none;position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-end));color:#fff;font-size:24px;z-index:90;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(139,92,246,.4);text-decoration:none;border:2px solid rgba(255,255,255,.2);animation:fab-pulse 2s ease-in-out infinite}
-    @keyframes fab-pulse{0%,100%{box-shadow:0 4px 20px rgba(139,92,246,.4)}50%{box-shadow:0 4px 30px rgba(139,92,246,.7)}}
-    @media(max-width:768px){.crewhub-fab{display:flex}}
-
-    .crewhub-loading{text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px}
-    .crewhub-empty{text-align:center;padding:60px 20px;color:var(--text-muted)}
-    .crewhub-empty h3{font-size:20px;color:var(--text);margin-bottom:8px}
-
-    @media(max-width:768px){
-      .crewhub-hero{padding:100px 16px 24px}
-      .crewhub-hero h1{font-size:28px}
-      .agent-card-stats{gap:10px;font-size:11px}
-      .agent-modal{padding:24px 20px}
-      .agent-modal-stats{grid-template-columns:1fr 1fr}
-    }
   </style>
 </head>
 <body>
@@ -841,7 +757,7 @@
       <a href="#projects" data-nav="home">Projects</a>
       <a href="#" data-nav="search" id="nav-search-link">Search</a>
       <a href="#trending" data-nav="trending" id="nav-trending-link">Trending</a>
-      <a href="#crewhub" data-nav="crewhub" id="nav-crewhub-link" style="background:linear-gradient(135deg,var(--primary),var(--primary-end));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600">AI Agents</a>
+      <a id="nav-crewhub-link" style="background:linear-gradient(135deg,var(--primary),var(--primary-end));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;cursor:pointer">AI Agents</a>
     </div>
     <div class="nav-right" id="nav-right"></div>
     <div class="mobile-nav-icons">
@@ -1193,39 +1109,7 @@
       </div><!-- #hf-sections -->
     </div>
 
-    <!-- ── CrewHub Marketplace Page ──────────────────── -->
-    <div id="crewhub-page" style="display:none">
-      <section class="crewhub-hero">
-        <h1>AI Agent Marketplace</h1>
-        <p class="subtitle">Discover, delegate, and orchestrate AI agents</p>
-        <div class="crewhub-search">
-          <div class="search-input-wrap">
-            <svg style="position:absolute;left:18px;color:var(--text-muted);pointer-events:none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" class="search-input" id="crewhub-search-input" placeholder="Search agents by name, skill, or category..." autocomplete="off">
-          </div>
-        </div>
-        <div class="crewhub-stats-row" id="crewhub-stats-row"></div>
-      </section>
-      <section>
-        <div class="section-container">
-          <div class="crewhub-filters" id="crewhub-filters"></div>
-          <div class="project-grid" id="crewhub-agent-grid"></div>
-          <div class="crewhub-pagination" id="crewhub-pagination"></div>
-        </div>
-      </section>
-    </div>
   </main>
-
-  <!-- Agent detail modal -->
-  <div class="agent-modal-overlay" id="agent-modal-overlay">
-    <div class="agent-modal" id="agent-modal">
-      <button class="agent-modal-close" id="agent-modal-close">&times;</button>
-      <div id="agent-modal-content"></div>
-    </div>
-  </div>
-
-  <!-- Mobile FAB for CrewHub -->
-  <a href="#crewhub" class="crewhub-fab" id="crewhub-fab">🤖</a>
 
   <footer>
     <div class="footer-grid">
@@ -1233,7 +1117,7 @@
         <p class="footer-heading">AI Digital Crew</p>
         <a href="#projects">Projects</a>
         <a href="#trending">Trending</a>
-        <a href="#crewhub">AI Agents</a>
+        <a id="footer-crewhub-link" style="cursor:pointer">AI Agents</a>
         <a href="https://github.com/ariv14" target="_blank" rel="noopener">GitHub</a>
         <a href="/privacy.html">Privacy Policy</a>
         <a href="/terms.html">Terms of Service</a>
@@ -1356,9 +1240,9 @@
 
     if (isStaging) document.title = '[STAGING] ' + document.title;
 
-    const CREWHUB_API = isStaging
-      ? 'https://arimatch1-crewhub-staging.hf.space/api/v1'
-      : 'https://arimatch1-crewhub.hf.space/api/v1';
+    const MARKETPLACE_URL = isStaging
+      ? 'https://marketplace-staging.aidigitalcrew.com/'
+      : 'https://marketplace.aidigitalcrew.com/';
 
     const firebaseReady = (async () => {
       const [appMod, fsMod] = await Promise.all([
@@ -1449,7 +1333,7 @@
       return addedDate.getTime() > weekAgo;
     }
 
-    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, homeSource: 'github', hfSource: 'github', hfModels: [], hfSpaces: [], hfPapers: [], hfLoaded: false, hfLoading: false, hfModelsFilter: { task: 'All', search: '', page: 1 }, hfSpacesFilter: { search: '', page: 1 }, hfPapersFilter: { search: '', page: 1 }, hfTaskActive: null, crewhub: { agents: [], total: 0, page: 1, perPage: 12, category: null, search: '', categories: [], loaded: false } };
+    const state = { user: null, isLoggedIn: false, projects: [], isLoading: true, repoPreview: null, activeCategory: 'All', searchQuery: '', searchResults: null, isSearching: false, githubResults: null, searchCache: new Map(), githubResultsCache: new Map(), lastGitHubApiCall: 0, currentView: 'home', trendingLoaded: false, trendingProjects: [], trendingAiProjects: [], trendingGlobalProjects: [], trendSort: 'momentum', trendTimeRange: '7d', aiFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalFilter: { category: 'All', language: 'All', search: '', page: 1 }, globalView: 'cards', globalTableSort: { col: 'momentum', dir: 'desc' }, moversTab: 'gainers', moversRange: '7d', catLbActive: null, homeSource: 'github', hfSource: 'github', hfModels: [], hfSpaces: [], hfPapers: [], hfLoaded: false, hfLoading: false, hfModelsFilter: { task: 'All', search: '', page: 1 }, hfSpacesFilter: { search: '', page: 1 }, hfPapersFilter: { search: '', page: 1 }, hfTaskActive: null };
 
     const navRight = document.getElementById('nav-right');
     const hamburgerBtn = document.getElementById('hamburger');
@@ -1459,7 +1343,7 @@
     const mobileTrendingBtn = document.getElementById('mobile-trending-btn');
     mobileTrendingBtn.addEventListener('click', () => { mobileMenu.classList.remove('open'); navigateTo('trending'); });
     const mobileCrewhubBtn = document.getElementById('mobile-crewhub-btn');
-    mobileCrewhubBtn.addEventListener('click', () => { mobileMenu.classList.remove('open'); navigateTo('crewhub'); });
+    mobileCrewhubBtn.addEventListener('click', () => { mobileMenu.classList.remove('open'); window.location.href = MARKETPLACE_URL; });
     const avatarDropdown = document.getElementById('avatar-dropdown');
     const loginModal = document.getElementById('login-modal');
     const submitModal = document.getElementById('submit-modal');
@@ -1472,12 +1356,14 @@
     // ── Navigation ───────────────────────────────────────
     function navigateTo(view, skipHash) {
       state.currentView = view;
+      // Redirect to external marketplace
+      if (view === 'crewhub') { window.location.href = MARKETPLACE_URL; return; }
+
       const home = document.getElementById('home');
       const featured = document.getElementById('featured-section');
       const projects = document.getElementById('projects');
       const searchPage = document.getElementById('search-page');
       const trendingPage = document.getElementById('trending-page');
-      const crewhubPage = document.getElementById('crewhub-page');
 
       // Hide all views first
       home.style.display = 'none';
@@ -1485,7 +1371,6 @@
       projects.style.display = 'none';
       searchPage.style.display = 'none';
       trendingPage.style.display = 'none';
-      crewhubPage.style.display = 'none';
       document.getElementById('hf-picks-section').style.display = 'none';
       document.getElementById('hf-explore-cta').style.display = 'none';
 
@@ -1502,9 +1387,6 @@
         trendingPage.style.display = '';
         trendingToggle.style.display = '';
         loadTrendingData();
-      } else if (view === 'crewhub') {
-        crewhubPage.style.display = '';
-        loadCrewHubData();
       } else {
         // home view
         home.style.display = '';
@@ -1522,7 +1404,7 @@
 
       // Update URL hash to reflect current view
       if (!skipHash) {
-        const hash = view === 'search' ? '#search' : view === 'trending' ? '#trending' : view === 'crewhub' ? '#crewhub' : '#home';
+        const hash = view === 'search' ? '#search' : view === 'trending' ? '#trending' : '#home';
         if (location.hash !== hash) history.pushState(null, '', hash);
       }
 
@@ -1538,10 +1420,9 @@
     document.getElementById('nav-search-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('search'); });
     // Wire desktop nav trending link
     document.getElementById('nav-trending-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('trending'); });
-    // Wire desktop nav crewhub link
-    document.getElementById('nav-crewhub-link').addEventListener('click', (e) => { e.preventDefault(); navigateTo('crewhub'); });
-    // Wire mobile FAB
-    document.getElementById('crewhub-fab').addEventListener('click', (e) => { e.preventDefault(); navigateTo('crewhub'); });
+    // Wire desktop nav + footer crewhub links to external marketplace
+    document.getElementById('nav-crewhub-link').addEventListener('click', () => { window.location.href = MARKETPLACE_URL; });
+    document.getElementById('footer-crewhub-link').addEventListener('click', () => { window.location.href = MARKETPLACE_URL; });
 
     // Handle initial hash/path for cross-page navigation
     // Support old /trending URL (rewritten to index.html by hosting)
@@ -1622,7 +1503,7 @@
         document.getElementById('nav-login-btn').addEventListener('click', openLoginModal);
       }
       mobileMenu.innerHTML = `
-        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="#" data-nav="search" id="mobile-search-link">Search</a><a href="#trending" data-nav="trending" id="mobile-trending-link">Trending</a><a href="#crewhub" data-nav="crewhub" id="mobile-crewhub-link">AI Agents</a>
+        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="#" data-nav="search" id="mobile-search-link">Search</a><a href="#trending" data-nav="trending" id="mobile-trending-link">Trending</a><a href="${MARKETPLACE_URL}" id="mobile-crewhub-link">AI Agents</a>
         ${state.isLoggedIn
           ? `<button id="mobile-logout">Logout</button>`
           : `<button id="mobile-login">Login / Join</button>`}
@@ -1634,7 +1515,6 @@
           const target = a.getAttribute('href');
           if (a.dataset.nav === 'search') { navigateTo('search'); }
           else if (a.dataset.nav === 'trending') { navigateTo('trending'); }
-          else if (a.dataset.nav === 'crewhub') { navigateTo('crewhub'); }
           else { navigateTo('home'); if (target === '#projects') setTimeout(() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }), 50); }
         });
       });
@@ -4271,239 +4151,6 @@
       // Safety: stop polling after 10s
       setTimeout(() => clearInterval(poll), 10000);
     }
-
-    // ── CrewHub Marketplace ─────────────────────────────
-
-    async function fetchCrewHubAgents(page, category, search) {
-      const params = new URLSearchParams({ page, per_page: state.crewhub.perPage, status: 'active' });
-      if (category && category !== 'All') params.set('category', category);
-      if (search) params.set('search', search);
-      try {
-        const res = await fetch(`${CREWHUB_API}/agents/?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } catch (e) {
-        console.error('CrewHub fetch error:', e);
-        return null;
-      }
-    }
-
-    async function fetchCrewHubCategories() {
-      try {
-        const res = await fetch(`${CREWHUB_API}/discover/categories`);
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.categories || data || [];
-      } catch { return []; }
-    }
-
-    function renderAgentCard(agent) {
-      const avatar = agent.avatar_url
-        ? `<img src="${agent.avatar_url}" alt="" loading="lazy">`
-        : `<div class="agent-avatar-placeholder">${(agent.name || 'A').charAt(0).toUpperCase()}</div>`;
-      const skills = (agent.skills || []).slice(0, 3).map(s =>
-        `<span class="agent-skill-tag">${s.name || s.skill_key || ''}</span>`
-      ).join('');
-      const stars = agent.reputation_score != null ? '★'.repeat(Math.round(agent.reputation_score)) + '☆'.repeat(5 - Math.round(agent.reputation_score)) : '';
-      const credits = agent.pricing?.credits || agent.pricing?.tiers?.[0]?.credits_per_unit || 0;
-      const latency = agent.avg_latency_ms != null ? (agent.avg_latency_ms < 1000 ? `${Math.round(agent.avg_latency_ms)}ms` : `${(agent.avg_latency_ms / 1000).toFixed(1)}s`) : '--';
-      return `<div class="agent-card glass" data-agent-id="${agent.id}" onclick="document.dispatchEvent(new CustomEvent('show-agent',{detail:'${agent.id}'}))">
-        <div class="agent-card-header">
-          <div class="agent-avatar">${avatar}</div>
-          <div><h3>${agent.name || 'Unnamed Agent'}</h3><span class="agent-category">${agent.category || 'general'}</span></div>
-        </div>
-        <div class="agent-card-body">
-          <p>${agent.description || 'No description.'}</p>
-          ${skills ? `<div class="agent-skills-row">${skills}</div>` : ''}
-          <div class="agent-card-stats">
-            <span>Tasks <span class="stat-val">${agent.total_tasks_completed ?? 0}</span></span>
-            <span>Latency <span class="stat-val">${latency}</span></span>
-            <span>Success <span class="stat-val">${agent.success_rate != null ? Math.round(agent.success_rate) + '%' : '--'}</span></span>
-          </div>
-        </div>
-        <div class="agent-card-footer">
-          <span class="agent-price">${credits > 0 ? credits + ' credits' : 'Free'}</span>
-          <span class="agent-reputation">${stars}</span>
-        </div>
-      </div>`;
-    }
-
-    function renderCrewHubFilters() {
-      const container = document.getElementById('crewhub-filters');
-      const cats = ['All', ...state.crewhub.categories.map(c => typeof c === 'string' ? c : c.category || c.name)];
-      container.textContent = '';
-      cats.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'crewhub-filter-btn' + (((state.crewhub.category || 'All') === cat) ? ' active' : '');
-        btn.textContent = cat;
-        btn.addEventListener('click', () => {
-          state.crewhub.category = cat === 'All' ? null : cat;
-          state.crewhub.page = 1;
-          renderCrewHubFilters();
-          loadCrewHubAgents();
-        });
-        container.appendChild(btn);
-      });
-    }
-
-    function renderCrewHubPagination() {
-      const { total, page, perPage } = state.crewhub;
-      const totalPages = Math.ceil(total / perPage) || 1;
-      const container = document.getElementById('crewhub-pagination');
-      container.textContent = '';
-      if (totalPages <= 1) return;
-      const prev = document.createElement('button');
-      prev.textContent = '← Prev';
-      prev.disabled = page <= 1;
-      prev.addEventListener('click', () => { state.crewhub.page--; loadCrewHubAgents(); });
-      const info = document.createElement('span');
-      info.className = 'page-info';
-      info.textContent = `Page ${page} of ${totalPages}`;
-      const next = document.createElement('button');
-      next.textContent = 'Next →';
-      next.disabled = page >= totalPages;
-      next.addEventListener('click', () => { state.crewhub.page++; loadCrewHubAgents(); });
-      container.append(prev, info, next);
-    }
-
-    async function loadCrewHubAgents() {
-      const grid = document.getElementById('crewhub-agent-grid');
-      grid.textContent = '';
-      const loading = document.createElement('div');
-      loading.className = 'crewhub-loading';
-      loading.textContent = 'Loading agents...';
-      grid.appendChild(loading);
-      const data = await fetchCrewHubAgents(state.crewhub.page, state.crewhub.category, state.crewhub.search);
-      grid.textContent = '';
-      if (!data || !data.agents || data.agents.length === 0) {
-        grid.insertAdjacentHTML('beforeend', '<div class="crewhub-empty"><h3>No agents found</h3><p>Try a different category or search term.</p></div>');
-        state.crewhub.total = 0;
-        renderCrewHubPagination();
-        return;
-      }
-      state.crewhub.agents = data.agents;
-      state.crewhub.total = data.total;
-      data.agents.forEach(agent => {
-        grid.insertAdjacentHTML('beforeend', renderAgentCard(agent));
-      });
-      // Animate cards in
-      requestAnimationFrame(() => {
-        grid.querySelectorAll('.agent-card').forEach((card, i) => {
-          setTimeout(() => card.classList.add('visible'), i * 60);
-        });
-      });
-      renderCrewHubPagination();
-      // Update stats
-      const statsRow = document.getElementById('crewhub-stats-row');
-      statsRow.textContent = '';
-      statsRow.insertAdjacentHTML('beforeend', `<span><strong>${data.total}</strong> agents available</span>`);
-    }
-
-    async function loadCrewHubData() {
-      if (state.crewhub.loaded) return;
-      state.crewhub.loaded = true;
-      // Load categories and agents in parallel
-      const [cats] = await Promise.all([fetchCrewHubCategories(), loadCrewHubAgents()]);
-      state.crewhub.categories = cats;
-      renderCrewHubFilters();
-    }
-
-    // CrewHub search with debounce
-    let _crewHubSearchTimer = null;
-    const crewHubSearchInput = document.getElementById('crewhub-search-input');
-    crewHubSearchInput.addEventListener('input', () => {
-      clearTimeout(_crewHubSearchTimer);
-      _crewHubSearchTimer = setTimeout(() => {
-        state.crewhub.search = crewHubSearchInput.value.trim();
-        state.crewhub.page = 1;
-        state.crewhub.loaded = true; // prevent double load
-        loadCrewHubAgents();
-      }, 400);
-    });
-
-    // Agent detail modal
-    async function showAgentDetail(agentId) {
-      const overlay = document.getElementById('agent-modal-overlay');
-      const content = document.getElementById('agent-modal-content');
-      content.textContent = '';
-      const loading = document.createElement('p');
-      loading.style.cssText = 'text-align:center;color:var(--text-muted)';
-      loading.textContent = 'Loading agent details...';
-      content.appendChild(loading);
-      overlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-
-      try {
-        const res = await fetch(`${CREWHUB_API}/agents/${agentId}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const agent = await res.json();
-        const avatar = agent.avatar_url
-          ? `<img src="${agent.avatar_url}" alt="" style="width:56px;height:56px;border-radius:14px;object-fit:cover">`
-          : `<div class="agent-avatar-placeholder" style="width:56px;height:56px;font-size:24px">${(agent.name || 'A').charAt(0).toUpperCase()}</div>`;
-        const skills = (agent.skills || []).map(s =>
-          `<span class="agent-modal-skill">${s.name || s.skill_key}</span>`
-        ).join('');
-        const starters = (agent.conversation_starters || []).map(s =>
-          `<div class="agent-modal-starter">"${s}"</div>`
-        ).join('');
-        const latency = agent.avg_latency_ms != null ? (agent.avg_latency_ms < 1000 ? `${Math.round(agent.avg_latency_ms)}ms` : `${(agent.avg_latency_ms / 1000).toFixed(1)}s`) : '--';
-        const tiers = (agent.pricing?.tiers || []).map(t =>
-          `<div class="agent-modal-tier">
-            <div class="tier-name">${t.name}</div>
-            <div class="tier-price">${t.credits_per_unit} credits</div>
-            <div class="tier-model">${t.billing_model || 'per_task'}</div>
-          </div>`
-        ).join('');
-        const pricingSection = tiers
-          ? `<div class="agent-modal-section"><h3>Pricing Tiers</h3><div class="agent-modal-pricing">${tiers}</div></div>`
-          : agent.pricing?.credits ? `<div class="agent-modal-section"><h3>Pricing</h3><p class="agent-modal-desc">${agent.pricing.credits} credits per task</p></div>` : '';
-
-        content.textContent = '';
-        content.insertAdjacentHTML('beforeend', `
-          <div class="agent-modal-header">
-            <div class="agent-avatar">${avatar}</div>
-            <div>
-              <h2>${agent.name || 'Unnamed Agent'}</h2>
-              <span class="agent-category">${agent.category || 'general'} · v${agent.version || '1.0.0'}</span>
-            </div>
-          </div>
-          <div class="agent-modal-section">
-            <h3>About</h3>
-            <p class="agent-modal-desc">${agent.description || 'No description.'}</p>
-          </div>
-          ${skills ? `<div class="agent-modal-section"><h3>Skills</h3><div class="agent-modal-skills">${skills}</div></div>` : ''}
-          <div class="agent-modal-section">
-            <h3>Performance</h3>
-            <div class="agent-modal-stats">
-              <div class="agent-modal-stat"><div class="stat-label">Tasks</div><div class="stat-value">${agent.total_tasks_completed ?? 0}</div></div>
-              <div class="agent-modal-stat"><div class="stat-label">Success</div><div class="stat-value">${agent.success_rate != null ? Math.round(agent.success_rate) + '%' : '--'}</div></div>
-              <div class="agent-modal-stat"><div class="stat-label">Latency</div><div class="stat-value">${latency}</div></div>
-              <div class="agent-modal-stat"><div class="stat-label">Rating</div><div class="stat-value">${agent.reputation_score != null ? agent.reputation_score.toFixed(1) + '/5' : '--'}</div></div>
-            </div>
-          </div>
-          ${pricingSection}
-          ${starters ? `<div class="agent-modal-section"><h3>Try It</h3><div class="agent-modal-starters">${starters}</div></div>` : ''}
-        `);
-      } catch (e) {
-        content.textContent = '';
-        const err = document.createElement('p');
-        err.style.cssText = 'text-align:center;color:var(--error,#f87171)';
-        err.textContent = 'Failed to load agent details.';
-        content.appendChild(err);
-      }
-    }
-
-    document.addEventListener('show-agent', (e) => showAgentDetail(e.detail));
-    document.getElementById('agent-modal-close').addEventListener('click', () => {
-      document.getElementById('agent-modal-overlay').classList.remove('open');
-      document.body.style.overflow = '';
-    });
-    document.getElementById('agent-modal-overlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) {
-        e.currentTarget.classList.remove('open');
-        document.body.style.overflow = '';
-      }
-    });
 
     // ── Init ────────────────────────────────────────────
     animateStats();
