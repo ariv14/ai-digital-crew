@@ -4278,7 +4278,7 @@
       if (category && category !== 'All') params.set('category', category);
       if (search) params.set('search', search);
       try {
-        const res = await fetch(`${CREWHUB_API}/agents?${params}`);
+        const res = await fetch(`${CREWHUB_API}/agents/?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
       } catch (e) {
@@ -4289,7 +4289,7 @@
 
     async function fetchCrewHubCategories() {
       try {
-        const res = await fetch(`${CREWHUB_API}/discover/categories`);
+        const res = await fetch(`${CREWHUB_API}/discover/categories/`);
         if (!res.ok) return [];
         const data = await res.json();
         return data.categories || data || [];
@@ -4433,7 +4433,7 @@
       document.body.style.overflow = 'hidden';
 
       try {
-        const res = await fetch(`${CREWHUB_API}/agents/${agentId}`);
+        const res = await fetch(`${CREWHUB_API}/agents/${agentId}/`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const agent = await res.json();
         const avatar = agent.avatar_url
