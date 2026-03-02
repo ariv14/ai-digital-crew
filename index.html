@@ -178,12 +178,12 @@
     .avatar-dropdown a,.avatar-dropdown button{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px;color:var(--text-muted);border-radius:8px;transition:all .2s;width:100%;text-align:left}
     .avatar-dropdown a:hover,.avatar-dropdown button:hover{background:rgba(255,255,255,.05);color:var(--text)}
     .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
-    .hamburger{display:none}
+    .hamburger{display:none;min-width:44px;min-height:44px;padding:10px}
     .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150;background:rgba(15,23,42,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius)}
     .mobile-menu.open{display:flex}
     .mobile-menu a,.mobile-menu button{color:var(--text-muted);font-size:16px;padding:10px;border-radius:8px;transition:all .2s;text-align:left}
     .mobile-nav-icons{display:none;align-items:center;gap:12px}
-    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:var(--text);cursor:pointer;padding:8px;text-decoration:none;transition:all .2s;border-radius:10px}
+    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:var(--text);cursor:pointer;padding:10px;min-width:44px;min-height:44px;text-decoration:none;transition:all .2s;border-radius:10px}
     .mobile-nav-icon:hover{color:var(--text);background:rgba(255,255,255,0.15)}
 
     /* Hero */
@@ -364,17 +364,36 @@
 
     @media(max-width:768px){
       .hero h1{font-size:36px}.hero .subtitle{font-size:16px}
+      .hero{min-height:auto;padding:60px 20px 40px}
       .nav-links,.nav-right{display:none}.hamburger{display:block}.mobile-nav-icons{display:flex}
       .project-grid{grid-template-columns:repeat(2,1fr)}
       .footer-grid{grid-template-columns:repeat(2,1fr)}
       .stat-pill{padding:10px 16px;font-size:13px}.stats-bar{gap:12px}
       .modal{max-width:100%}
+      .section-title{font-size:28px}
+      .section-subtitle{font-size:16px}
+      section{padding:60px 20px}
+      .btn-primary,.btn-outlined,.btn-gold{min-height:44px}
     }
     @media(max-width:480px){
       .hero h1{font-size:28px}nav{padding:14px 16px}
+      .hero .subtitle{font-size:15px}
       .project-grid{grid-template-columns:1fr}
-      .hero-ctas{flex-direction:column;align-items:center}
+      .hero-ctas{flex-direction:column;align-items:center;width:100%}
+      .hero-ctas .btn-primary,.hero-ctas .btn-outlined,.hero-ctas .btn-gold{width:100%;justify-content:center;min-height:48px}
       .footer-grid{grid-template-columns:1fr}
+      .section-title{font-size:24px}
+      section{padding:40px 16px}
+      .stats-bar{gap:8px}.stat-pill{padding:8px 12px;font-size:12px}
+    }
+    @media(max-width:375px){
+      .hero h1{font-size:24px}
+      .hero .subtitle{font-size:14px}
+      nav{padding:12px 12px}
+      .nav-logo span{font-size:16px}
+      .mobile-nav-icons{gap:8px}
+      .section-title{font-size:22px}
+      section{padding:32px 12px}
     }
 
     /* ── Search Bar ─────────────────────────────────────── */
@@ -751,7 +770,7 @@
   <div class="orb" id="orb-3" aria-hidden="true"></div>
 
   <nav id="navbar">
-    <a href="#home" class="nav-logo" id="nav-logo-link"><img src="logo.webp" alt="" width="24" height="24"><span>AI Digital Crew</span></a>
+    <a href="#home" class="nav-logo" id="nav-logo-link"><img src="logo.webp" alt="" width="32" height="32"><span>AI Digital Crew</span></a>
     <div class="nav-links">
       <a href="#home" data-nav="home">Home</a>
       <a href="#projects" data-nav="home">Projects</a>

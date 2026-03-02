@@ -62,7 +62,7 @@
     .nav-right{display:flex;align-items:center;gap:16px}
     .hamburger{display:none;background:none;border:none;color:var(--text);cursor:pointer}
     .mobile-nav-icons{display:none;align-items:center;gap:10px}
-    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;text-decoration:none;transition:color .2s}
+    .mobile-nav-icon{display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:10px;min-width:44px;min-height:44px;text-decoration:none;transition:color .2s}
     .mobile-nav-icon:hover{color:var(--text)}
     .mobile-menu{display:none;position:absolute;top:64px;left:16px;right:16px;padding:16px;flex-direction:column;gap:12px;z-index:150;background:rgba(15,23,42,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius)}
     .mobile-menu.open{display:flex}
@@ -126,7 +126,7 @@
     .embed-snippet{position:relative;margin-bottom:16px}
     .embed-snippet label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
     .embed-snippet code{display:block;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:13px;font-family:'JetBrains Mono','Fira Code',monospace;color:var(--text-muted);word-break:break-all;white-space:pre-wrap}
-    .copy-btn{position:absolute;top:28px;right:8px;padding:4px 12px;font-size:11px;font-weight:600;border-radius:6px;background:rgba(59,130,246,.15);color:#60a5fa;cursor:pointer;border:none;transition:all .2s}
+    .copy-btn{position:absolute;top:28px;right:8px;padding:10px 16px;min-height:44px;font-size:13px;font-weight:600;border-radius:8px;background:rgba(59,130,246,.15);color:#60a5fa;cursor:pointer;border:none;transition:all .2s}
     .copy-btn:hover{background:rgba(59,130,246,.3)}
 
     /* Loading */
@@ -147,8 +147,29 @@
       .hamburger{display:block}
       .mobile-nav-icons{display:flex}
       .project-title{font-size:28px}
-      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .project-hero{padding:80px 20px 32px}
+      .stats-grid{grid-template-columns:repeat(2,1fr);padding:0 20px}
+      .chart-section,.embed-section{padding:32px 20px}
       .footer-grid{grid-template-columns:1fr}
+      .project-link{min-height:44px;padding:10px 18px;font-size:14px}
+    }
+    @media(max-width:480px){
+      nav{padding:14px 16px}
+      .project-title{font-size:24px}
+      .project-owner{font-size:14px}
+      .project-desc{font-size:15px}
+      .project-hero{padding:70px 16px 24px}
+      .stats-grid{grid-template-columns:1fr;gap:12px;padding:0 16px}
+      .stat-card{padding:18px}
+      .stat-card .stat-val{font-size:24px}
+      .chart-section,.embed-section{padding:24px 16px}
+      .embed-snippet code{font-size:12px;padding:10px 12px}
+      .momentum-large{padding:0 16px;flex-wrap:wrap}
+    }
+    @media(max-width:375px){
+      .project-title{font-size:22px}
+      nav{padding:12px 12px}
+      .nav-logo span{font-size:16px}
     }
   </style>
 </head>
@@ -157,7 +178,7 @@
   <div class="orb" id="orb-2" aria-hidden="true"></div>
 
   <nav id="navbar">
-    <a href="/" class="nav-logo"><img src="logo.webp" alt="AI Digital Crew" width="24" height="24"><span>AI Digital Crew</span></a>
+    <a href="/" class="nav-logo"><img src="logo.webp" alt="AI Digital Crew" width="32" height="32"><span>AI Digital Crew</span></a>
     <div class="nav-links">
       <a href="/">Home</a>
       <a href="/#projects">Projects</a>

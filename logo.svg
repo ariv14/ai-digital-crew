@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Blue sphere gradient -->
+    <radialGradient id="blueSphere" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#93c5fd"/>
+      <stop offset="30%" stop-color="#60a5fa"/>
+      <stop offset="60%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </radialGradient>
+    <!-- Purple sphere gradient -->
+    <radialGradient id="purpleSphere" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="30%" stop-color="#a78bfa"/>
+      <stop offset="60%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </radialGradient>
+    <!-- Teal sphere gradient -->
+    <radialGradient id="tealSphere" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="30%" stop-color="#22d3ee"/>
+      <stop offset="60%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </radialGradient>
+    <!-- Gold line gradient -->
+    <linearGradient id="goldLine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="50%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <!-- Sphere outer glow filter -->
+    <filter id="sphereGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Blue glow -->
+    <filter id="blueGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="12" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Purple glow -->
+    <filter id="purpleGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="12" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Teal glow -->
+    <filter id="tealGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="12" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Gold line glow -->
+    <filter id="goldGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Specular highlight -->
+    <radialGradient id="specular" cx="35%" cy="30%" r="30%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Inner shadow for depth -->
+    <filter id="innerShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+      <feOffset dx="4" dy="4" result="offsetBlur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.4" result="color"/>
+      <feComposite in="color" in2="offsetBlur" operator="in" result="shadow"/>
+      <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Triangle positions: top=256,80  bottom-left=128,380  bottom-right=384,380 -->
+
+  <!-- Gold connecting lines -->
+  <g filter="url(#goldGlow)">
+    <!-- Top to bottom-left -->
+    <line x1="256" y1="120" x2="148" y2="340" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+    <line x1="256" y1="120" x2="148" y2="340" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <!-- Top to bottom-right -->
+    <line x1="256" y1="120" x2="364" y2="340" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+    <line x1="256" y1="120" x2="364" y2="340" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <!-- Bottom-left to bottom-right -->
+    <line x1="148" y1="340" x2="364" y2="340" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+    <line x1="148" y1="340" x2="364" y2="340" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <!-- Blue sphere (top) -->
+  <g filter="url(#blueGlow)">
+    <circle cx="256" cy="120" r="72" fill="url(#blueSphere)" filter="url(#innerShadow)"/>
+    <ellipse cx="240" cy="100" rx="22" ry="14" fill="url(#specular)" transform="rotate(-20 240 100)"/>
+  </g>
+
+  <!-- Purple sphere (bottom-left) -->
+  <g filter="url(#purpleGlow)">
+    <circle cx="148" cy="340" r="72" fill="url(#purpleSphere)" filter="url(#innerShadow)"/>
+    <ellipse cx="132" cy="320" rx="22" ry="14" fill="url(#specular)" transform="rotate(-20 132 320)"/>
+  </g>
+
+  <!-- Teal sphere (bottom-right) -->
+  <g filter="url(#tealGlow)">
+    <circle cx="364" cy="340" r="72" fill="url(#tealSphere)" filter="url(#innerShadow)"/>
+    <ellipse cx="348" cy="320" rx="22" ry="14" fill="url(#specular)" transform="rotate(-20 348 320)"/>
+  </g>
+</svg>
