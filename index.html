@@ -2636,9 +2636,27 @@
       repoUrlInput.dispatchEvent(new Event('input'));
     };
 
-    // ── Search: Analytics ───────────────────────────────
+    // ── Search: Analytics (with 60s dedup to prevent write exhaustion) ─────
+    const analyticsDedup = new Map(); // key → timestamp of last write
+    const ANALYTICS_DEDUP_MS = 60 * 1000; // 60 seconds
+
+    function shouldLogAnalytics(dedupKey) {
+      const now = Date.now();
+      const lastWrite = analyticsDedup.get(dedupKey);
+      if (lastWrite && (now - lastWrite) < ANALYTICS_DEDUP_MS) return false;
+      analyticsDedup.set(dedupKey, now);
+      // Evict stale entries to prevent memory growth
+      if (analyticsDedup.size > 200) {
+        for (const [k, v] of analyticsDedup) {
+          if ((now - v) > ANALYTICS_DEDUP_MS) analyticsDedup.delete(k);
+        }
+      }
+      return true;
+    }
+
     async function logSearchAnalytics(queryText, resultCount) {
       if (!state.isLoggedIn) return;
+      if (!shouldLogAnalytics(`search:${queryText.toLowerCase().trim()}`)) return;
       try {
         await addDoc(collection(db, 'searchAnalytics'), {
           query: queryText,
@@ -2651,6 +2669,7 @@
 
     window.logSearchClick = async function(queryText, projectName) {
       if (!state.isLoggedIn) return;
+      if (!shouldLogAnalytics(`click:${queryText.toLowerCase().trim()}:${projectName}`)) return;
       try {
         // Find the position of this project in results
         const pos = (state.searchResults || []).findIndex(r => (r.project.fullName || r.project.name) === projectName);

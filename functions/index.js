@@ -123,6 +123,13 @@ export const getQueryEmbedding = onCall(
     region: 'us-central1',
   },
   async (request) => {
+    // findSimilar/findSimilarBatch use cached data only — no Gemini cost, allow without auth
+    const isCacheOnly = request.data?.findSimilar || request.data?.findSimilarBatch;
+
+    if (!isCacheOnly && !request.auth) {
+      throw new HttpsError('unauthenticated', 'Authentication required for semantic search');
+    }
+
     checkRateLimit(request.auth?.uid);
 
     // findSimilarBatch — compute similar projects for multiple targets in one call
@@ -278,6 +285,31 @@ export const getQueryEmbedding = onCall(
   }
 );
 
+// ── trendBadge — Rate limiting (IP-based) & in-memory SVG cache ─────────────
+const BADGE_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const BADGE_RATE_LIMIT_MAX = 60;              // 60 req/min per IP
+const badgeRateLimitMap = new Map();           // ip → { count, windowStart }
+const BADGE_CACHE_TTL_MS = 60 * 60 * 1000;    // 1 hour
+const badgeSvgCache = new Map();               // repoName → { svg, timestamp }
+
+function checkBadgeRateLimit(ip) {
+  const now = Date.now();
+  let entry = badgeRateLimitMap.get(ip);
+  if (!entry || (now - entry.windowStart) > BADGE_RATE_LIMIT_WINDOW_MS) {
+    entry = { count: 0, windowStart: now };
+    badgeRateLimitMap.set(ip, entry);
+  }
+  entry.count++;
+  if (entry.count > BADGE_RATE_LIMIT_MAX) return false;
+  // Evict stale entries
+  if (badgeRateLimitMap.size > 5000) {
+    for (const [k, v] of badgeRateLimitMap) {
+      if ((now - v.windowStart) > BADGE_RATE_LIMIT_WINDOW_MS) badgeRateLimitMap.delete(k);
+    }
+  }
+  return true;
+}
+
 // ── trendBadge — Dynamic SVG badge for repos ────────────────────────────────
 
 function generateBadgeSvg(label, score, trendLabel) {
@@ -316,9 +348,25 @@ function generateBadgeSvg(label, score, trendLabel) {
 export const trendBadge = onRequest(
   { region: 'us-central1', cors: true },
   async (req, res) => {
+    // IP-based rate limiting
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+    if (!checkBadgeRateLimit(clientIp)) {
+      res.status(429).send('Rate limit exceeded. Try again in a minute.');
+      return;
+    }
+
     const repo = req.query.repo;
-    if (!repo || typeof repo !== 'string') {
-      res.status(400).send('Missing ?repo= parameter');
+    if (!repo || typeof repo !== 'string' || repo.length > 200) {
+      res.status(400).send('Missing or invalid ?repo= parameter');
+      return;
+    }
+
+    // Check in-memory SVG cache first
+    const cached = badgeSvgCache.get(repo);
+    if (cached && (Date.now() - cached.timestamp) < BADGE_CACHE_TTL_MS) {
+      res.set('Content-Type', 'image/svg+xml');
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.send(cached.svg);
       return;
     }
 
@@ -337,6 +385,16 @@ export const trendBadge = onRequest(
       const score = (p.trend_momentum || 0).toFixed(0);
       const label = { hot: 'Hot', rising: 'Rising', steady: 'Steady', declining: 'Cooling', new: 'New' }[p.trend_label] || 'Tracked';
       const svg = generateBadgeSvg(label, score, p.trend_label || 'steady');
+
+      // Cache the SVG in memory
+      badgeSvgCache.set(repo, { svg, timestamp: Date.now() });
+      // Evict stale cache entries
+      if (badgeSvgCache.size > 1000) {
+        const now = Date.now();
+        for (const [k, v] of badgeSvgCache) {
+          if ((now - v.timestamp) > BADGE_CACHE_TTL_MS) badgeSvgCache.delete(k);
+        }
+      }
 
       res.set('Content-Type', 'image/svg+xml');
       res.set('Cache-Control', 'public, max-age=3600');
