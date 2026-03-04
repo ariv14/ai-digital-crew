@@ -776,13 +776,13 @@
       <a href="#projects" data-nav="home">Projects</a>
       <a href="#" data-nav="search" id="nav-search-link">Search</a>
       <a href="#trending" data-nav="trending" id="nav-trending-link">Trending</a>
-      <a id="nav-crewhub-link" style="background:linear-gradient(135deg,var(--primary),var(--primary-end));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;cursor:pointer">AI Agents</a>
+      <a id="nav-crewhub-link" class="prod-hide" style="background:linear-gradient(135deg,var(--primary),var(--primary-end));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;cursor:pointer">AI Agents</a>
     </div>
     <div class="nav-right" id="nav-right"></div>
     <div class="mobile-nav-icons">
       <button class="mobile-nav-icon" id="mobile-search-btn" aria-label="Search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
       <button class="mobile-nav-icon" id="mobile-trending-btn" aria-label="Trending"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button>
-      <button class="mobile-nav-icon" id="mobile-crewhub-btn" aria-label="AI Agents"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M9 19h6"/></svg></button>
+      <button class="mobile-nav-icon prod-hide" id="mobile-crewhub-btn" aria-label="AI Agents"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M9 19h6"/></svg></button>
     </div>
     <button class="hamburger" id="hamburger" aria-label="Open menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button>
     <div class="mobile-menu" id="mobile-menu"></div>
@@ -1136,7 +1136,7 @@
         <p class="footer-heading">AI Digital Crew</p>
         <a href="#projects">Projects</a>
         <a href="#trending">Trending</a>
-        <a id="footer-crewhub-link" style="cursor:pointer">AI Agents</a>
+        <a id="footer-crewhub-link" class="prod-hide" style="cursor:pointer">AI Agents</a>
         <a href="https://github.com/ariv14" target="_blank" rel="noopener">GitHub</a>
         <a href="/privacy.html">Privacy Policy</a>
         <a href="/terms.html">Terms of Service</a>
@@ -1258,6 +1258,7 @@
         };
 
     if (isStaging) document.title = '[STAGING] ' + document.title;
+    if (!isStaging) document.querySelectorAll('.prod-hide').forEach(el => el.style.display = 'none');
 
     const MARKETPLACE_URL = isStaging
       ? 'https://marketplace-staging.aidigitalcrew.com/'
@@ -1522,7 +1523,7 @@
         document.getElementById('nav-login-btn').addEventListener('click', openLoginModal);
       }
       mobileMenu.innerHTML = `
-        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="#" data-nav="search" id="mobile-search-link">Search</a><a href="#trending" data-nav="trending" id="mobile-trending-link">Trending</a><a href="${MARKETPLACE_URL}" id="mobile-crewhub-link">AI Agents</a>
+        <a href="#home" data-nav="home">Home</a><a href="#projects" data-nav="home">Projects</a><a href="#" data-nav="search" id="mobile-search-link">Search</a><a href="#trending" data-nav="trending" id="mobile-trending-link">Trending</a>${isStaging ? `<a href="${MARKETPLACE_URL}" id="mobile-crewhub-link">AI Agents</a>` : ''}
         ${state.isLoggedIn
           ? `<button id="mobile-logout">Logout</button>`
           : `<button id="mobile-login">Login / Join</button>`}
