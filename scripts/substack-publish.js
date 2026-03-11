@@ -58,6 +58,17 @@ function buildProseMirrorDoc(writeup, quickStart, repoUrl, repoFullName) {
   content.push({ type: 'paragraph' });
   content.push({
     type: 'paragraph',
+    content: [
+      { type: 'text', text: '🤖 ' },
+      { type: 'text', text: 'NEW: AI Agent Marketplace', marks: [{ type: 'bold' }] },
+      { type: 'text', text: ' — Discover, compare, and deploy AI agents for your workflows. ' },
+      { type: 'text', text: 'Explore now →', marks: [{ type: 'link', attrs: { href: 'https://marketplace.aidigitalcrew.com/', target: '_blank' } }] },
+    ],
+  });
+
+  content.push({ type: 'paragraph' });
+  content.push({
+    type: 'paragraph',
     content: [{ type: 'text', text: '— Auto-discovered by AI Digital Crew • aidigitalcrew.com' }],
   });
 
