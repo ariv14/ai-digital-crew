@@ -287,8 +287,23 @@ const CACHE_FIELDS = [
   // 'trend_sparkline30d' — removed (30 floats/project); UI falls back to trend_sparkline
 ];
 
+// Heavy fields included only for the featured POTD (most recent source:'auto')
+const POTD_EXTRA_FIELDS = ['writeup', 'quickStart'];
+
 async function writeProjectsCache(db, allDocs) {
   console.log('Writing projectsCache/latest...');
+
+  // Find the most recent auto-added project (the featured POTD)
+  let latestAutoDate = '';
+  let latestAutoName = '';
+  for (const d of allDocs) {
+    const raw = d.data();
+    if (raw.source === 'auto' && (raw.autoAddedDate || '') > latestAutoDate) {
+      latestAutoDate = raw.autoAddedDate || '';
+      latestAutoName = raw.fullName || '';
+    }
+  }
+
   const projects = allDocs.map(d => {
     const raw = d.data();
     const obj = {};
@@ -299,6 +314,12 @@ async function writeProjectsCache(db, allDocs) {
         obj[key] = raw[key].toDate().toISOString();
       } else {
         obj[key] = raw[key];
+      }
+    }
+    // Include writeup + quickStart only for the featured POTD to save space
+    if (raw.fullName === latestAutoName) {
+      for (const key of POTD_EXTRA_FIELDS) {
+        if (raw[key] !== undefined) obj[key] = raw[key];
       }
     }
     return obj;
