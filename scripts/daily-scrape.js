@@ -274,13 +274,17 @@ async function collectSnapshots(db, allDocs) {
 // ── Projects cache: single-doc for frontend (1 read instead of N) ─────────
 
 const CACHE_FIELDS = [
-  'fullName', 'name', 'owner', 'ownerAvatar', 'description', 'writeup', 'quickStart',
+  'fullName', 'name', 'owner', 'ownerAvatar', 'description',
+  // 'writeup' — removed to stay under Firestore 1MB doc limit; UI falls back to description
+  // 'quickStart' — removed; UI hides the accordion gracefully when absent
   'stars', 'forks', 'language', 'topics', 'url', 'category', 'source', 'autoAddedDate',
-  'submittedBy', 'submittedByName', 'createdAt',
+  'submittedBy', 'createdAt',
+  // 'submittedByName' — removed; never rendered by frontend
   'trend_momentum', 'trend_label', 'trend_stars7d', 'trend_starsPct7d', 'trend_forks7d',
   'trend_stars1d', 'trend_starsPct1d', 'trend_forks1d',
   'trend_stars30d', 'trend_starsPct30d', 'trend_forks30d',
-  'trend_sparkline', 'trend_sparkline30d', 'trend_updatedAt',
+  'trend_sparkline', 'trend_updatedAt',
+  // 'trend_sparkline30d' — removed (30 floats/project); UI falls back to trend_sparkline
 ];
 
 async function writeProjectsCache(db, allDocs) {
@@ -300,11 +304,17 @@ async function writeProjectsCache(db, allDocs) {
     return obj;
   });
 
-  await db.collection('projectsCache').doc('latest').set({
-    projects,
-    updatedAt: new Date().toISOString(),
-  });
-  console.log(`projectsCache/latest written with ${projects.length} projects`);
+  const payload = { projects, updatedAt: new Date().toISOString() };
+  const byteSize = Buffer.byteLength(JSON.stringify(payload), 'utf8');
+  console.log(`projectsCache payload: ${byteSize} bytes (${projects.length} projects, limit: 1,048,576)`);
+  if (byteSize > 900_000) {
+    console.warn(`WARNING: projectsCache approaching 1MB Firestore limit (${byteSize} bytes). Consider trimming more fields or switching to a Cloud Function endpoint.`);
+  }
+  if (byteSize > 1_048_576) {
+    throw new Error(`projectsCache exceeds Firestore 1MB doc limit: ${byteSize} bytes`);
+  }
+  await db.collection('projectsCache').doc('latest').set(payload);
+  console.log(`projectsCache/latest written with ${projects.length} projects (${byteSize} bytes)`);
 }
 
 // ── Embeddings cache: chunked for Cloud Function ──────────────────────────────
@@ -674,6 +684,7 @@ async function main() {
   };
 
   await writeProjectToFirestore(db, projectDoc);
+  existingNames.add(chosen.full_name); // prevent duplicate in trending discovery
 
   // 5b. Generate embeddings for the new project
   console.log('Generating embeddings...');
