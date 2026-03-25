@@ -287,51 +287,71 @@ const CACHE_FIELDS = [
   // 'trend_sparkline30d' — removed (30 floats/project); UI falls back to trend_sparkline
 ];
 
-// Heavy fields included only for the featured POTD (most recent source:'auto')
+// Heavy fields included for daily picks (source:'auto'), budget-aware
 const POTD_EXTRA_FIELDS = ['writeup', 'quickStart'];
+const MAX_CACHE_BYTES = 1_048_576;
+const CACHE_WARN_BYTES = 900_000;
 
 async function writeProjectsCache(db, allDocs) {
   console.log('Writing projectsCache/latest...');
 
-  // Find the most recent auto-added project (the featured POTD)
-  let latestAutoDate = '';
-  let latestAutoName = '';
+  // Collect daily picks sorted newest-first (frontend picks [0] as featured)
+  const cutoff = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const dailyPicks = [];
   for (const d of allDocs) {
     const raw = d.data();
-    if (raw.source === 'auto' && (raw.autoAddedDate || '') > latestAutoDate) {
-      latestAutoDate = raw.autoAddedDate || '';
-      latestAutoName = raw.fullName || '';
+    if (raw.source === 'auto' && (raw.autoAddedDate || '') >= cutoff) {
+      dailyPicks.push({ fullName: raw.fullName, date: raw.autoAddedDate || '' });
     }
   }
+  dailyPicks.sort((a, b) => b.date.localeCompare(a.date));
 
+  // Build lean base payload first (no writeup/quickStart)
+  const projectMap = new Map();
   const projects = allDocs.map(d => {
     const raw = d.data();
     const obj = {};
     for (const key of CACHE_FIELDS) {
       if (raw[key] === undefined) continue;
-      // Convert Firestore Timestamps to ISO strings
       if (raw[key] && typeof raw[key].toDate === 'function') {
         obj[key] = raw[key].toDate().toISOString();
       } else {
         obj[key] = raw[key];
       }
     }
-    // Include writeup + quickStart only for the featured POTD to save space
-    if (raw.fullName === latestAutoName) {
-      for (const key of POTD_EXTRA_FIELDS) {
-        if (raw[key] !== undefined) obj[key] = raw[key];
-      }
-    }
+    projectMap.set(raw.fullName, { obj, raw });
     return obj;
   });
 
-  const payload = { projects, updatedAt: new Date().toISOString() };
-  const byteSize = Buffer.byteLength(JSON.stringify(payload), 'utf8');
-  console.log(`projectsCache payload: ${byteSize} bytes (${projects.length} projects, limit: 1,048,576)`);
-  if (byteSize > 900_000) {
-    console.warn(`WARNING: projectsCache approaching 1MB Firestore limit (${byteSize} bytes). Consider trimming more fields or switching to a Cloud Function endpoint.`);
+  // Progressively add writeup/quickStart for daily picks (newest first)
+  // until we approach the size limit
+  let payload = { projects, updatedAt: new Date().toISOString() };
+  let byteSize = Buffer.byteLength(JSON.stringify(payload), 'utf8');
+  let enriched = 0;
+
+  for (const pick of dailyPicks) {
+    const entry = projectMap.get(pick.fullName);
+    if (!entry) continue;
+
+    // Trial: add heavy fields and measure
+    const extras = {};
+    for (const key of POTD_EXTRA_FIELDS) {
+      if (entry.raw[key] !== undefined) extras[key] = entry.raw[key];
+    }
+    const extraBytes = Buffer.byteLength(JSON.stringify(extras), 'utf8');
+
+    if (byteSize + extraBytes > CACHE_WARN_BYTES) {
+      console.log(`Stopping POTD enrichment at ${enriched}/${dailyPicks.length} picks (${byteSize + extraBytes} would exceed ${CACHE_WARN_BYTES} warn threshold)`);
+      break;
+    }
+
+    Object.assign(entry.obj, extras);
+    byteSize += extraBytes;
+    enriched++;
   }
-  if (byteSize > 1_048_576) {
+
+  console.log(`projectsCache payload: ${byteSize} bytes (${projects.length} projects, ${enriched}/${dailyPicks.length} picks enriched, limit: ${MAX_CACHE_BYTES})`);
+  if (byteSize > MAX_CACHE_BYTES) {
     throw new Error(`projectsCache exceeds Firestore 1MB doc limit: ${byteSize} bytes`);
   }
   await db.collection('projectsCache').doc('latest').set(payload);
