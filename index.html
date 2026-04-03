@@ -272,6 +272,11 @@
     .featured-name a:hover{color:#f59e0b}
     .featured-owner{font-size:13px;color:var(--text-muted);margin-bottom:14px}
     .featured-writeup{font-size:14px;color:var(--text-muted);line-height:1.7;margin-bottom:18px;overflow-wrap:break-word;word-break:break-word}
+    .featured-writeup p{margin:0 0 10px}
+    .featured-writeup p:last-child{margin-bottom:0}
+    .show-more-wrap{text-align:center;margin:24px 0 8px}
+    .btn-show-more{background:var(--glass);border:1px solid var(--border);color:var(--primary);padding:10px 28px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:background .2s,border-color .2s}
+    .btn-show-more:hover{background:rgba(59,130,246,.1);border-color:var(--primary)}
     .featured-qs{margin-bottom:18px;background:rgba(255,255,255,.03);border-radius:10px;padding:14px 18px;border:1px solid var(--border)}
     .featured-qs .qs-label{font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:10px}
     .featured-qs ol{padding-left:18px;color:var(--text-muted);font-size:13px;line-height:1.7}
@@ -1570,7 +1575,11 @@
         return;
       }
 
-      projectGrid.innerHTML = filtered.map(p => {
+      const PROJECT_PAGE_SIZE = 25;
+      const visible = filtered.slice(0, PROJECT_PAGE_SIZE);
+      const hasMore = filtered.length > PROJECT_PAGE_SIZE;
+
+      function buildCard(p) {
         const langColor = LANG_COLORS[p.language] || '#888';
         const topics = (p.topics || []).slice(0, 5);
         const cat = inferCategory(p);
@@ -1594,8 +1603,26 @@
               </div>
             </div>
           </div>`;
-      }).join('');
+      }
 
+      projectGrid.textContent = '';
+      projectGrid.insertAdjacentHTML('beforeend', visible.map(buildCard).join(''));
+
+      if (hasMore) {
+        const wrap = document.createElement('div');
+        wrap.className = 'show-more-wrap';
+        wrap.style.gridColumn = '1/-1';
+        const btn = document.createElement('button');
+        btn.className = 'btn-show-more';
+        btn.textContent = 'Show All ' + filtered.length + ' Projects';
+        btn.addEventListener('click', function () {
+          wrap.remove();
+          projectGrid.insertAdjacentHTML('beforeend', filtered.slice(PROJECT_PAGE_SIZE).map(buildCard).join(''));
+          observeCards();
+        });
+        wrap.appendChild(btn);
+        projectGrid.appendChild(wrap);
+      }
 
       observeCards();
       updateStats();
@@ -1645,7 +1672,7 @@
           <div>
             <div class="featured-name"><a href="${esc(featured.url)}" target="_blank" rel="noopener">${esc(featured.name)}</a></div>
             <div class="featured-owner">by ${esc(featured.owner)}</div>
-            <p class="featured-writeup">${esc(featured.writeup || featured.description)}</p>
+            <div class="featured-writeup">${(featured.writeup || featured.description || '').split(/\n\n+/).filter(Boolean).map(para => '<p>' + esc(para.trim()) + '</p>').join('')}</div>
             ${featured.quickStart && featured.quickStart.length ? `<div class="featured-qs"><div class="qs-label">⚡ Quick Start</div><ol>${featured.quickStart.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>` : ''}
             <div class="marketplace-promo" style="margin:12px 0;padding:10px 14px;border-radius:8px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.08));border:1px solid rgba(99,102,241,0.15);font-size:13px;color:var(--text-secondary)">
               🤖 <strong>New!</strong> Explore our <a href="https://marketplace.aidigitalcrew.com/" target="_blank" rel="noopener" style="color:var(--primary);font-weight:600">AI Agent Marketplace</a> — discover, compare, and deploy AI agents for your workflows.
@@ -2030,6 +2057,21 @@
         }
 
         applyProjectData(allProjects);
+
+        // Fetch the featured POTD writeup from a separate small doc (avoids 1MB cache limit)
+        try {
+          const featSnap = await getDoc(doc(db, 'projectsCache', 'featured'));
+          if (featSnap.exists()) {
+            const feat = featSnap.data();
+            const target = state.projects.find(p => p.fullName === feat.fullName);
+            if (target) {
+              if (feat.writeup) target.writeup = feat.writeup;
+              if (feat.quickStart) target.quickStart = feat.quickStart;
+              console.log(`Featured writeup loaded for ${feat.fullName} (${feat.writeup?.length || 0} chars)`);
+            }
+          }
+        } catch (e) { console.warn('Featured doc fetch failed (non-fatal):', e.message); }
+
         try { await initFuse(); } catch (e) { console.warn('Fuse init deferred:', e.message); }
       } catch (err) {
         console.error('loadAllProjects error:', err);

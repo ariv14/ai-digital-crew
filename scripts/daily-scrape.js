@@ -356,6 +356,25 @@ async function writeProjectsCache(db, allDocs) {
   }
   await db.collection('projectsCache').doc('latest').set(payload);
   console.log(`projectsCache/latest written with ${projects.length} projects (${byteSize} bytes)`);
+
+  // Write a separate small doc with the featured POTD's writeup + quickStart
+  // This avoids the 1MB budget issue — frontend fetches this with 1 extra read
+  if (dailyPicks.length > 0) {
+    const topPick = dailyPicks[0];
+    const topEntry = projectMap.get(topPick.fullName);
+    if (topEntry && topEntry.raw.writeup) {
+      const featuredDoc = {
+        fullName: topPick.fullName,
+        writeup: topEntry.raw.writeup,
+        quickStart: topEntry.raw.quickStart || [],
+        updatedAt: new Date().toISOString(),
+      };
+      await db.collection('projectsCache').doc('featured').set(featuredDoc);
+      console.log(`projectsCache/featured written for ${topPick.fullName} (writeup: ${topEntry.raw.writeup.length} chars)`);
+    } else {
+      console.log(`No writeup found for top pick ${topPick.fullName} — skipping featured doc`);
+    }
+  }
 }
 
 // ── Embeddings cache: chunked for Cloud Function ──────────────────────────────
@@ -418,7 +437,7 @@ async function generateWriteup(repoMeta, readme) {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const prompt = `You are a technical writer for AI developers. Given a GitHub repository, produce a JSON response with exactly two fields:
-- "writeup": 2-3 paragraph summary for AI developers explaining what the project does and why it matters
+- "writeup": A detailed 3-4 paragraph writeup for AI developers. Paragraph 1: What the project does, its core value proposition, and the problem it solves. Paragraph 2: Key technical features, architecture highlights, and what makes it unique compared to alternatives. Paragraph 3: Real-world use cases, who benefits most, and community traction (stars, contributors). Paragraph 4 (optional): Notable integrations, roadmap highlights, or why it matters for the AI ecosystem. Separate each paragraph with two newlines (\\n\\n). Write in an engaging, informative tone — not generic marketing fluff.
 - "quickStart": array of 3-5 strings, each a concise step to get started (install, configure, run)
 
 Repository name: ${repoMeta.full_name}
