@@ -717,7 +717,25 @@ async function main() {
   }
 
   if (!chosen) {
-    console.log('All candidates already in Firestore. Exiting.');
+    console.log('All candidates already in Firestore.');
+    // Still rebuild the cache so the website stays up-to-date
+    console.log('Rebuilding cache with existing projects...');
+    const MAX_CACHE_RETRIES = 3;
+    let cacheWritten = false;
+    for (let attempt = 1; attempt <= MAX_CACHE_RETRIES; attempt++) {
+      try {
+        await writeProjectsCache(db, allDocs);
+        cacheWritten = true;
+        break;
+      } catch (cacheErr) {
+        console.error(`Cache write failed (attempt ${attempt}/${MAX_CACHE_RETRIES}): ${cacheErr.message}`);
+        if (attempt < MAX_CACHE_RETRIES) {
+          await new Promise(r => setTimeout(r, 3000 * attempt));
+        }
+      }
+    }
+    if (cacheWritten) console.log('Cache rebuilt successfully.');
+    else console.warn('Cache rebuild failed — website may show stale data.');
     return;
   }
 
