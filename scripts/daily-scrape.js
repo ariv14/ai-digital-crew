@@ -271,47 +271,46 @@ async function collectSnapshots(db, allDocs) {
   console.log(`Snapshots complete: ${processed} updated, ${failed} failed`);
 }
 
-// ── Projects cache: single-doc for frontend (1 read instead of N) ─────────
+// ── Projects cache: split into home + trending docs ──────────────────────
 
-const CACHE_FIELDS = [
+// Home cache: core display fields only (no trend data)
+const HOME_FIELDS = [
   'fullName', 'name', 'owner', 'ownerAvatar', 'description',
-  // 'writeup' — removed to stay under Firestore 1MB doc limit; UI falls back to description
-  // 'quickStart' — removed; UI hides the accordion gracefully when absent
   'stars', 'forks', 'language', 'topics', 'url', 'category', 'source', 'autoAddedDate',
   'submittedBy', 'createdAt',
-  // 'submittedByName' — removed; never rendered by frontend
+];
+
+// Trending cache: trend metrics keyed by fullName (loaded separately by trending view)
+const TREND_FIELDS = [
   'trend_momentum', 'trend_label', 'trend_stars7d', 'trend_starsPct7d', 'trend_forks7d',
   'trend_stars1d', 'trend_starsPct1d', 'trend_forks1d',
   'trend_stars30d', 'trend_starsPct30d', 'trend_forks30d',
-  'trend_sparkline', 'trend_updatedAt',
-  // 'trend_sparkline30d' — removed (30 floats/project); UI falls back to trend_sparkline
+  'trend_sparkline', 'trend_sparkline30d', 'trend_updatedAt',
 ];
 
-// Heavy fields included for daily picks (source:'auto'), budget-aware
 const POTD_EXTRA_FIELDS = ['writeup', 'quickStart'];
 const MAX_CACHE_BYTES = 1_048_576;
 const CACHE_WARN_BYTES = 900_000;
 
-async function writeProjectsCache(db, allDocs) {
-  console.log('Writing projectsCache/latest...');
-
-  // Collect daily picks sorted newest-first (frontend picks [0] as featured)
-  const cutoff = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const dailyPicks = [];
-  for (const d of allDocs) {
-    const raw = d.data();
-    if (raw.source === 'auto' && (raw.autoAddedDate || '') >= cutoff) {
-      dailyPicks.push({ fullName: raw.fullName, date: raw.autoAddedDate || '' });
+async function writeProjectsCache(db, allDocs, expectedFullName) {
+  // Assert the expected new project is present before writing cache
+  if (expectedFullName) {
+    const found = allDocs.some(d => d.data().fullName === expectedFullName);
+    if (!found) {
+      throw new Error(`Consistency error: expected project ${expectedFullName} not found in allDocs`);
     }
   }
-  dailyPicks.sort((a, b) => b.date.localeCompare(a.date));
 
-  // Build lean base payload first (no writeup/quickStart)
+  const now = new Date().toISOString();
+
+  // ── Home cache (projectsCache/home) ──────────────────────────────────
+  console.log('Writing projectsCache/home...');
+
   const projectMap = new Map();
-  const projects = allDocs.map(d => {
+  const homeProjects = allDocs.map(d => {
     const raw = d.data();
     const obj = {};
-    for (const key of CACHE_FIELDS) {
+    for (const key of HOME_FIELDS) {
       if (raw[key] === undefined) continue;
       if (raw[key] && typeof raw[key].toDate === 'function') {
         obj[key] = raw[key].toDate().toISOString();
@@ -323,42 +322,56 @@ async function writeProjectsCache(db, allDocs) {
     return obj;
   });
 
-  // Progressively add writeup/quickStart for daily picks (newest first)
-  // until we approach the size limit
-  let payload = { projects, updatedAt: new Date().toISOString() };
-  let byteSize = Buffer.byteLength(JSON.stringify(payload), 'utf8');
-  let enriched = 0;
+  const homePayload = { projects: homeProjects, updatedAt: now };
+  const homeBytes = Buffer.byteLength(JSON.stringify(homePayload), 'utf8');
+  console.log(`projectsCache/home payload: ${homeBytes} bytes (${homeProjects.length} projects, limit: ${MAX_CACHE_BYTES})`);
+  if (homeBytes > MAX_CACHE_BYTES) {
+    throw new Error(`projectsCache/home exceeds Firestore 1MB limit: ${homeBytes} bytes`);
+  }
+  await db.collection('projectsCache').doc('home').set(homePayload);
+  console.log(`projectsCache/home written (${homeBytes} bytes)`);
 
-  for (const pick of dailyPicks) {
-    const entry = projectMap.get(pick.fullName);
-    if (!entry) continue;
+  // ── Trending cache (projectsCache/trending) ──────────────────────────
+  console.log('Writing projectsCache/trending...');
 
-    // Trial: add heavy fields and measure
-    const extras = {};
-    for (const key of POTD_EXTRA_FIELDS) {
-      if (entry.raw[key] !== undefined) extras[key] = entry.raw[key];
+  const trendData = {};
+  for (const d of allDocs) {
+    const raw = d.data();
+    if (!raw.fullName) continue;
+    const tObj = {};
+    let hasTrend = false;
+    for (const key of TREND_FIELDS) {
+      if (raw[key] === undefined) continue;
+      if (raw[key] && typeof raw[key].toDate === 'function') {
+        tObj[key] = raw[key].toDate().toISOString();
+      } else {
+        tObj[key] = raw[key];
+      }
+      hasTrend = true;
     }
-    const extraBytes = Buffer.byteLength(JSON.stringify(extras), 'utf8');
-
-    if (byteSize + extraBytes > CACHE_WARN_BYTES) {
-      console.log(`Stopping POTD enrichment at ${enriched}/${dailyPicks.length} picks (${byteSize + extraBytes} would exceed ${CACHE_WARN_BYTES} warn threshold)`);
-      break;
-    }
-
-    Object.assign(entry.obj, extras);
-    byteSize += extraBytes;
-    enriched++;
+    if (hasTrend) trendData[raw.fullName] = tObj;
   }
 
-  console.log(`projectsCache payload: ${byteSize} bytes (${projects.length} projects, ${enriched}/${dailyPicks.length} picks enriched, limit: ${MAX_CACHE_BYTES})`);
-  if (byteSize > MAX_CACHE_BYTES) {
-    throw new Error(`projectsCache exceeds Firestore 1MB doc limit: ${byteSize} bytes`);
+  const trendPayload = { data: trendData, updatedAt: now };
+  const trendBytes = Buffer.byteLength(JSON.stringify(trendPayload), 'utf8');
+  console.log(`projectsCache/trending payload: ${trendBytes} bytes (${Object.keys(trendData).length} entries, limit: ${MAX_CACHE_BYTES})`);
+  if (trendBytes > MAX_CACHE_BYTES) {
+    throw new Error(`projectsCache/trending exceeds Firestore 1MB limit: ${trendBytes} bytes`);
   }
-  await db.collection('projectsCache').doc('latest').set(payload);
-  console.log(`projectsCache/latest written with ${projects.length} projects (${byteSize} bytes)`);
+  await db.collection('projectsCache').doc('trending').set(trendPayload);
+  console.log(`projectsCache/trending written (${trendBytes} bytes)`);
 
-  // Write a separate small doc with the featured POTD's writeup + quickStart
-  // This avoids the 1MB budget issue — frontend fetches this with 1 extra read
+  // ── Featured POTD writeup (projectsCache/featured) ───────────────────
+  const cutoff = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const dailyPicks = [];
+  for (const d of allDocs) {
+    const raw = d.data();
+    if (raw.source === 'auto' && (raw.autoAddedDate || '') >= cutoff) {
+      dailyPicks.push({ fullName: raw.fullName, date: raw.autoAddedDate || '' });
+    }
+  }
+  dailyPicks.sort((a, b) => b.date.localeCompare(a.date));
+
   if (dailyPicks.length > 0) {
     const topPick = dailyPicks[0];
     const topEntry = projectMap.get(topPick.fullName);
@@ -367,10 +380,10 @@ async function writeProjectsCache(db, allDocs) {
         fullName: topPick.fullName,
         writeup: topEntry.raw.writeup,
         quickStart: topEntry.raw.quickStart || [],
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       };
       await db.collection('projectsCache').doc('featured').set(featuredDoc);
-      console.log(`projectsCache/featured written for ${topPick.fullName} (writeup: ${topEntry.raw.writeup.length} chars)`);
+      console.log(`projectsCache/featured written for ${topPick.fullName}`);
     } else {
       console.log(`No writeup found for top pick ${topPick.fullName} — skipping featured doc`);
     }
@@ -802,14 +815,27 @@ async function main() {
     console.warn('Snapshot collection failed (non-fatal):', snapErr.message);
   }
 
-  // 7b. Write single-doc projects cache for frontend (1 read instead of N)
+  // 7b. Write split projects cache (home + trending + featured)
   //     Re-read after snapshots since trend fields were just updated
-  try {
-    allDocsSnap = await db.collection('projects').get();
-    allDocs = allDocsSnap.docs;
-    await writeProjectsCache(db, allDocs);
-  } catch (cacheErr) {
-    console.warn('Projects cache write failed (non-fatal):', cacheErr.message);
+  //     FATAL: the website depends on this — retry up to 3 times before failing
+  allDocsSnap = await db.collection('projects').get();
+  allDocs = allDocsSnap.docs;
+  const MAX_CACHE_RETRIES = 3;
+  let cacheWritten = false;
+  for (let attempt = 1; attempt <= MAX_CACHE_RETRIES; attempt++) {
+    try {
+      await writeProjectsCache(db, allDocs, chosen.full_name);
+      cacheWritten = true;
+      break;
+    } catch (cacheErr) {
+      console.error(`Cache write failed (attempt ${attempt}/${MAX_CACHE_RETRIES}): ${cacheErr.message}`);
+      if (attempt < MAX_CACHE_RETRIES) {
+        await new Promise(r => setTimeout(r, 3000 * attempt));
+      }
+    }
+  }
+  if (!cacheWritten) {
+    throw new Error('FATAL: Could not write projectsCache after all retries. Website will not show new project.');
   }
 
   // 7c. Write embeddings cache for Cloud Function (server-side semantic search)
