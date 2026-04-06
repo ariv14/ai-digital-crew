@@ -332,6 +332,8 @@ async function writeProjectsCache(db, allDocs, expectedFullName) {
   console.log(`projectsCache/home written (${homeBytes} bytes)`);
 
   // ── Trending cache (projectsCache/trending) ──────────────────────────
+  // Stored as a JSON string to avoid Firestore's 40,000 index entry limit
+  // (a nested map with 1,150 keys × 13 fields exceeds this)
   console.log('Writing projectsCache/trending...');
 
   const trendData = {};
@@ -352,7 +354,8 @@ async function writeProjectsCache(db, allDocs, expectedFullName) {
     if (hasTrend) trendData[raw.fullName] = tObj;
   }
 
-  const trendPayload = { data: trendData, updatedAt: now };
+  const trendJson = JSON.stringify(trendData);
+  const trendPayload = { json: trendJson, updatedAt: now };
   const trendBytes = Buffer.byteLength(JSON.stringify(trendPayload), 'utf8');
   console.log(`projectsCache/trending payload: ${trendBytes} bytes (${Object.keys(trendData).length} entries, limit: ${MAX_CACHE_BYTES})`);
   if (trendBytes > MAX_CACHE_BYTES) {

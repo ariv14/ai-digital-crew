@@ -2096,8 +2096,10 @@
 
         if (trendResult.status === 'fulfilled' && trendResult.value.exists()) {
           const trendDoc = trendResult.value.data();
-          mergeTrendData(trendDoc.data || {});
-          console.log(`Trending data merged (${Object.keys(trendDoc.data || {}).length} entries)`);
+          // Trending data stored as JSON string to avoid Firestore index limits
+          const trendData = trendDoc.json ? JSON.parse(trendDoc.json) : (trendDoc.data || {});
+          mergeTrendData(trendData);
+          console.log(`Trending data merged (${Object.keys(trendData).length} entries)`);
         }
 
         try { await initFuse(); } catch (e) { console.warn('Fuse init deferred:', e.message); }
@@ -2117,7 +2119,9 @@
               applyProjectData(data.projects);
               // Re-merge trending data so state.trendingProjects isn't left with defaults
               getDoc(doc(db, 'projectsCache', 'trending')).then(tSnap => {
-                if (tSnap.exists()) mergeTrendData(tSnap.data().data || {});
+                if (!tSnap.exists()) return;
+                const td = tSnap.data();
+                mergeTrendData(td.json ? JSON.parse(td.json) : (td.data || {}));
               }).catch(() => {});
               renderFeatured();
               renderProjects();
