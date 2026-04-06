@@ -370,10 +370,12 @@ async function writeProjectsCache(db, allDocs, expectedFullName) {
   for (const d of allDocs) {
     const raw = d.data();
     if (raw.source === 'auto' && (raw.autoAddedDate || '') >= cutoff) {
-      dailyPicks.push({ fullName: raw.fullName, date: raw.autoAddedDate || '' });
+      const createdAt = raw.createdAt?.toDate?.() || new Date(raw.createdAt || 0);
+      dailyPicks.push({ fullName: raw.fullName, date: raw.autoAddedDate || '', createdAt });
     }
   }
-  dailyPicks.sort((a, b) => b.date.localeCompare(a.date));
+  // Sort by autoAddedDate desc, then createdAt desc (matches frontend tiebreaker)
+  dailyPicks.sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt - a.createdAt));
 
   if (dailyPicks.length > 0) {
     const topPick = dailyPicks[0];
