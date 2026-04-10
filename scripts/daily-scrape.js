@@ -450,6 +450,27 @@ async function writeProjectToFirestore(db, project) {
 
 // ── Gemini ────────────────────────────────────────────────────────────────────
 
+// Retry model.generateContent on transient Google API failures (5xx, 429).
+// Leaves 4xx (other than 429) to fail fast — those are prompt/auth bugs, not flaky infra.
+async function callGeminiWithRetry(model, prompt) {
+  const MAX_ATTEMPTS = 4;
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (err) {
+      lastErr = err;
+      const status = err?.status;
+      const transient = status === 429 || (status >= 500 && status <= 599);
+      if (!transient || attempt === MAX_ATTEMPTS) throw err;
+      const waitMs = Math.min(30000, 2000 * Math.pow(2, attempt - 1)); // 2s, 4s, 8s, cap 30s
+      console.warn(`Gemini attempt ${attempt}/${MAX_ATTEMPTS} failed (${status} ${err?.statusText || ''}) — retrying in ${waitMs / 1000}s...`);
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr; // unreachable, guards against accidental fallthrough
+}
+
 async function generateWriteup(repoMeta, readme) {
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -468,7 +489,7 @@ ${readme}
 
 Respond with ONLY valid JSON, no markdown fences, no extra text.`;
 
-  const result = await model.generateContent(prompt);
+  const result = await callGeminiWithRetry(model, prompt);
   const text = result.response.text().trim();
 
   // Strip markdown code fences if Gemini wraps the JSON
@@ -877,11 +898,19 @@ async function main() {
   }
 
   // 9. Publish to Substack
+  //     Non-fatal: the website is already updated via projectsCache above. If the
+  //     Pipedream webhook or Substack session is down, log loudly but do not fail
+  //     the whole pipeline — otherwise a rotated Substack cookie would zombie the
+  //     daily run indefinitely and mask legitimate pipeline errors.
   if (process.env.SKIP_PUBLISH === 'true') {
     console.log('Skipping Substack publish (SKIP_PUBLISH=true)');
   } else {
     console.log('Publishing to Substack...');
-    await publishToSubstack({ repoMeta: chosen, writeup, quickStart });
+    try {
+      await publishToSubstack({ repoMeta: chosen, writeup, quickStart });
+    } catch (pubErr) {
+      console.error('Substack publish failed (non-fatal, website already updated):', pubErr.message);
+    }
   }
   console.log('Done!');
 }
