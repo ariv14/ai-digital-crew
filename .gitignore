@@ -21,3 +21,12 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Git worktrees (isolated workspaces for concurrent feature development)
+.worktrees/
+
+# Workers (Cloudflare) — node_modules and local dev secrets
+workers/api/node_modules/
+workers/api/.wrangler/
+workers/api/.dev.vars
+workers/api/dist/
