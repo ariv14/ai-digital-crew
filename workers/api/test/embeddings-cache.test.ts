@@ -84,4 +84,19 @@ describe('loadProjectEmbeddings', () => {
     const map = await loadProjectEmbeddings(PROJECT_ID);
     expect(map.size).toBe(0);
   });
+
+  it('deduplicates concurrent cold-start loads into a single fetch', async () => {
+    mockFirestore({ partCount: 1 }, [[{ fullName: 'a/b', embedding: [1] }]]);
+    // Kick off two simultaneous loads before the first can resolve.
+    // Both should share the same in-flight promise and return the same Map instance.
+    const [map1, map2] = await Promise.all([
+      loadProjectEmbeddings(PROJECT_ID),
+      loadProjectEmbeddings(PROJECT_ID),
+    ]);
+    // Only 1 meta call + 1 part call = 2 fetches total, NOT 4 (which would happen
+    // without the inFlight dedup).
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    // Both callers receive the same Map reference (not a copy).
+    expect(map1).toBe(map2);
+  });
 });

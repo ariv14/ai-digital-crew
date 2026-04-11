@@ -73,8 +73,8 @@ export async function embedWithGemini(
 
     const transient = res.status === 429 || (res.status >= 500 && res.status <= 599);
     if (!transient) {
-      const text = await res.text().catch(() => '');
-      throw new GeminiError(res.status, `Gemini ${res.status}: ${text.slice(0, 200)}`);
+      const errBody = await res.text().catch(() => '');
+      throw new GeminiError(res.status, `Gemini ${res.status}: ${errBody.slice(0, 200)}`);
     }
 
     lastErr = new GeminiError(res.status, `Gemini ${res.status} (transient)`);

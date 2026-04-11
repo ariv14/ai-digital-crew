@@ -73,4 +73,16 @@ describe('embedWithGemini', () => {
     ).rejects.toThrow(GeminiError);
     expect(globalThis.fetch).toHaveBeenCalledTimes(4);
   });
+
+  it('retries on a network-level fetch error then succeeds', async () => {
+    let call = 0;
+    globalThis.fetch = vi.fn(async () => {
+      if (call++ === 0) throw new TypeError('Failed to fetch');
+      return new Response(JSON.stringify(successBody), { status: 200 });
+    }) as typeof fetch;
+
+    const result = await embedWithGemini('hello', 'k', { initialBackoffMs: 1, maxAttempts: 4 });
+    expect(result.values).toHaveLength(3072);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
 });
