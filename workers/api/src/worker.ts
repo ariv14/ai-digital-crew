@@ -1,4 +1,7 @@
-interface RateLimit {
+import { handleSearch } from './routes/search';
+import { handleBadge } from './routes/badge';
+
+export interface RateLimit {
   limit: (options: { key: string }) => Promise<{ success: boolean }>;
 }
 
@@ -13,7 +16,24 @@ export interface Env {
 }
 
 export default {
-  async fetch(_request: Request, _env: Env, _ctx: ExecutionContext): Promise<Response> {
-    return new Response('ok', { status: 200 });
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    if (path === '/api/health') {
+      return new Response('ok', { status: 200 });
+    }
+
+    if (path === '/api/search') {
+      if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+      return handleSearch(request, env, ctx);
+    }
+
+    if (path === '/api/badge') {
+      if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+      return handleBadge(request, env, ctx);
+    }
+
+    return new Response('Not found', { status: 404 });
   },
 } satisfies ExportedHandler<Env>;
