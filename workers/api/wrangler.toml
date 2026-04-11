@@ -1,0 +1,39 @@
+name = "aidigitalcrew-api"
+main = "src/worker.ts"
+compatibility_date = "2026-04-10"
+compatibility_flags = ["nodejs_compat"]
+
+[ai]
+binding = "AI"
+
+# KV namespace will be created on first deploy via:
+#   wrangler kv:namespace create QUERY_EMBEDDING_CACHE
+# Then paste the resulting id below.
+[[kv_namespaces]]
+binding = "QUERY_EMBEDDING_CACHE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID_AFTER_CREATE"
+
+[[unsafe.bindings]]
+name = "SEARCH_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+[[unsafe.bindings]]
+name = "BADGE_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+
+[vars]
+GCP_PROJECT_ID = "ai-digital-crew"
+CORS_ORIGIN = "https://aidigitalcrew.com"
+
+# Secrets (set via `wrangler secret put`):
+#   GEMINI_API_KEY
+
+[observability.logs]
+enabled = true
+
+[placement]
+mode = "smart"
