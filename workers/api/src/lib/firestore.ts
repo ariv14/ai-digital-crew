@@ -75,6 +75,10 @@ export async function fetchEmbeddingsCachePart(projectId: string, partIndex: num
       if (typeof v.doubleValue === 'number') embedding.push(v.doubleValue);
       else if (typeof v.integerValue === 'string') embedding.push(Number(v.integerValue));
     }
+    // Defensive: if any value was an unexpected shape (neither doubleValue nor
+    // integerValue), skip the entry rather than produce a dimension-mismatched
+    // vector that would silently score 0 against every query.
+    if (embedding.length !== embeddingValues.length) continue;
     result.push({ fullName, embedding });
   }
   return result;

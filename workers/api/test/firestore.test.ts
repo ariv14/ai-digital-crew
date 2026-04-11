@@ -123,6 +123,54 @@ describe('fetchEmbeddingsCachePart', () => {
     const entries = await fetchEmbeddingsCachePart(PROJECT_ID, 1);
     expect(entries).toEqual([]);
   });
+
+  it('skips entries with malformed (non-double, non-int) embedding values', async () => {
+    mockFetch([
+      {
+        url: /embeddingsCache\/part2$/,
+        body: {
+          name: 'part2',
+          fields: {
+            entries: {
+              arrayValue: {
+                values: [
+                  {
+                    mapValue: {
+                      fields: {
+                        fullName: { stringValue: 'corrupt/repo' },
+                        embedding: {
+                          arrayValue: {
+                            values: [
+                              { doubleValue: 0.1 },
+                              { stringValue: 'not a number' }, // malformed
+                              { doubleValue: 0.3 },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    mapValue: {
+                      fields: {
+                        fullName: { stringValue: 'good/repo' },
+                        embedding: { arrayValue: { values: [{ doubleValue: 0.4 }, { doubleValue: 0.5 }] } },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ]);
+    const entries = await fetchEmbeddingsCachePart(PROJECT_ID, 2);
+    // corrupt/repo should be silently skipped because its parsed embedding
+    // (length 2: 0.1 and 0.3) would differ from the source length (3).
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual({ fullName: 'good/repo', embedding: [0.4, 0.5] });
+  });
 });
 
 describe('queryProjects', () => {
