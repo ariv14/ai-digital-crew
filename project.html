@@ -317,10 +317,16 @@
       const trendLabels = { hot: 'Hot', rising: 'Rising', steady: 'Steady', declining: 'Cooling', new: 'New' };
       const momentum = p.trend_momentum || 0;
 
-      const funcBase = isStaging
-        ? 'https://us-central1-ai-digital-crew-staging.cloudfunctions.net'
-        : 'https://us-central1-ai-digital-crew.cloudfunctions.net';
-      const badgeUrl = `${funcBase}/trendBadge?repo=${encodeURIComponent(p.fullName)}`;
+      // ── Cloudflare Workers API migration (Task 16 of 21) ──────────────────
+      // Feature flag: when true, badge calls go to the Cloudflare Worker at /api/*.
+      // When false (default), they go to the legacy Firebase Functions.
+      const USE_WORKERS_API = false;
+      const repoEncoded = encodeURIComponent(p.fullName);
+      const badgeUrl = USE_WORKERS_API
+        ? `/api/badge?repo=${repoEncoded}`
+        : (isStaging
+            ? `https://us-central1-ai-digital-crew-staging.cloudfunctions.net/trendBadge?repo=${repoEncoded}`
+            : `https://us-central1-ai-digital-crew.cloudfunctions.net/trendBadge?repo=${repoEncoded}`);
       const projectPageUrl = `https://aidigitalcrew.com/project?repo=${encodeURIComponent(p.fullName)}`;
 
       appEl.innerHTML = `

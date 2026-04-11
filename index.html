@@ -1269,6 +1269,26 @@
       ? 'https://marketplace-staging.aidigitalcrew.com/'
       : 'https://marketplace.aidigitalcrew.com/';
 
+    // ── Cloudflare Workers API migration (Task 16 of 21) ──────────────────────
+    // Feature flag: when true, search + badge calls go to the Cloudflare Worker
+    // at /api/*. When false (default), they go to the legacy Firebase Functions
+    // (currently broken due to billing). Flip to true in a separate commit
+    // (Stage 4 of the migration cutover) once the Worker is verified in production.
+    const USE_WORKERS_API = false;
+
+    async function callSearchWorker(data) {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Search API ${res.status}: ${text.slice(0, 200)}`);
+      }
+      return res.json();
+    }
+
     const firebaseReady = (async () => {
       const [appMod, fsMod] = await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
@@ -2153,12 +2173,18 @@
     // Server-side semantic search helper — calls Cloud Function for rankings
     async function getServerRankings(query, options = {}) {
       try {
-        const fn = await loadFunctions();
         const payload = { query };
         if (options.rankProjects) payload.rankProjects = true;
         if (options.findSimilar) payload.findSimilar = options.findSimilar;
-        const result = await fn(payload);
-        return result.data;
+        let data;
+        if (USE_WORKERS_API) {
+          data = await callSearchWorker(payload);
+        } else {
+          const fn = await loadFunctions();
+          const result = await fn(payload);
+          data = result.data;
+        }
+        return data;
       } catch (err) {
         console.warn('Server ranking failed:', err.message);
         return null;
@@ -2351,9 +2377,15 @@
       const fullNames = projects.map(p => p.fullName).filter(Boolean);
       if (fullNames.length === 0) return {};
       try {
-        const fn = await loadFunctions();
-        const result = await fn({ findSimilarBatch: fullNames });
-        const batchResults = result.data?.batchResults || {};
+        let batchResults;
+        if (USE_WORKERS_API) {
+          const data = await callSearchWorker({ findSimilarBatch: fullNames });
+          batchResults = data?.batchResults || {};
+        } else {
+          const fn = await loadFunctions();
+          const result = await fn({ findSimilarBatch: fullNames });
+          batchResults = result.data?.batchResults || {};
+        }
         const projectMap = new Map(state.projects.map(p => [p.fullName, p]));
         const mapped = {};
         for (const [name, rankings] of Object.entries(batchResults)) {
