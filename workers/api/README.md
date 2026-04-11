@@ -20,6 +20,8 @@ locally (always succeeds).
 
 ## Tests
 
+> Note: `npm test` requires `vitest.config.ts`, which is created in Task 2 of the migration plan. Until Task 2 lands, only `npm run typecheck` will succeed.
+
 ```bash
 npm test            # one-shot
 npm run test:watch  # watch mode
