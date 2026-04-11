@@ -47,6 +47,15 @@ export async function handleSearch(request: Request, env: Env, ctx: ExecutionCon
   return jsonError(400, 'Request must include query, findSimilar, or findSimilarBatch');
 }
 
+async function safeLoadEmbeddings(env: Env): Promise<Map<string, number[]> | Response> {
+  try {
+    return await loadProjectEmbeddings(env.GCP_PROJECT_ID);
+  } catch (err) {
+    console.error('search: failed to load project embeddings', err);
+    return jsonError(500, 'Failed to load project embeddings');
+  }
+}
+
 async function handleQueryMode(payload: Record<string, unknown>, env: Env, rankProjects: boolean): Promise<Response> {
   let query: string;
   try {
@@ -108,8 +117,19 @@ async function handleQueryMode(payload: Record<string, unknown>, env: Env, rankP
     return json({ embedding: queryEmbedding, provider, dimensions, cached: wasCached });
   }
 
-  const embMap = await loadProjectEmbeddings(env.GCP_PROJECT_ID);
+  const embMapOrErr = await safeLoadEmbeddings(env);
+  if (embMapOrErr instanceof Response) return embMapOrErr;
+  const embMap = embMapOrErr;
   const ranked = rankAgainstMap(queryEmbedding, embMap, RANK_LIMIT);
+
+  if (provider === 'cloudflare' && ranked.length === 0 && embMap.size > 0) {
+    console.warn(
+      `search: rankProjects returned empty results — Workers AI fallback is active ` +
+      `(query dims=${queryEmbedding.length}) but embeddingsCache stores Gemini vectors (3072). ` +
+      `Ranking will stay empty until Gemini recovers.`
+    );
+  }
+
   return json({ rankings: ranked, provider, cached: wasCached });
 }
 
@@ -122,7 +142,9 @@ async function handleFindSimilar(payload: Record<string, unknown>, env: Env): Pr
     throw err;
   }
 
-  const embMap = await loadProjectEmbeddings(env.GCP_PROJECT_ID);
+  const embMapOrErr = await safeLoadEmbeddings(env);
+  if (embMapOrErr instanceof Response) return embMapOrErr;
+  const embMap = embMapOrErr;
   const targetEmb = embMap.get(target);
   if (!targetEmb) {
     return json({ rankings: [], provider: 'cached', cached: true });
@@ -140,7 +162,9 @@ async function handleFindSimilarBatch(payload: Record<string, unknown>, env: Env
     throw err;
   }
 
-  const embMap = await loadProjectEmbeddings(env.GCP_PROJECT_ID);
+  const embMapOrErr = await safeLoadEmbeddings(env);
+  if (embMapOrErr instanceof Response) return embMapOrErr;
+  const embMap = embMapOrErr;
   const batchResults: Record<string, Array<{ fullName: string; score: number }>> = {};
   for (const target of targets) {
     const targetEmb = embMap.get(target);

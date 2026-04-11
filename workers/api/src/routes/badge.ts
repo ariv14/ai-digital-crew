@@ -21,8 +21,9 @@ export async function handleBadge(request: Request, env: Env, ctx: ExecutionCont
     }
   }
 
-  // Cache check
-  const cacheKey = new Request(request.url, request);
+  // Cache check — use URL-only Request so we don't copy CF-Connecting-IP or other
+  // per-request headers into the cache key object.
+  const cacheKey = new Request(request.url);
   const cached = await caches.default.match(cacheKey);
   if (cached) return cached;
 

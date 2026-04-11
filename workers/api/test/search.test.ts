@@ -147,6 +147,25 @@ describe('handleSearch — rankProjects mode', () => {
     expect(body.rankings.length).toBeGreaterThan(0);
     expect(body.rankings[0]!.fullName).toBe('a/x');
   });
+
+  it('returns 500 when loadProjectEmbeddings fails', async () => {
+    const FIRESTORE_HOST = 'https://firestore.googleapis.com';
+    // Mock Firestore to return a 503 on the meta fetch — loadProjectEmbeddings will throw.
+    fetchMock.get(FIRESTORE_HOST).intercept({
+      path: `/v1/projects/${env.GCP_PROJECT_ID}/databases/(default)/documents/embeddingsCache/meta`,
+      method: 'GET',
+    }).reply(503, 'Service Unavailable');
+    // Gemini still needs to succeed so we reach the embeddings load step.
+    mockGeminiSuccess([0.1, 0.2, 0.3]);
+
+    const req = postSearch({ query: 'test', rankProjects: true });
+    const ctx = createExecutionContext();
+    const res = await handleSearch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('Failed to load project embeddings');
+  });
 });
 
 describe('handleSearch — findSimilar mode', () => {
