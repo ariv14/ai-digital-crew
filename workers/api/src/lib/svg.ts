@@ -25,7 +25,10 @@ const FALLBACK_LABEL: TrendLabel = 'steady';
 export function generateBadgeSvg(label: string, score: string, trendLabel: TrendLabel | string): string {
   const key = (trendLabel in COLORS ? trendLabel : FALLBACK_LABEL) as TrendLabel;
   const c = COLORS[key];
-  const icon = ICONS[key] ?? '';
+  // Parity with original: unknown trendLabel gets steady COLORS but an empty ICON,
+  // NOT the steady icon. Look up the icon directly against the caller's input,
+  // not the resolved key.
+  const icon = (trendLabel in ICONS) ? ICONS[trendLabel as TrendLabel] : '';
   const leftText = 'trending on AI Digital Crew';
   const rightText = `${icon} ${label} ${score}`;
   const leftW = leftText.length * 6.2 + 20;

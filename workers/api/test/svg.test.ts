@@ -33,4 +33,13 @@ describe('generateBadgeSvg', () => {
     const svg = generateBadgeSvg('New', '0', 'new');
     expect(svg).toContain('trending on AI Digital Crew');
   });
+
+  it('returns empty icon (not steady icon) for unknown trend label, matching original parity', () => {
+    const svg = generateBadgeSvg('Tracked', '30', 'banana');
+    // Original functions/index.js returns empty string for unknown icons.
+    // Steady icon '\u2796' (➖) should NOT appear in the SVG.
+    expect(svg).not.toContain('\u2796');
+    // But the steady color SHOULD appear (since colors fall back to steady).
+    expect(svg).toContain('#6b7280');
+  });
 });
