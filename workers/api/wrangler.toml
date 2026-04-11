@@ -11,7 +11,7 @@ binding = "AI"
 # Then paste the resulting id below.
 [[kv_namespaces]]
 binding = "QUERY_EMBEDDING_CACHE"
-id = "REPLACE_WITH_KV_NAMESPACE_ID_AFTER_CREATE"
+id = "c8de0b8b8ab3454fae7b776a032069ed"
 
 [[unsafe.bindings]]
 name = "SEARCH_RATE_LIMITER"
