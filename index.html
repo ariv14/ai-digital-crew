@@ -1274,7 +1274,7 @@
     // at /api/*. When false (default), they go to the legacy Firebase Functions
     // (currently broken due to billing). Flip to true in a separate commit
     // (Stage 4 of the migration cutover) once the Worker is verified in production.
-    const USE_WORKERS_API = false;
+    const USE_WORKERS_API = true;
 
     async function callSearchWorker(data) {
       const res = await fetch('/api/search', {
