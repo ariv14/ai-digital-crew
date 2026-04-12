@@ -3,6 +3,10 @@ main = "src/worker.ts"
 compatibility_date = "2026-04-10"
 compatibility_flags = ["nodejs_compat"]
 
+routes = [
+  { pattern = "aidigitalcrew.com/api/*", zone_name = "aidigitalcrew.com" },
+]
+
 [ai]
 binding = "AI"
 
