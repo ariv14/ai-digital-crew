@@ -1,0 +1,11 @@
+name = "aidc-cron-trigger"
+main = "src/worker.ts"
+compatibility_date = "2025-09-01"
+
+# Daily at 08:00 UTC — matches the old GitHub Actions schedule.
+[triggers]
+crons = ["0 8 * * *"]
+
+# Secrets (set via `wrangler secret put`):
+#   PIPEDREAM_SCRAPE_WEBHOOK_URL — the URL of the Pipedream daily-scrape workflow
+#   CRON_SHARED_SECRET           — must match the same env var on Pipedream

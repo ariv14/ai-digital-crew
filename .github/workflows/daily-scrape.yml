@@ -1,8 +1,10 @@
 name: Daily AI Project of the Day
 
+# NOTE: scheduled cron removed — the daily run now fires from Cloudflare Worker
+# → Pipedream (see pipeline/README.md). Actions is also disabled on this
+# account by a $0 budget that cannot be modified without a payment method, so
+# schedule triggers wouldn't fire anyway. workflow_dispatch kept as break-glass.
 on:
-  schedule:
-    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:

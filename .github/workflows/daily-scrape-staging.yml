@@ -1,8 +1,8 @@
 name: Daily AI Project of the Day (Staging)
 
+# NOTE: scheduled cron removed — daily run fires from Cloudflare Worker →
+# Pipedream (see pipeline/README.md). workflow_dispatch kept as break-glass.
 on:
-  schedule:
-    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
