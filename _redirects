@@ -1,2 +1,10 @@
-https://www.aidigitalcrew.com/* https://aidigitalcrew.com/:splat 301
+# NOTE: www -> apex is NOT handled here and cannot be.
+# Cloudflare Pages _redirects matches PATHS only; a source with a scheme and
+# host ("https://www.aidigitalcrew.com/*") is Netlify syntax and is silently
+# ignored. The rule that used to live here was a no-op for that reason, which
+# left www.aidigitalcrew.com serving the site directly (verified: HTTP 200, no
+# redirect) while www is NOT in the Firebase Auth authorized domains — so
+# sign-in fails there.
+# The fix belongs at the zone level: Cloudflare dashboard -> aidigitalcrew.com
+# -> Rules -> Redirect Rules.
 /trending /#trending 301
