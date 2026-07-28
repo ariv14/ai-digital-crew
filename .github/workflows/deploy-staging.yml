@@ -1,8 +1,16 @@
 name: Deploy Staging
 
+# MANUAL ONLY as of 2026-07-28.
+#
+# staging.aidigitalcrew.com is now served by the Next.js rewrite in
+# ariv14/ai-digital-crew-next, which deploys to this same Cloudflare Pages
+# project (aidigitalcrew-staging). While this ran on push, any commit to this
+# branch would have silently replaced the new site with this legacy one.
+#
+# Kept rather than deleted so it stays available as a rollback: run it from the
+# Actions tab to put the legacy site back on staging.
 on:
-  push:
-    branches: [staging]
+  workflow_dispatch:
 
 jobs:
   deploy:
