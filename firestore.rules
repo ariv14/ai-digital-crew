@@ -5,6 +5,19 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null;
 
+      // Account deletion removes the user's own submissions first, then the
+      // auth account (see deleteAccount in AuthProvider). Without this rule
+      // the deleteDoc calls fail with permission-denied, the error is not
+      // auth/requires-recent-login so it falls through to the generic
+      // handler, and deleteUser is never reached — leaving both the projects
+      // AND the account in place. Scoped to the owner's own documents.
+      //
+      // Pipeline-added projects carry submittedBy: "auto-discovery", which is
+      // never a uid, so they can never match and stay undeletable from the
+      // client. A document missing submittedBy fails evaluation, which denies.
+      allow delete: if request.auth != null
+                    && resource.data.submittedBy == request.auth.uid;
+
       match /snapshots/{snapshotId} {
         allow read: if true;
         allow write: if false; // Admin SDK only (pipeline writes)
