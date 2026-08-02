@@ -8,6 +8,9 @@ name: Daily AI Project of the Day
 # Actions minutes are free and unlimited for public repos like this one; the
 # "$0 budget" that prompted the migration only applies to private repos.
 on:
+  schedule:
+    # 08:00 UTC daily — the schedule this job ran on until 2026-04-06.
+    - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
       skip_publish:
@@ -43,8 +46,10 @@ jobs:
           PIPEDREAM_WEBHOOK_URL: ${{ secrets.PIPEDREAM_WEBHOOK_URL }}
           NOTIFY_TOKEN: ${{ secrets.NOTIFY_TOKEN }}
           SKIP_PUBLISH: ${{ inputs.skip_publish }}
-          # NOTIFY_OWNER is deliberately NOT set — owner-notification issues are
-          # opt-in and stay off. See ARCHITECTURE.md §8.3.
+          # Two independent guards on owner-notification issues, both deliberate:
+          # NOTIFY_OWNER is not set (the gate is opt-in and fails closed), and
+          # SKIP_NOTIFY overrides it even if someone sets it. See ARCHITECTURE.md §8.3.
+          SKIP_NOTIFY: 'true'
 
       - name: Create issue on failure
         if: failure()

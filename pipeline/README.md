@@ -1,5 +1,26 @@
 # Daily POTD pipeline — CF Worker cron → Pipedream scraper
 
+> **STATUS: NOT IN USE. This migration was never completed and is not the live
+> pipeline.** The daily run happens on GitHub Actions —
+> `.github/workflows/daily-scrape.yml`. Nothing below is deployed: the Worker
+> was never created on the Cloudflare account (`wrangler deployments list`
+> returns "This Worker does not exist"), and the Pipedream scraper workflow was
+> never created either (the only Pipedream workflow is the Substack publisher).
+>
+> Two reasons not to finish it, established 2026-08-02:
+> 1. **The premise was wrong.** The migration blamed a `$0` Actions budget, but
+>    Actions minutes are free and unlimited for public repos, and this repo is
+>    public. The real cause of the 2026-04-07 outage was the `GEMINI_API_KEY`
+>    carrying a Google Cloud **IP-address restriction** that CI runners can't
+>    satisfy — which would break the Pipedream path too, since its IPs are also
+>    dynamic.
+> 2. **The free tier can't afford it.** Pipedream bills 1 credit per 30s of
+>    compute against a 100-credit *monthly* quota (the "10k invocations/month"
+>    figure below is stale). These runs took 6–9 minutes ≈ 12–18 credits each,
+>    so a daily run needs ~360–540 credits/month.
+>
+> Kept for reference in case Actions ever becomes unavailable.
+
 Replaces the GitHub Actions cron runner (blocked by the account-level `$0`
 Actions budget that cannot be removed without a payment method on file).
 
