@@ -1,11 +1,19 @@
 name: Daily AI Project of the Day
 
-# NOTE: scheduled cron removed — the daily run now fires from Cloudflare Worker
-# → Pipedream (see pipeline/README.md). Actions is also disabled on this
-# account by a $0 budget that cannot be modified without a payment method, so
-# schedule triggers wouldn't fire anyway. workflow_dispatch kept as break-glass.
+# The daily run happens here, on Actions. The Cloudflare Worker → Pipedream
+# alternative in pipeline/ was never finished (the Worker was never deployed and
+# the Pipedream scraper workflow was never created), and Pipedream's free tier
+# bills 1 credit per 30s of compute against a 100-credit monthly quota — a 2-9
+# minute daily run costs 120-300 credits/month, so it cannot afford this job.
+# Actions minutes are free and unlimited for public repos like this one; the
+# "$0 budget" that prompted the migration only applies to private repos.
 on:
   workflow_dispatch:
+    inputs:
+      skip_publish:
+        description: 'Skip the Substack newsletter (use for smoke tests)'
+        type: boolean
+        default: false
 
 jobs:
   scrape:
@@ -34,6 +42,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PIPEDREAM_WEBHOOK_URL: ${{ secrets.PIPEDREAM_WEBHOOK_URL }}
           NOTIFY_TOKEN: ${{ secrets.NOTIFY_TOKEN }}
+          SKIP_PUBLISH: ${{ inputs.skip_publish }}
+          # NOTIFY_OWNER is deliberately NOT set — owner-notification issues are
+          # opt-in and stay off. See ARCHITECTURE.md §8.3.
 
       - name: Create issue on failure
         if: failure()

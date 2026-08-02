@@ -23,7 +23,10 @@
  *   CLOUDFLARE_API_TOKEN      — (optional) for secondary embedding provider
  *   CRON_SHARED_SECRET        — (optional) shared secret to validate the CF Worker call
  *   SKIP_PUBLISH              — (optional) "true" to skip Substack publishing
- *   SKIP_NOTIFY               — (optional) "true" to skip owner issue
+ *   NOTIFY_OWNER              — (optional) "true" to ENABLE the owner-notification
+ *                               issue. Off unless explicitly enabled — see below.
+ *   SKIP_NOTIFY               — (optional) "true" to force-skip the owner issue,
+ *                               overriding NOTIFY_OWNER
  */
 
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
@@ -865,11 +868,15 @@ Respond with ONLY valid JSON, no markdown fences, no extra text.`;
       console.warn('Embeddings cache write failed (non-fatal):', embCacheErr.message);
     }
 
-    if (process.env.SKIP_NOTIFY === 'true') {
-      console.log('Skipping owner notification (SKIP_NOTIFY=true)');
-    } else {
+    // Opt-in, not opt-out: opening an issue on someone else's repo is
+    // irreversible and reads as spam, so every misconfiguration (unset var,
+    // wrong casing, a freshly recreated workflow) must land on "don't post".
+    // NOTIFY_OWNER must be explicitly "true"; SKIP_NOTIFY still overrides.
+    if (process.env.NOTIFY_OWNER === 'true' && process.env.SKIP_NOTIFY !== 'true') {
       console.log('Notifying repo owner...');
       await notifyOwner(owner, repo);
+    } else {
+      console.log('Skipping owner notification (NOTIFY_OWNER not enabled)');
     }
 
     if (process.env.SKIP_PUBLISH === 'true') {

@@ -889,12 +889,16 @@ async function main() {
     console.warn('Embeddings cache write failed (non-fatal):', embCacheErr.message);
   }
 
-  // 8. Notify the repo owner via a GitHub issue
-  if (process.env.SKIP_NOTIFY === 'true') {
-    console.log('Skipping owner notification (SKIP_NOTIFY=true)');
-  } else {
+  // 8. Notify the repo owner via a GitHub issue — opt-in, not opt-out.
+  //    Opening an issue on someone else's repo is irreversible and reads as
+  //    spam, so every misconfiguration must land on "don't post". NOTIFY_OWNER
+  //    must be explicitly "true"; SKIP_NOTIFY still overrides. This matters for
+  //    the break-glass `workflow_dispatch` path too, which has no env var set.
+  if (process.env.NOTIFY_OWNER === 'true' && process.env.SKIP_NOTIFY !== 'true') {
     console.log('Notifying repo owner...');
     await notifyOwner(owner, repo, chosen.full_name);
+  } else {
+    console.log('Skipping owner notification (NOTIFY_OWNER not enabled)');
   }
 
   // 9. Publish to Substack

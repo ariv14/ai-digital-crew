@@ -52,10 +52,21 @@ did via `PIPEDREAM_WEBHOOK_URL`.
    | `CLOUDFLARE_API_TOKEN` | (optional) for fallback embeddings |
    | `CRON_SHARED_SECRET` | Random string — also set on the Worker (below) |
    | `SKIP_PUBLISH` | (optional) `true` to skip Substack publish |
-   | `SKIP_NOTIFY` | (optional) `true` to skip owner notification issue |
+   | `NOTIFY_OWNER` | (optional) `true` to **enable** the owner-notification issue. Leave unset — see below |
+   | `SKIP_NOTIFY` | (optional) `true` to force-skip the owner issue, overriding `NOTIFY_OWNER` |
 
    These are the exact same vars that were on GitHub Actions. `CRON_SHARED_SECRET`
    is new — generate with `openssl rand -hex 32`.
+
+   > **Owner-notification issues are off by default and should stay off.**
+   > The pipeline used to open a "your project was featured" issue on the POTD
+   > repo. Because that issue body also pitched the newsletter and the Agent
+   > Marketplace, it read as promotion rather than a courtesy heads-up, so it is
+   > disabled. The gate is deliberately **opt-in** (`NOTIFY_OWNER === 'true'`)
+   > rather than opt-out, so an unset or mistyped variable — or a workflow
+   > recreated from scratch — cannot silently resume posting on strangers'
+   > repos. `notifyOwner()` is left intact; only the gate changed. Do not set
+   > `NOTIFY_OWNER` without rewriting the issue body first.
 5. Deploy the workflow. Copy the trigger's webhook URL (e.g.
    `https://eoxxxx.m.pipedream.net`).
 6. Sanity test: `curl -X POST <webhook> -H 'X-Cron-Secret: <secret>'` —

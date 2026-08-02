@@ -414,7 +414,7 @@ GitHub Actions cron (8 AM UTC / midnight PST)
   │     source: "auto", submittedBy: "auto"
   │     submittedByName: "AI Digital Crew Bot"
   │
-  ├─ 6. Notify repo owner via GitHub Issue
+  ├─ 6. Notify repo owner via GitHub Issue — DISABLED (opt-in: NOTIFY_OWNER=true)
   │     Title: "Your project was featured on AI Digital Crew"
   │     Uses NOTIFY_TOKEN if set, falls back to GITHUB_TOKEN
   │     Non-fatal: silently continues if notification fails
@@ -711,7 +711,7 @@ A staging environment allows testing UI changes, new features, and pipeline beha
 | URL | `aidigitalcrew.com` (Cloudflare Pages) | `staging.aidigitalcrew.com` (Cloudflare Pages preview) |
 | Firebase project | `ai-digital-crew` | `ai-digital-crew-staging` |
 | Scrape schedule | 8 AM UTC | 8 AM UTC |
-| Owner notification | Yes | **No** (`SKIP_NOTIFY=true`) |
+| Owner notification | **No** — disabled everywhere (opt-in via `NOTIFY_OWNER`) | **No** |
 | Substack publishing | Yes | **No** (`SKIP_PUBLISH=true`) |
 | Local dev (`localhost`) | — | Points to staging Firebase |
 
@@ -725,12 +725,21 @@ A staging environment allows testing UI changes, new features, and pipeline beha
 
 ### 8.3 Pipeline Skip Flags
 
-`daily-scrape.js` supports two environment variables:
+`daily-scrape.js` supports these environment variables:
 
 | Env Var | Effect | Default |
 |---------|--------|---------|
-| `SKIP_NOTIFY=true` | Skips GitHub Issue creation (owner notification) | Unset (notify) |
+| `NOTIFY_OWNER=true` | **Enables** GitHub Issue creation (owner notification) | Unset (**do not** notify) |
+| `SKIP_NOTIFY=true` | Force-skips the owner notification, overriding `NOTIFY_OWNER` | Unset |
 | `SKIP_PUBLISH=true` | Skips Substack newsletter publishing | Unset (publish) |
+
+Owner notification is **opt-in, not opt-out**. Opening an issue on a repo the
+project does not own is irreversible and — because the issue body pitched the
+newsletter and the Agent Marketplace — read as promotion rather than a courtesy
+heads-up. An opt-out gate meant any misconfiguration (unset variable, wrong
+casing, a Pipedream workflow recreated from scratch) silently resumed posting.
+`notifyOwner()` remains in the code; only the gate is inverted. Re-enabling
+requires rewriting the issue body first.
 
 ### 8.4 Required Secrets (Staging)
 
