@@ -235,6 +235,11 @@ export function buildTutorPrompt({ lesson, mode, turns, memo }) {
     transcript,
     '',
     pacing,
+    // Said last, where a smaller model weighs it most.
+    'Before you write: everything you ask must be answerable from "The lesson" above. If the lesson only mentions something in passing, do not ask how it works.',
+    mode === 'help'
+      ? 'Give a hint, never the finished code or the proof answer.'
+      : 'If the student has already stated the idea and its reason correctly, stop probing: use "harder" once if you have not, then "finish". Never lower a mark for detail the lesson does not teach.',
     'Now write your next turn.',
   ].join('\n');
 }
