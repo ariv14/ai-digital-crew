@@ -50,6 +50,8 @@ firebase serve
 | `ROADMAP.md` | Future feature directions |
 | `.gitignore` | Protects secrets & vendor files from accidental commit |
 | `functions/index.js` | Cloud Function: `getQueryEmbedding` (Gemini + Cloudflare fallback) |
+| `functions/course.js` | Cloud Functions: `redeemAccessCode`, `courseTutor` (paid course on the Next.js site) |
+| `scripts/course-admin.js` | Publish paid lessons, issue access codes, grant or revoke access |
 | `functions/package.json` | Cloud Functions dependencies |
 | `scripts/daily-scrape.js` | Daily pipeline orchestrator (GitHub → Gemini → Firestore → Substack) |
 | `scripts/substack-publish.js` | Builds ProseMirror payload, POSTs to Pipedream webhook |
@@ -87,5 +89,8 @@ firebase serve
 - `projects`: public read, authenticated create only
 - `searchCache`: public read, no client write (Cloud Functions only via Admin SDK)
 - `searchAnalytics`: authenticated create/update, no read
+- `courses/{id}/lessons`: paid-course lessons, readable only by accounts whose `entitlements/{uid}` lists the course; written by `scripts/course-admin.js`
+- `entitlements`: owner read, no client write (Cloud Function `redeemAccessCode` and `course-admin.js` only)
+- `accessCodes`, `redeemAttempts`, `tutorUsage`: no client access
 - Duplicate detection: query by `fullName` before insert
 - User's projects: query by `submittedBy == uid`
