@@ -10,7 +10,8 @@
  *
  * It makes throwaway accounts and one code, and deletes them afterwards.
  *
- * Env: FIREBASE_SERVICE_ACCOUNT, WEB_API_KEY (the project's public web key)
+ * Env: FIREBASE_SERVICE_ACCOUNT, WEB_API_KEY (the project's public web key),
+ *      SITE_ORIGIN (the site that key is restricted to; staging by default)
  * Run: node scripts/course-e2e.js [courseId] [lessonId]
  */
 import assert from 'node:assert';
@@ -21,6 +22,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 const [courseId = 'ai-ready', lessonId = 'hash-map'] = process.argv.slice(2);
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT ?? 'null');
 const apiKey = process.env.WEB_API_KEY;
+const siteOrigin = process.env.SITE_ORIGIN ?? 'https://staging.aidigitalcrew.com';
 if (!serviceAccount || !apiKey) {
   console.error('Set FIREBASE_SERVICE_ACCOUNT and WEB_API_KEY.');
   process.exit(1);
@@ -38,7 +40,8 @@ async function signIn(uid) {
   const customToken = await getAuth().createCustomToken(uid);
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // The web key only answers requests that come from the site, so say which site this is.
+    headers: { 'Content-Type': 'application/json', Referer: `${siteOrigin}/` },
     body: JSON.stringify({ token: customToken, returnSecureToken: true }),
   });
   const body = await response.json();
