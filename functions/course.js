@@ -9,13 +9,15 @@
  *   teaches from is read here, from Firestore, never taken from the browser,
  *   so the function can't be used as a general-purpose model proxy.
  *
- * Secret: GEMINI_API_KEY. Optional env: TUTOR_MODEL.
+ * Secrets: GEMINI_API_KEY, with CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN as
+ * the fallback. Optional env: TUTOR_MODEL, TUTOR_FALLBACK_MODEL.
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 const TUTOR_MODEL = process.env.TUTOR_MODEL || 'gemini-2.5-flash';
+const TUTOR_FALLBACK_MODEL = process.env.TUTOR_FALLBACK_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
 /** Tutor turns a reader may take in a day: the cost ceiling for one account. */
 const DAILY_TURNS = { paid: 80, free: 12 };
@@ -148,6 +150,8 @@ How you speak:
 
 How you teach:
 - You lead. The student never has to know what to ask.
+- Ask only about what this lesson teaches. Never test an idea the lesson does not contain, however closely related.
+- With the move "reexplain" you must actually explain, with a new everyday picture, before you ask again. Repeating the question is not a re-explanation.
 - Do not give the answer before the student has tried. A hint is the smallest push that lets them take the next step themselves.
 - If the student has a wrong idea, explain with a different everyday picture from the one in the lesson, in three sentences at most, then ask them to say it back in their own words.
 - If the student copies the lesson's wording, ask them to say it another way or give their own example. Recited text is not understanding.
@@ -261,20 +265,70 @@ export function shapeTutorReply(raw, { mode, lastTurn }) {
   return { reply, move, mark, memo: typeof raw.memo === 'string' ? raw.memo.slice(0, MAX_MEMO_CHARS) : '', done };
 }
 
-/** One turn of the tutor against the model. Also run by tutor-smoke.mjs, outside Cloud Functions. */
-export async function tutorTurn({ lesson, mode, turns, memo, apiKey }) {
-  const studentTurns = turns.filter((t) => t.role === 'student').length;
+async function askGemini(prompt, apiKey) {
   const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
     model: TUTOR_MODEL,
     systemInstruction: TUTOR_RULES,
     generationConfig: { responseMimeType: 'application/json', responseSchema: REPLY_SCHEMA, temperature: 0.6, maxOutputTokens: 4096 },
   });
-  const result = await model.generateContent(buildTutorPrompt({ lesson, mode, turns, memo }));
-  return shapeTutorReply(JSON.parse(result.response.text()), { mode, lastTurn: studentTurns >= MAX_STUDENT_TURNS[mode] });
+  const result = await model.generateContent(prompt);
+  return JSON.parse(result.response.text());
+}
+
+const FALLBACK_FORMAT = `Answer with one JSON object and nothing else, with these keys:
+"reply" (string): what you say to the student.
+"move" (string): one of ${MOVES.map((m) => `"${m}"`).join(', ')}.
+"mark" (integer 0 to 3, or null): only with the move "finish" in explain or interview mode.
+"memo" (string): your private note to yourself for the next turn.`;
+
+/** The same turn on Cloudflare Workers AI, as search falls back for embeddings. */
+async function askCloudflare(prompt, { accountId, apiToken }) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${TUTOR_FALLBACK_MODEL}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiToken}` },
+    body: JSON.stringify({
+      messages: [
+        { role: 'system', content: `${TUTOR_RULES}\n\n${FALLBACK_FORMAT}` },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.6,
+      max_tokens: 700,
+    }),
+  });
+  if (!res.ok) throw new Error(`Cloudflare AI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors).slice(0, 300)}`);
+  const out = data.result?.response;
+  if (typeof out === 'object' && out !== null) return out;
+  // Some models wrap the object in prose or a code fence.
+  const text = String(out ?? '');
+  return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+}
+
+/**
+ * One turn of the tutor against a model: Gemini first, Cloudflare Workers AI
+ * if Gemini fails or has no key. Also run by tutor-smoke.mjs, outside Cloud Functions.
+ */
+export async function tutorTurn({ lesson, mode, turns, memo, apiKey, cloudflare }) {
+  const studentTurns = turns.filter((t) => t.role === 'student').length;
+  const prompt = buildTutorPrompt({ lesson, mode, turns, memo });
+  const shape = (raw) => shapeTutorReply(raw, { mode, lastTurn: studentTurns >= MAX_STUDENT_TURNS[mode] });
+  let geminiError;
+  if (apiKey) {
+    try {
+      return { ...shape(await askGemini(prompt, apiKey)), provider: 'gemini' };
+    } catch (err) {
+      geminiError = err;
+    }
+  }
+  if (!cloudflare?.accountId || !cloudflare?.apiToken) throw geminiError ?? new Error('no model is configured for the tutor');
+  if (geminiError) console.warn('courseTutor: Gemini failed, using Cloudflare:', String(geminiError?.message ?? geminiError).slice(0, 200));
+  return { ...shape(await askCloudflare(prompt, cloudflare)), provider: 'cloudflare' };
 }
 
 export const courseTutor = onCall(
-  { region: 'us-central1', secrets: ['GEMINI_API_KEY'], maxInstances: 10, timeoutSeconds: 60 },
+  { region: 'us-central1', secrets: ['GEMINI_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'], maxInstances: 10, timeoutSeconds: 60 },
   async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in to use the tutor.');
     const uid = request.auth.uid;
@@ -296,7 +350,12 @@ export const courseTutor = onCall(
     }
 
     try {
-      return await tutorTurn({ lesson, ...input, apiKey: process.env.GEMINI_API_KEY });
+      return await tutorTurn({
+        lesson,
+        ...input,
+        apiKey: process.env.GEMINI_API_KEY,
+        cloudflare: { accountId: process.env.CLOUDFLARE_ACCOUNT_ID, apiToken: process.env.CLOUDFLARE_API_TOKEN },
+      });
     } catch (err) {
       console.error('courseTutor error:', err?.message ?? err);
       throw new HttpsError('unavailable', "The tutor couldn't answer just now. Try again in a moment.");
