@@ -110,11 +110,14 @@ try {
   console.log(`4. Tutor on “${lesson.title}”, weak student:`);
   const weak = await converse(reader, ['I am not sure. Something about computers being fast?', 'I do not know why.', 'Maybe it just remembers everything.', 'ok']);
   console.log('   Strong student:');
+  // A scripted student can't listen, so the strong one covers the whole lesson
+  // up front: whatever the tutor asks about next has already been said.
+  const whole = `${lesson.idea} One more thing I know: ${lesson.limit}`;
   const strong = await converse(reader, [
     lesson.recall.answer,
-    `Put my own way: ${lesson.idea.split('. ').slice(0, 2).join('. ')}. That is why it works.`,
-    'I would use the same idea there for the same reason, and check it by counting the steps on a small example.',
-    'Yes, and its limit is the one the lesson names.',
+    `Let me say all of it in my own words. ${whole}`,
+    `As I said: ${lesson.limit} In a new case I would use the same idea for the same reason, and check it by counting the steps on a small example.`,
+    `To sum up: ${lesson.recall.answer}`,
   ]);
   console.log(`   Marks: weak ${weak}, strong ${strong}`);
   assert.ok(weak <= 1 && strong >= 2, 'the tutor should mark a weak answer below a strong one');

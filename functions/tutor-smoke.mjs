@@ -22,11 +22,12 @@ if (!lesson) throw new Error(`No lesson "${lessonId}" in ${file}`);
 
 const STUDENTS = {
   weak: ['I am not sure. It is something about computers being fast?', 'I do not know why.', 'Maybe it just remembers everything.', 'ok'],
+  // A scripted student can't listen, so the strong one covers the whole lesson up front.
   strong: [
     lesson.recall.answer,
-    `In my own words: ${lesson.idea.split('. ').slice(0, 2).join('. ')}. That is the reason it works.`,
-    'I would use the same idea there, for the same reason, and I would check it by counting the steps on a small example first.',
-    'Yes, and the limit is the one the lesson gives.',
+    `Let me say all of it in my own words. ${lesson.idea} One more thing I know: ${lesson.limit}`,
+    `As I said: ${lesson.limit} In a new case I would use the same idea for the same reason, and check it by counting the steps on a small example.`,
+    `To sum up: ${lesson.recall.answer}`,
   ],
 };
 
