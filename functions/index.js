@@ -4,6 +4,8 @@
  * getQueryEmbedding — Callable function that returns an embedding for a search query.
  * Uses Gemini (primary) with Cloudflare Workers AI fallback. Checks Firestore searchCache first.
  *
+ * redeemAccessCode, courseTutor — paid-course access and the lesson tutor; see course.js.
+ *
  * Secrets (set via firebase functions:secrets:set):
  *   GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
  */
@@ -16,6 +18,9 @@ import crypto from 'crypto';
 
 initializeApp();
 const db = getFirestore();
+
+// Paid courses: access codes and the lesson tutor.
+export { redeemAccessCode, courseTutor } from './course.js';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 

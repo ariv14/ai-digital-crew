@@ -35,6 +35,34 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false; // only Cloud Functions (Admin SDK) can write
     }
+    // ── Paid courses ────────────────────────────────────────────────
+    // The full lessons of a paid course. A reader may fetch them only when
+    // their entitlement lists the course. The site's static bundle holds the
+    // outline and the free lessons, never these documents.
+    match /courses/{courseId}/lessons/{lessonId} {
+      allow read: if request.auth != null
+                  && exists(/databases/$(database)/documents/entitlements/$(request.auth.uid))
+                  && courseId in get(/databases/$(database)/documents/entitlements/$(request.auth.uid)).data.courses;
+      allow write: if false; // scripts/course-admin.js via Admin SDK
+    }
+    // Which courses an account may read. Written by redeemAccessCode and
+    // course-admin.js only: a client that could write here could grant itself access.
+    match /entitlements/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      // Deleting your own only gives access up, which account deletion needs.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if false;
+    }
+    // Server-side only: codes, wrong-guess counters and tutor usage.
+    match /accessCodes/{code} {
+      allow read, write: if false;
+    }
+    match /redeemAttempts/{uid} {
+      allow read, write: if false;
+    }
+    match /tutorUsage/{uid} {
+      allow read, write: if false;
+    }
     match /searchAnalytics/{docId} {
       allow create: if request.auth != null;
       allow update: if request.auth != null;
