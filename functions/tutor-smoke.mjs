@@ -4,32 +4,23 @@
  * should come out low and high. Run it before the first launch and after any
  * change to the tutor's rules or model.
  *
- *   GEMINI_API_KEY=... node functions/tutor-smoke.mjs <ai-ready.json> [lessonId]
+ *   GEMINI_API_KEY=... node functions/tutor-smoke.mjs <ai-ready.json>
  *
  * The lessons file comes from `npm run course:export` in ai-digital-crew-next.
  */
 import { readFileSync } from 'node:fs';
 import { tutorTurn } from './course.js';
+import { STUDENTS, TUTOR_TEST_LESSON } from '../scripts/course-e2e-students.js';
 
-const [file, lessonId = 'hash-map'] = process.argv.slice(2);
+const [file] = process.argv.slice(2);
+const lessonId = TUTOR_TEST_LESSON;
 const apiKey = process.env.GEMINI_API_KEY;
 if (!file || !apiKey) {
-  console.error('Usage: GEMINI_API_KEY=... node functions/tutor-smoke.mjs <ai-ready.json> [lessonId]');
+  console.error('Usage: GEMINI_API_KEY=... node functions/tutor-smoke.mjs <ai-ready.json>');
   process.exit(1);
 }
 const lesson = JSON.parse(readFileSync(file, 'utf8')).lessons.find((l) => l.id === lessonId);
 if (!lesson) throw new Error(`No lesson "${lessonId}" in ${file}`);
-
-const STUDENTS = {
-  weak: ['I am not sure. It is something about computers being fast?', 'I do not know why.', 'Maybe it just remembers everything.', 'ok'],
-  // A scripted student can't listen, so the strong one covers the whole lesson up front.
-  strong: [
-    lesson.recall.answer,
-    `Let me say all of it in my own words. ${lesson.idea} One more thing I know: ${lesson.limit}`,
-    `As I said: ${lesson.limit} In a new case I would use the same idea for the same reason, and check it by counting the steps on a small example.`,
-    `To sum up: ${lesson.recall.answer}`,
-  ],
-};
 
 const marks = {};
 for (const [name, answers] of Object.entries(STUDENTS)) {

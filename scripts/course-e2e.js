@@ -12,14 +12,16 @@
  *
  * Env: FIREBASE_SERVICE_ACCOUNT, WEB_API_KEY (the project's public web key),
  *      SITE_ORIGIN (the site that key is restricted to; staging by default)
- * Run: node scripts/course-e2e.js [courseId] [lessonId]
+ * Run: node scripts/course-e2e.js [courseId]
  */
 import assert from 'node:assert';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { STUDENTS, TUTOR_TEST_LESSON } from './course-e2e-students.js';
 
-const [courseId = 'ai-ready', lessonId = 'hash-map'] = process.argv.slice(2);
+const [courseId = 'ai-ready'] = process.argv.slice(2);
+const lessonId = TUTOR_TEST_LESSON;
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT ?? 'null');
 const apiKey = process.env.WEB_API_KEY;
 const siteOrigin = process.env.SITE_ORIGIN ?? 'https://staging.aidigitalcrew.com';
@@ -108,17 +110,9 @@ try {
   console.log('3. The lesson now opens for that reader, and a second reader cannot reuse the code.');
 
   console.log(`4. Tutor on “${lesson.title}”, weak student:`);
-  const weak = await converse(reader, ['I am not sure. Something about computers being fast?', 'I do not know why.', 'Maybe it just remembers everything.', 'ok']);
+  const weak = await converse(reader, STUDENTS.weak);
   console.log('   Strong student:');
-  // A scripted student can't listen, so the strong one covers the whole lesson
-  // up front: whatever the tutor asks about next has already been said.
-  const whole = `${lesson.idea} One more thing I know: ${lesson.limit}`;
-  const strong = await converse(reader, [
-    lesson.recall.answer,
-    `Let me say all of it in my own words. ${whole}`,
-    `As I said: ${lesson.limit} In a new case I would use the same idea for the same reason, and check it by counting the steps on a small example.`,
-    `To sum up: ${lesson.recall.answer}`,
-  ]);
+  const strong = await converse(reader, STUDENTS.strong);
   console.log(`   Marks: weak ${weak}, strong ${strong}`);
   assert.ok(weak <= 1 && strong >= 2, 'the tutor should mark a weak answer below a strong one');
   console.log('\nAll four checks passed.');
