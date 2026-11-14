@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   sanitiseContext, trimTurns, capAfter, parseMarkOutput, markFromCovered, buildCoachPrompt, repeatsQuestion,
-  validateMarkRequest, COACH_DAILY, requirePaidStudent, capDecision, isUnlimited,
+  validateMarkRequest, COACH_RULES, MARK_RULES, VOICE_INSTRUCTION, COACH_DAILY, requirePaidStudent, capDecision, isUnlimited,
 } from '../coach.js';
 
 test('context: unknown keys are dropped and bad ids rejected', () => {
@@ -137,4 +137,23 @@ test('coach: the paid check returns the entitlement, flag included', async () =>
   const data = { courses: ['ai-ready'], coachUnlimited: true };
   assert.equal(await requirePaidStudent(fakeDb(data), 'u1'), data);
   await assert.rejects(requirePaidStudent(fakeDb({ coachUnlimited: true }), 'u1'), (e) => e.code === 'permission-denied');
+});
+
+test('voice: flag accepted only as boolean true', () => {
+  assert.equal(sanitiseContext({ voice: true }).voice, true);
+  for (const v of ['true', 1, 'yes', false, null, {}]) assert.equal('voice' in sanitiseContext({ voice: v }), false);
+});
+
+test('voice: instruction appears only when voice is true', () => {
+  const turns = [{ role: 'student', text: 'What is a loop?' }];
+  assert.ok(buildCoachPrompt({ turns, context: { voice: true } }).includes(VOICE_INSTRUCTION));
+  assert.ok(!buildCoachPrompt({ turns, context: {} }).includes(VOICE_INSTRUCTION));
+  assert.ok(!buildCoachPrompt({ turns, context: sanitiseContext({ voice: 'true' }) }).includes(VOICE_INSTRUCTION));
+});
+
+test('rules: explaining rule and spoken marking are present', () => {
+  assert.match(COACH_RULES, /EXPLAINING/);
+  assert.match(COACH_RULES, /ONE real-world analogy/);
+  assert.match(COACH_RULES, /SCOPE/);
+  assert.match(MARK_RULES, /read well aloud/);
 });
