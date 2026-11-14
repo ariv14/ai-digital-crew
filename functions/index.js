@@ -2,19 +2,20 @@
  * Cloud Functions for AI Digital Crew
  *
  * getQueryEmbedding — Callable function that returns an embedding for a search query.
- * Uses Gemini (primary) with Cloudflare Workers AI fallback. Checks Firestore searchCache first.
+ * Cloudflare Workers AI only (no Gemini), metered against the shared daily neuron
+ * budget in ai-budget.js. Checks Firestore searchCache first.
  *
  * redeemAccessCode, courseTutor — paid-course access and the lesson tutor; see course.js.
  * coachChat, coachMark — the student's personal coach; see coach.js.
  *
  * Secrets (set via firebase functions:secrets:set):
- *   GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
+ *   CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (courseTutor/coachChat/coachMark also bind GEMINI_API_KEY, used only if TUTOR_USE_GEMINI=on)
  */
 
 import { onCall, HttpsError, onRequest } from 'firebase-functions/v2/https';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { withBudget, isBudgetExhausted, BUDGET_MESSAGE } from './ai-budget.js';
 import crypto from 'crypto';
 
 initializeApp();
@@ -96,42 +97,40 @@ function hashQuery(query) {
   return crypto.createHash('sha256').update(query.toLowerCase().trim()).digest('hex').slice(0, 32);
 }
 
-async function embedWithGemini(text, apiKey) {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
-  const result = await model.embedContent(text);
-  return { values: result.embedding.values, provider: 'gemini', dimensions: 3072 };
-}
+const EMBED_MODEL = '@cf/baai/bge-large-en-v1.5';
 
 async function embedWithCloudflare(text, accountId, apiToken) {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/baai/bge-large-en-v1.5`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify({ text: [text] }),
+  const data = await withBudget(db, { model: EMBED_MODEL, inputChars: text.length, maxOutputTokens: 0 }, async () => {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${EMBED_MODEL}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiToken}`,
+        },
+        body: JSON.stringify({ text: [text] }),
+      }
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Cloudflare AI ${res.status}: ${body}`);
     }
-  );
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Cloudflare AI ${res.status}: ${body}`);
-  }
-  const data = await res.json();
-  if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors)}`);
-  return { values: data.result.data[0], provider: 'cloudflare', dimensions: 1024 };
+    const body = await res.json();
+    if (!body.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(body.errors)}`);
+    return { value: body.result, usage: body.result?.usage };
+  });
+  return { values: data.data[0], provider: 'cloudflare', dimensions: 1024 };
 }
 
 export const getQueryEmbedding = onCall(
   {
-    secrets: ['GEMINI_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
+    secrets: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
     maxInstances: 10,
     region: 'us-central1',
   },
   async (request) => {
-    // findSimilar/findSimilarBatch use cached data only — no Gemini cost, allow without auth
+    // findSimilar/findSimilarBatch use cached data only — no AI cost, allow without auth
     const isCacheOnly = request.data?.findSimilar || request.data?.findSimilarBatch;
 
     if (!isCacheOnly && !request.auth) {
@@ -217,7 +216,8 @@ export const getQueryEmbedding = onCall(
     if (cacheDoc.exists) {
       const cached = cacheDoc.data();
       const age = Date.now() - (cached.createdAt?.toMillis?.() || 0);
-      if (age < CACHE_TTL_MS) {
+      // Old Gemini vectors have the wrong dimensions: only Cloudflare ones count.
+      if (age < CACHE_TTL_MS && cached.provider === 'cloudflare') {
         queryEmbedding = cached.embedding;
         embProvider = cached.provider;
         wasCached = true;
@@ -226,29 +226,17 @@ export const getQueryEmbedding = onCall(
 
     // Generate embedding if not cached
     if (!queryEmbedding) {
-      const geminiKey = process.env.GEMINI_API_KEY;
       const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
       const cfToken = process.env.CLOUDFLARE_API_TOKEN;
 
       let result;
       try {
-        if (geminiKey) {
-          result = await embedWithGemini(normalizedQuery, geminiKey);
-        } else {
-          throw new Error('No GEMINI_API_KEY');
-        }
-      } catch (geminiErr) {
-        console.warn('Gemini embedding failed:', geminiErr.message);
-        try {
-          if (cfAccountId && cfToken) {
-            result = await embedWithCloudflare(normalizedQuery, cfAccountId, cfToken);
-          } else {
-            throw new Error('CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set');
-          }
-        } catch (cfErr) {
-          console.error('All embedding providers failed:', cfErr.message);
-          throw new HttpsError('internal', 'All embedding providers failed');
-        }
+        if (!cfAccountId || !cfToken) throw new Error('CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set');
+        result = await embedWithCloudflare(normalizedQuery, cfAccountId, cfToken);
+      } catch (cfErr) {
+        if (isBudgetExhausted(cfErr)) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
+        console.error('Embedding failed:', cfErr.message);
+        throw new HttpsError('internal', 'Embedding provider failed');
       }
 
       queryEmbedding = result.values;

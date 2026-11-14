@@ -21,7 +21,8 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import { TUTOR_MODEL, TUTOR_FALLBACK_MODEL, loadLesson } from './course.js';
+import { withBudget, budgetLeft, isBudgetExhausted, BUDGET_MESSAGE } from './ai-budget.js';
+import { TUTOR_MODEL, TUTOR_FALLBACK_MODEL, geminiKey, loadLesson } from './course.js';
 
 // ── Limits ────────────────────────────────────────────────────────────────────
 
@@ -356,29 +357,32 @@ async function askGemini({ system, prompt, json, apiKey }) {
   return result.response.text();
 }
 
-async function askCloudflare({ system, prompt, json, cloudflare }) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflare.accountId}/ai/run/${TUTOR_FALLBACK_MODEL}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cloudflare.apiToken}` },
-    body: JSON.stringify({
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: prompt },
-      ],
-      ...(json ? { response_format: { type: 'json_object' } } : {}),
-      temperature: json ? 0.2 : 0.7,
-      max_tokens: CLOUDFLARE_MAX_TOKENS,
-    }),
+async function askCloudflare({ system, prompt, json, cloudflare, db }) {
+  const data = await withBudget(db, { model: TUTOR_FALLBACK_MODEL, inputChars: system.length + prompt.length, maxOutputTokens: CLOUDFLARE_MAX_TOKENS }, async () => {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflare.accountId}/ai/run/${TUTOR_FALLBACK_MODEL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cloudflare.apiToken}` },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        ...(json ? { response_format: { type: 'json_object' } } : {}),
+        temperature: json ? 0.2 : 0.7,
+        max_tokens: CLOUDFLARE_MAX_TOKENS,
+      }),
+    });
+    if (!res.ok) throw new Error(`Cloudflare AI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const body = await res.json();
+    if (!body.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(body.errors).slice(0, 300)}`);
+    return { value: body.result, usage: body.result?.usage };
   });
-  if (!res.ok) throw new Error(`Cloudflare AI ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const data = await res.json();
-  if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors).slice(0, 300)}`);
-  const out = data.result?.response;
+  const out = data?.response;
   return typeof out === 'string' ? out : JSON.stringify(out ?? '');
 }
 
 /** Runs `shape` on each model's output in turn; the first one that passes wins. */
-async function runModels({ system, prompt, json, shape, apiKey, cloudflare }) {
+async function runModels({ system, prompt, json, shape, apiKey, cloudflare, db }) {
   let firstError;
   if (apiKey) {
     try {
@@ -389,7 +393,7 @@ async function runModels({ system, prompt, json, shape, apiKey, cloudflare }) {
   }
   if (!cloudflare?.accountId || !cloudflare?.apiToken) throw firstError ?? new Error('no model is configured for the coach');
   if (firstError) console.warn('coach: Gemini failed, using Cloudflare:', String(firstError?.message ?? firstError).slice(0, 200));
-  return shape(await askCloudflare({ system, prompt, json, cloudflare }));
+  return shape(await askCloudflare({ system, prompt, json, cloudflare, db }));
 }
 
 export function shapeReply(text) {
@@ -400,7 +404,7 @@ export function shapeReply(text) {
 
 const SECRETS = ['GEMINI_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'];
 const models = () => ({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: geminiKey(),
   cloudflare: { accountId: process.env.CLOUDFLARE_ACCOUNT_ID, apiToken: process.env.CLOUDFLARE_API_TOKEN },
 });
 
@@ -431,17 +435,21 @@ export const coachChat = onCall(
       if (entitled) lesson = await loadLesson(db, context.lesson.course, context.lesson.id).catch(() => null);
     }
 
+    // Check the free allowance before spending the student's own message.
+    if (!(await budgetLeft(db))) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
+
     const limit = COACH_DAILY;
     const spent = await spendMessage(db, uid, limit, isUnlimited(entitlement));
     if (!spent.ok) return capReached(limit);
 
     try {
       const prompt = buildCoachPrompt({ turns, context, lesson, entitled });
-      const reply = await runModels({ system: COACH_RULES, prompt, json: false, shape: shapeReply, ...models() });
+      const reply = await runModels({ system: COACH_RULES, prompt, json: false, shape: shapeReply, db, ...models() });
       return { reply, remaining: spent.remaining };
     } catch (err) {
       console.error('coachChat error:', err?.message ?? err);
       await refundMessage(db, uid);
+      if (isBudgetExhausted(err)) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
       throw new HttpsError('unavailable', "Your coach couldn't answer just now. Try again in a moment.");
     }
   },
@@ -471,6 +479,9 @@ export const coachMark = onCall(
       };
     }
 
+    // Check the free allowance before spending the student's own message.
+    if (!(await budgetLeft(db))) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
+
     const limit = COACH_DAILY;
     const spent = await spendMessage(db, uid, limit, isUnlimited(entitlement));
     if (!spent.ok) return capReached(limit);
@@ -481,12 +492,14 @@ export const coachMark = onCall(
         prompt: buildMarkPrompt(input),
         json: true,
         shape: (raw) => parseMarkOutput(raw, input.points.length),
+        db,
         ...models(),
       });
       return { ...marked, remaining: spent.remaining };
     } catch (err) {
       console.error('coachMark error:', err?.message ?? err);
       await refundMessage(db, uid);
+      if (isBudgetExhausted(err)) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
       throw new HttpsError('unavailable', "Your coach couldn't mark that just now. Tick the points yourself, or try again in a moment.");
     }
   },

@@ -76,9 +76,7 @@ graph TD
 
     %% ── Layer 6: AI / Embedding Services ──────────────
     subgraph AI_SERVICES["🤖 AI & Embedding Services"]
-        GEMINI_EMBED["Gemini gemini-embedding-001<br/><i>3072 dimensions</i>"]
-        GEMINI_GEN["Gemini gemini-2.5-flash<br/><i>writeups + quick-starts</i>"]
-        CF_AI["Cloudflare Workers AI<br/>@cf/baai/bge-large-en-v1.5<br/><i>1024 dims, fallback</i>"]
+        CF_AI["Cloudflare Workers AI<br/>bge-large-en-v1.5 (1024 dims) + llama-3.3-70b<br/><i>embeddings + writeups, daily neuron budget</i>"]
     end
 
     %% ── Layer 7: Deployment / CI/CD ───────────────────
@@ -111,17 +109,14 @@ graph TD
     SPA -->|"GET /7.x/avataaars/svg?seed={uid}"| DICEBEAR
 
     %% Cloud Functions → AI Services
-    GQE -->|"embed query<br/>(primary)"| GEMINI_EMBED
-    GQE -->|"embed query<br/>(fallback)"| CF_AI
+    GQE -->|"embed query"| CF_AI
     GQE -->|"R/W"| SEARCH_CACHE
     GQE -->|"read parts"| EMBEDDINGS_CACHE
     TREND_BADGE -->|"read by fullName"| PROJECTS_COL
 
     %% Pipeline → External
     SCRAPER -->|"search + README + issues"| GITHUB_API
-    SCRAPER -->|"generate writeup"| GEMINI_GEN
-    SCRAPER -->|"generate embeddings"| GEMINI_EMBED
-    SCRAPER -->|"embeddings fallback"| CF_AI
+    SCRAPER -->|"writeup + embeddings"| CF_AI
     SCRAPER -->|"Admin SDK write"| PROJECTS_COL
     SCRAPER -->|"write cache"| PROJECTS_CACHE
     SCRAPER -->|"write chunks"| EMBEDDINGS_CACHE
@@ -148,9 +143,9 @@ graph TD
 | Database | Cloud Firestore | `projects`, `projectsCache`, `embeddingsCache`, `searchCache`, `searchAnalytics` collections |
 | Cloud Functions | Firebase Functions (2nd Gen, Node.js 24) | `getQueryEmbedding` (callable) + `trendBadge` (HTTP) |
 | Search (keyword) | Fuse.js v7.0.0 (CDN) | Client-side fuzzy search with weighted fields |
-| Search (semantic) | Gemini Embeddings + Cloudflare Workers AI | Server-side embedding via Cloud Function, cosine similarity on client |
+| Search (semantic) | Cloudflare Workers AI embeddings | Server-side embedding via Cloud Function, cosine similarity on client |
 | Automation | GitHub Actions | Cron job (`daily-scrape.yml`) at 8 AM UTC (midnight PST) |
-| AI Content | Google Gemini 2.5 Flash | Generates project writeups + quick-start guides |
+| AI Content | Cloudflare Workers AI (llama-3.3-70b) | Generates project writeups + quick-start guides |
 | Newsletter | Substack | Published via Pipedream webhook bridge |
 | Webhook Proxy | Pipedream | Bypasses Cloudflare restrictions on Substack API |
 | Icons | Lucide Icons (CDN) | SVG icon library |
@@ -186,13 +181,13 @@ graph TD
 - **Rate limits:** 5,000 req/hour (authenticated), Search API: 30 req/minute
 - **Current usage:** ~15-20 requests per pipeline run (well within limits)
 
-### 3.3 Google Gemini
+### 3.3 Writeups (Cloudflare Workers AI)
 
-- **Model:** `gemini-2.5-flash`
-- **SDK:** `@google/generative-ai ^0.21.0`
+- **Model:** `@cf/meta/llama-3.3-70b-instruct-fp8-fast` via REST, JSON mode, `max_tokens` 900, retry on 429/5xx
+- **Budget:** every Workers AI call (tutor, coach, search, scrape) reserves neurons from `aiBudget/{UTC date}` first; cap 9000/day (`AI_DAILY_NEURON_CAP`, max 10,000 = the free allowance), so the account is never billed. See `functions/ai-budget.js`, `scripts/ai-budget.js`.
 - **Input:** Repo metadata + README (truncated to 4000 chars via `.slice(0, 4000)`)
 - **Output:** JSON `{ writeup: string, quickStart: string[] }`
-- **Edge case:** Gemini sometimes wraps JSON in markdown fences — stripped via regex: `text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')`
+- **Edge case:** JSON mode may return an object or a string; both are handled
 
 ### 3.4 Pipedream
 
@@ -232,7 +227,7 @@ graph TD
 
 ### 3.8 Cloudflare Workers AI
 
-- **Role:** Fallback embedding provider when Gemini is unavailable
+- **Role:** The only AI provider for search embeddings, scrape writeups and (by default) the tutor and coach
 - **Model:** `@cf/baai/bge-large-en-v1.5` (1024 dimensions)
 - **Endpoint:** `https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/@cf/baai/bge-large-en-v1.5`
 - **Auth:** Bearer token (`CLOUDFLARE_API_TOKEN`)
@@ -263,12 +258,12 @@ projects/{projectId}
 ├── category: string          # inferred from topics
 │
 │  (Auto-featured projects only)
-├── writeup: string           # Gemini-generated summary
-├── quickStart: string[]      # Gemini-generated steps
+├── writeup: string           # Workers AI-generated summary
+├── quickStart: string[]      # Workers AI-generated steps
 ├── autoAddedDate: string     # "YYYY-MM-DD"
 │
 │  (Embedding vectors for semantic search)
-├── embedding_gemini: number[]     # Gemini embedding (3072 dimensions)
+├── embedding_cloudflare: number[] # bge-large embedding (1024 dimensions); old embedding_gemini is unused
 ├── embedding_cloudflare: number[] # Cloudflare BGE embedding (1024 dimensions)
 │
 │  (Trending / snapshot fields — written by daily pipeline)
@@ -305,7 +300,7 @@ embeddingsCache/meta
 
 embeddingsCache/part{i}           # i = 0, 1, 2, ... (30 projects per doc)
 ├── projects: array
-│   └── { fullName, embedding_gemini, embedding_cloudflare }
+│   └── { fullName, embedding (embedding_cloudflare) }
 └── updatedAt: timestamp
 ```
 
@@ -316,8 +311,8 @@ Chunked embedding storage for server-side ranking in `getQueryEmbedding`. Writte
 ```
 searchCache/{sha256Hash}
 ├── query: string              # normalized lowercase query
-├── embedding: number[]        # embedding vector (3072 for Gemini, 1024 for Cloudflare)
-├── provider: string           # "gemini" | "cloudflare"
+├── embedding: number[]        # embedding vector (1024, Cloudflare; Gemini entries are ignored)
+├── provider: string           # only "cloudflare" entries are used
 ├── dimensions: number         # vector dimensionality
 └── createdAt: timestamp       # server timestamp (24h TTL)
 ```
@@ -356,7 +351,7 @@ No update/delete rules on projects — defaults to deny. Daily bot writes via Fi
 | Firestore writes | 20,000/day (free tier) | 1-2/day (pipeline + user submissions) |
 | GitHub API | 5,000 req/hour | ~15-20 per pipeline run |
 | GitHub Search API | 30 req/minute | ~5 per pipeline run (one per category) |
-| Gemini API | Varies by plan | 1 call per pipeline run |
+| Workers AI | 10,000 neurons/day free, capped at 9,000 by aiBudget | writeup + embeddings per run |
 
 ---
 
@@ -405,7 +400,7 @@ GitHub Actions cron (8 AM UTC / midnight PST)
   │     GET /repos/{owner}/{repo}/readme (raw format)
   │     Truncate to 4000 chars via .slice(0, 4000)
   │
-  ├─ 4. Generate writeup via Gemini 2.5 Flash
+  ├─ 4. Generate writeup via Workers AI (llama-3.3-70b)
   │     Input: metadata + README
   │     Output: { writeup, quickStart }
   │     Strip markdown code fences if present
@@ -591,7 +586,7 @@ User types query
   → Fuse.js keyword search (client-side, weighted fields)
   → getQueryEmbedding Cloud Function (server-side)
       → Check Firestore searchCache (24h TTL)
-      → Gemini embedding (primary) or Cloudflare Workers AI (fallback)
+      → Cloudflare Workers AI embedding (budgeted; searchCache entries must have provider "cloudflare")
   → Cosine similarity: query embedding vs project embeddings
   → Combined score: 0.7 * semantic + 0.3 * keyword (when both present)
   → Render results in #search-result-grid (capped at 12)
@@ -625,10 +620,10 @@ User types query
   - **`rankProjects`** — Input: `{ query, rankProjects: true }` → Embeds query + ranks against `embeddingsCache` server-side
   - **`findSimilar`** — Input: `{ findSimilar: "owner/repo" }` → Returns top 12 similar projects from `embeddingsCache`
   - **`findSimilarBatch`** — Input: `{ findSimilarBatch: ["owner/repo", ...] }` (up to 12) → Batch similar projects
-- **Provider chain:** Gemini `gemini-embedding-001` (3072 dims) → Cloudflare Workers AI `bge-large-en-v1.5` (1024 dims)
+- **Provider:** Cloudflare Workers AI `bge-large-en-v1.5` (1024 dims) only; `resource-exhausted` when the daily neuron budget is spent
 - **Caching:** SHA-256 hash of normalized query → Firestore `searchCache` doc (24h TTL); `embeddingsCache` parts cached 1h in-memory
 - **Rate limiting:** 20 calls/min per UID (in-memory counter)
-- **Secrets:** `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (via Secret Manager)
+- **Secrets:** `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (via Secret Manager)
 - **Max instances:** 10
 
 **`trendBadge`** (2nd Gen, `us-central1`, HTTP):
@@ -747,7 +742,7 @@ requires rewriting the issue body first.
 |--------|---------|
 | `STAGING_FIREBASE_SERVICE_ACCOUNT` | Service account JSON for `ai-digital-crew-staging` project |
 
-Staging reuses `GITHUB_TOKEN` and `GEMINI_API_KEY` from production. It does not need `NOTIFY_TOKEN` or `PIPEDREAM_WEBHOOK_URL`.
+Staging reuses `GITHUB_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` from production. It does not need `NOTIFY_TOKEN` or `PIPEDREAM_WEBHOOK_URL`.
 
 ### 8.5 Firestore Rules (Staging)
 
@@ -811,7 +806,7 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 | `FIREBASE_SERVICE_ACCOUNT` | daily-scrape.js | Admin Firestore access | JSON service account key |
 | `GITHUB_TOKEN` | daily-scrape.js | Search repos, fetch README | PAT with repo access |
 | `NOTIFY_TOKEN` | daily-scrape.js | Create GitHub issues (owner notification) | Optional — falls back to `GITHUB_TOKEN` if unset. Separate token allows different permission scope |
-| `GEMINI_API_KEY` | daily-scrape.js | AI writeup generation | Google AI Studio key |
+| `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | daily-scrape.js | Writeups + embeddings (Workers AI) | Cloudflare account ID / Workers AI token |
 | `PIPEDREAM_WEBHOOK_URL` | substack-publish.js | Trigger Substack publication | URL is the auth mechanism |
 | `STAGING_FIREBASE_SERVICE_ACCOUNT` | daily-scrape-staging.yml | Admin access to staging Firebase project | JSON service account key for `ai-digital-crew-staging` |
 | `CLOUDFLARE_API_TOKEN` | deploy-cloudflare.yml, deploy-staging.yml | Cloudflare Pages deployment | Wrangler API token |
@@ -821,7 +816,7 @@ firebase deploy --only firestore:rules --project ai-digital-crew
 
 | Secret | Used By | Purpose |
 |--------|---------|---------|
-| `GEMINI_API_KEY` | `getQueryEmbedding` function | Gemini embedding API (primary provider) |
+| `GEMINI_API_KEY` | tutor/coach functions | Only used if `TUTOR_USE_GEMINI=on` (off by default) |
 | `CLOUDFLARE_ACCOUNT_ID` | `getQueryEmbedding` function | Cloudflare Workers AI account |
 | `CLOUDFLARE_API_TOKEN` | `getQueryEmbedding` function | Cloudflare Workers AI auth token |
 
@@ -922,8 +917,8 @@ Full git history audit performed to check for leaked secrets.
 | GitHub search fails for a category | `console.warn()` + continues to next category |
 | All candidates already in Firestore | Exits gracefully with log message (no pick today) |
 | README fetch fails | Pipeline continues without README context |
-| Gemini returns invalid JSON | Strips markdown fences, then `JSON.parse()` — if still invalid, pipeline throws |
-| Gemini API timeout/error | No retry — pipeline aborts |
+| Writeup model returns invalid JSON | Parsed from object or string — if still invalid, pipeline throws |
+| Workers AI 429/5xx | Retried up to 4 times; then pipeline aborts. Budget exhausted: writeup fails the run, embeddings are skipped |
 | Firestore write fails | No retry — pipeline aborts |
 | Owner notification fails | Non-fatal — `console.warn()` and continues to Substack publish |
 | Pipedream webhook fails | Pipeline logs error — no retry |
@@ -1021,7 +1016,7 @@ ai-digital-crew/
 ├── scripts/
 │   ├── daily-scrape.js         # Daily pipeline orchestrator
 │   ├── substack-publish.js     # Pipedream/Substack payload builder
-│   ├── embedding-provider.js   # Shared embedding logic (Gemini + Cloudflare) for backfill
+│   ├── embedding-provider.js   # Shared embedding logic (Cloudflare only, budgeted) for backfill
 │   ├── backfill-embeddings.js  # One-time script to generate embeddings for existing projects
 │   ├── capture_console.py      # Debug tool: Playwright browser console capture (not used in prod)
 │   ├── package.json            # Node deps (firebase-admin, generative-ai)

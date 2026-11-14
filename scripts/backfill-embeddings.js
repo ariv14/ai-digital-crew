@@ -6,7 +6,8 @@
  *   node scripts/backfill-embeddings.js              # only projects missing embeddings
  *   node scripts/backfill-embeddings.js --force       # regenerate all
  *
- * Env vars: GEMINI_API_KEY, JINA_API_KEY, FIREBASE_SERVICE_ACCOUNT
+ * Env vars: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, FIREBASE_SERVICE_ACCOUNT
+ * Stops early when today's shared Workers AI budget (aiBudget) is used up; run again tomorrow.
  */
 
 import { initializeApp, cert } from 'firebase-admin/app';
@@ -39,7 +40,7 @@ async function main() {
     const id = docSnap.id;
 
     // Skip if already has embeddings (unless --force)
-    if (!force && project.embedding_gemini && project.embedding_cloudflare) {
+    if (!force && project.embedding_cloudflare) {
       skipped++;
       continue;
     }
@@ -53,7 +54,7 @@ async function main() {
 
     console.log(`Embedding ${project.fullName || id}...`);
     try {
-      const embeddings = await generateAllEmbeddings(text);
+      const embeddings = await generateAllEmbeddings(text, db);
       if (Object.keys(embeddings).length === 0) {
         console.warn(`  No embeddings generated for ${project.fullName || id}`);
         skipped++;
@@ -63,6 +64,10 @@ async function main() {
       updated++;
       console.log(`  Updated with ${Object.keys(embeddings).join(', ')}`);
     } catch (err) {
+      if (err?.code === 'budget-exhausted') {
+        console.warn('Daily Workers AI budget used up: stopping the backfill. Run again after 00:00 UTC.');
+        break;
+      }
       console.error(`  Error embedding ${project.fullName || id}: ${err.message}`);
     }
   }

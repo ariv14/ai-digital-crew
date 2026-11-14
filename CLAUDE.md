@@ -14,7 +14,7 @@ This is a **single-file vanilla JS SPA** — all source code lives in `index.htm
 
 **Backend:** Firebase (Auth + Firestore + Cloud Functions). Cloud Function `getQueryEmbedding` handles embedding generation for semantic search.
 
-**Daily pipeline:** GitHub Actions cron → `daily-scrape.js` → GitHub API + Gemini AI + Firestore + Pipedream → Substack newsletter.
+**Daily pipeline:** GitHub Actions cron → `daily-scrape.js` → GitHub API + Cloudflare Workers AI + Firestore + Pipedream → Substack newsletter.
 
 ## Branching
 
@@ -49,12 +49,13 @@ firebase serve
 | `ARCHITECTURE.md` | Full system architecture, data flows, security, observability |
 | `ROADMAP.md` | Future feature directions |
 | `.gitignore` | Protects secrets & vendor files from accidental commit |
-| `functions/index.js` | Cloud Function: `getQueryEmbedding` (Gemini + Cloudflare fallback) |
+| `functions/index.js` | Cloud Function: `getQueryEmbedding` (Cloudflare Workers AI only) |
+| `functions/ai-budget.js`, `scripts/ai-budget.js` | Shared daily neuron budget (`aiBudget`) every Workers AI call goes through; keep the two copies identical |
 | `functions/course.js` | Cloud Functions: `redeemAccessCode`, `courseTutor` (paid course on the Next.js site) |
 | `scripts/course-admin.js` | Publish paid lessons, issue access codes, grant or revoke access |
 | `functions/coach.js` | Cloud Functions: `coachChat`, `coachMark` (the student's coach; paid students only: `permission-denied` without the `ai-ready` entitlement, one cap `COACH_DAILY` unless the entitlement has `coachUnlimited: true` (set with `course-admin.js coach-unlimited <email> on|off`; usage still counted), prompt `COACH_RULES`); tests in `functions/test/` via `npm test` there |
 | `functions/package.json` | Cloud Functions dependencies |
-| `scripts/daily-scrape.js` | Daily pipeline orchestrator (GitHub → Gemini → Firestore → Substack) |
+| `scripts/daily-scrape.js` | Daily pipeline orchestrator (GitHub → Workers AI → Firestore → Substack) |
 | `scripts/substack-publish.js` | Builds ProseMirror payload, POSTs to Pipedream webhook |
 | `scripts/embedding-provider.js` | Shared embedding logic for backfill script |
 | `scripts/backfill-embeddings.js` | One-time script to generate embeddings for existing projects |
@@ -67,7 +68,7 @@ firebase serve
 **Navigation:** Two views controlled by `navigateTo(view)` — `home` (hero + featured + projects) and `search` (dedicated search page). Toggled via nav links.
 
 **Firestore collections:**
-- `projects/` — submitted repos. Fields: `fullName`, `name`, `owner`, `ownerAvatar`, `description`, `stars`, `forks`, `language`, `topics`, `url`, `submittedBy` (uid), `submittedByName`, `createdAt`, `embedding_gemini`, `embedding_cloudflare`
+- `projects/` — submitted repos. Fields: `fullName`, `name`, `owner`, `ownerAvatar`, `description`, `stars`, `forks`, `language`, `topics`, `url`, `submittedBy` (uid), `submittedByName`, `createdAt`, `embedding_cloudflare` (old `embedding_gemini` is unused)
 - `searchCache/` — cached query embeddings (24h TTL, written by Cloud Functions only)
 - `searchAnalytics/` — search query logs (authenticated write-only)
 
@@ -92,6 +93,7 @@ firebase serve
 - `searchAnalytics`: authenticated create/update, no read
 - `courses/{id}/lessons`: paid-course lessons, readable only by accounts whose `entitlements/{uid}` lists the course; written by `scripts/course-admin.js`
 - `entitlements`: owner read, no client write (Cloud Function `redeemAccessCode` and `course-admin.js` only)
+- `aiBudget`: no client access; `aiBudget/{UTC date}.neurons` is the shared Workers AI usage, capped at 9000/day (`AI_DAILY_NEURON_CAP`, never above the 10,000 free) so the account is never billed; tutor, coach, search and the scrape all reserve from it
 - `accessCodes`, `redeemAttempts`, `tutorUsage`, `coachUsage`: no client access (`coachUsage` is the daily message count for `coachChat`/`coachMark`)
 - Duplicate detection: query by `fullName` before insert
 - User's projects: query by `submittedBy == uid`

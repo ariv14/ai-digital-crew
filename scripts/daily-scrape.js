@@ -6,26 +6,27 @@
  *  1. Search GitHub for top new AI repos
  *  2. Skip any already in Firestore
  *  3. Fetch README
- *  4. Generate writeup + quickStart via Gemini Flash
+ *  4. Generate writeup + quickStart via Cloudflare Workers AI (daily neuron budget)
  *  5. Write project to Firestore
  *  6. Publish newsletter post to Substack
  */
 
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { publishToSubstack } from './substack-publish.js';
+import { withBudget, isBudgetExhausted } from './ai-budget.js';
 import { generateAllEmbeddings, projectToEmbeddingText } from './embedding-provider.js';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const NOTIFY_TOKEN = process.env.NOTIFY_TOKEN;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-if (!GITHUB_TOKEN || !GEMINI_API_KEY || !FIREBASE_SERVICE_ACCOUNT) {
-  console.error('Missing required env vars: GITHUB_TOKEN, GEMINI_API_KEY, FIREBASE_SERVICE_ACCOUNT');
+if (!GITHUB_TOKEN || !CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN || !FIREBASE_SERVICE_ACCOUNT) {
+  console.error('Missing required env vars: GITHUB_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, FIREBASE_SERVICE_ACCOUNT');
   process.exit(1);
 }
 
@@ -402,8 +403,8 @@ async function writeEmbeddingsCache(db, allDocs) {
   const entries = [];
   for (const doc of allDocs) {
     const p = doc.data();
-    if (p.fullName && p.embedding_gemini) {
-      entries.push({ fullName: p.fullName, embedding: p.embedding_gemini });
+    if (p.fullName && p.embedding_cloudflare) {
+      entries.push({ fullName: p.fullName, embedding: p.embedding_cloudflare });
     }
   }
 
@@ -435,6 +436,36 @@ async function writeEmbeddingsCache(db, allDocs) {
   console.log(`embeddingsCache written: ${chunks.length} parts, ${entries.length} projects`);
 }
 
+// Backfill embedding_cloudflare for projects missing it. Stops early when the day's
+// Workers AI budget is used up; the rest waits for the next run. Non-fatal.
+async function backfillEmbeddings(db, allDocs) {
+  console.log('Checking for projects missing embeddings...');
+  try {
+    let backfilled = 0;
+    for (const d of allDocs) {
+      const p = d.data();
+      if (p.embedding_cloudflare) continue;
+      const text = projectToEmbeddingText(p);
+      if (!text.trim()) continue;
+      try {
+        const embs = await generateAllEmbeddings(text, db);
+        if (Object.keys(embs).length > 0) {
+          await d.ref.update(embs);
+          backfilled++;
+        }
+      } catch (err) {
+        if (isBudgetExhausted(err)) {
+          console.warn('Daily Workers AI budget used up: backfill stopped early, it will resume on the next run.');
+          break;
+        }
+      }
+    }
+    if (backfilled > 0) console.log(`Backfilled embeddings for ${backfilled} projects`);
+  } catch (bfErr) {
+    console.warn('Backfill pass failed (non-fatal):', bfErr.message);
+  }
+}
+
 // ── Firestore ─────────────────────────────────────────────────────────────────
 
 function initFirestore() {
@@ -448,33 +479,57 @@ async function writeProjectToFirestore(db, project) {
   console.log(`Wrote project to Firestore: ${project.fullName}`);
 }
 
-// ── Gemini ────────────────────────────────────────────────────────────────────
+// ── Writeup (Cloudflare Workers AI) ───────────────────────────────────────────
 
-// Retry model.generateContent on transient Google API failures (5xx, 429).
-// Leaves 4xx (other than 429) to fail fast — those are prompt/auth bugs, not flaky infra.
-async function callGeminiWithRetry(model, prompt) {
+const WRITEUP_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const WRITEUP_MAX_TOKENS = 900;
+
+// One metered Workers AI chat call, retried on transient failures (5xx, 429).
+// Other 4xx fail fast — those are prompt/auth bugs, not flaky infra. Each attempt
+// reserves and settles its own neurons, so a failed attempt is refunded.
+async function callWorkersAiWithRetry(db, prompt) {
   const MAX_ATTEMPTS = 4;
   let lastErr;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      return await model.generateContent(prompt);
+      return await withBudget(db, { model: WRITEUP_MODEL, inputChars: prompt.length, maxOutputTokens: WRITEUP_MAX_TOKENS }, async () => {
+        const res = await fetch(
+          `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${WRITEUP_MODEL}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: prompt }],
+              response_format: { type: 'json_object' },
+              temperature: 0.6,
+              max_tokens: WRITEUP_MAX_TOKENS,
+            }),
+          }
+        );
+        if (!res.ok) {
+          const err = new Error(`Cloudflare AI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+          err.status = res.status;
+          throw err;
+        }
+        const data = await res.json();
+        if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors).slice(0, 300)}`);
+        return { value: data.result, usage: data.result?.usage };
+      });
     } catch (err) {
       lastErr = err;
       const status = err?.status;
       const transient = status === 429 || (status >= 500 && status <= 599);
-      if (!transient || attempt === MAX_ATTEMPTS) throw err;
+      if (isBudgetExhausted(err) || !transient || attempt === MAX_ATTEMPTS) throw err;
       const waitMs = Math.min(30000, 2000 * Math.pow(2, attempt - 1)); // 2s, 4s, 8s, cap 30s
-      console.warn(`Gemini attempt ${attempt}/${MAX_ATTEMPTS} failed (${status} ${err?.statusText || ''}) — retrying in ${waitMs / 1000}s...`);
+      console.warn(`Workers AI attempt ${attempt}/${MAX_ATTEMPTS} failed (${status}) — retrying in ${waitMs / 1000}s...`);
       await new Promise(r => setTimeout(r, waitMs));
     }
   }
   throw lastErr; // unreachable, guards against accidental fallthrough
 }
 
-async function generateWriteup(repoMeta, readme) {
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
+// Input is bounded: the README is cut to README_MAX_CHARS (4000) when fetched.
+async function generateWriteup(db, repoMeta, readme) {
   const prompt = `You are a technical writer for AI developers. Given a GitHub repository, produce a JSON response with exactly two fields:
 - "writeup": A detailed 3-4 paragraph writeup for AI developers. Paragraph 1: What the project does, its core value proposition, and the problem it solves. Paragraph 2: Key technical features, architecture highlights, and what makes it unique compared to alternatives. Paragraph 3: Real-world use cases, who benefits most, and community traction (stars, contributors). Paragraph 4 (optional): Notable integrations, roadmap highlights, or why it matters for the AI ecosystem. Separate each paragraph with two newlines (\\n\\n). Write in an engaging, informative tone — not generic marketing fluff.
 - "quickStart": array of 3-5 strings, each a concise step to get started (install, configure, run)
@@ -489,20 +544,20 @@ ${readme}
 
 Respond with ONLY valid JSON, no markdown fences, no extra text.`;
 
-  const result = await callGeminiWithRetry(model, prompt);
-  const text = result.response.text().trim();
-
-  // Strip markdown code fences if Gemini wraps the JSON
-  const jsonText = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-
+  const result = await callWorkersAiWithRetry(db, prompt);
+  // JSON mode may return an object or a string (possibly fenced or wrapped in prose).
+  let parsed = result?.response;
   try {
-    const parsed = JSON.parse(jsonText);
-    if (typeof parsed.writeup !== 'string' || !Array.isArray(parsed.quickStart)) {
+    if (typeof parsed === 'string') {
+      const text = parsed.trim();
+      parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+    }
+    if (!parsed || typeof parsed.writeup !== 'string' || !Array.isArray(parsed.quickStart)) {
       throw new Error('Unexpected JSON shape');
     }
     return parsed;
   } catch (e) {
-    console.error('Failed to parse Gemini response:', text);
+    console.error('Failed to parse Workers AI response:', JSON.stringify(result?.response)?.slice(0, 1000));
     throw e;
   }
 }
@@ -762,6 +817,13 @@ async function main() {
     }
     if (cacheWritten) console.log('Cache rebuilt successfully.');
     else console.warn('Cache rebuild failed — website may show stale data.');
+    // Fill any missing embeddings, then rebuild the embeddings cache from a fresh read.
+    await backfillEmbeddings(db, allDocs);
+    try {
+      await writeEmbeddingsCache(db, (await db.collection('projects').get()).docs);
+    } catch (embCacheErr) {
+      console.warn('Embeddings cache write failed (non-fatal):', embCacheErr.message);
+    }
     return;
   }
 
@@ -772,10 +834,10 @@ async function main() {
   const readme = await fetchReadme(owner, repo);
   console.log(`README fetched (${readme.length} chars)`);
 
-  // 4. Generate writeup with Gemini
+  // 4. Generate writeup with Workers AI
   const repoMeta = await fetchRepoMeta(owner, repo);
-  console.log('Generating writeup with Gemini Flash...');
-  const { writeup, quickStart } = await generateWriteup(repoMeta || chosen, readme);
+  console.log('Generating writeup with Workers AI...');
+  const { writeup, quickStart } = await generateWriteup(db, repoMeta || chosen, readme);
   console.log('Writeup generated.');
 
   // 5. Write to Firestore
@@ -807,7 +869,7 @@ async function main() {
   console.log('Generating embeddings...');
   try {
     const embText = projectToEmbeddingText(projectDoc);
-    const embeddings = await generateAllEmbeddings(embText);
+    const embeddings = await generateAllEmbeddings(embText, db);
     if (Object.keys(embeddings).length > 0) {
       // Find the doc we just wrote and update with embeddings
       const newSnap = await db.collection('projects').where('fullName', '==', projectDoc.fullName).limit(1).get();
@@ -820,27 +882,8 @@ async function main() {
     console.warn('Embedding generation failed (non-fatal):', embErr.message);
   }
 
-  // 5c. Backfill embeddings for user-submitted projects missing them
-  console.log('Checking for projects missing embeddings...');
-  try {
-    let backfilled = 0;
-    for (const d of allDocs) {
-      const p = d.data();
-      if (p.embedding_gemini && p.embedding_cloudflare) continue;
-      const text = projectToEmbeddingText(p);
-      if (!text.trim()) continue;
-      try {
-        const embs = await generateAllEmbeddings(text);
-        if (Object.keys(embs).length > 0) {
-          await d.ref.update(embs);
-          backfilled++;
-        }
-      } catch {}
-    }
-    if (backfilled > 0) console.log(`Backfilled embeddings for ${backfilled} projects`);
-  } catch (bfErr) {
-    console.warn('Backfill pass failed (non-fatal):', bfErr.message);
-  }
+  // 5c. Backfill embedding_cloudflare for projects missing it (7b/7c re-read the projects afterwards).
+  await backfillEmbeddings(db, allDocs);
 
   // 6. Discover trending repos (AI + Global pools)
   try {

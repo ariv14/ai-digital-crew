@@ -15,9 +15,17 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { withBudget, budgetLeft, isBudgetExhausted, BUDGET_MESSAGE } from './ai-budget.js';
 
 export const TUTOR_MODEL = process.env.TUTOR_MODEL || 'gemini-2.5-flash';
 export const TUTOR_FALLBACK_MODEL = process.env.TUTOR_FALLBACK_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+
+/**
+ * Gemini is billed per token, so it is off unless TUTOR_USE_GEMINI=on. Without
+ * a key the tutor and the coach answer from Cloudflare Workers AI alone, which
+ * has a free daily allowance.
+ */
+export const geminiKey = () => (process.env.TUTOR_USE_GEMINI === 'on' ? process.env.GEMINI_API_KEY : undefined);
 
 /** Tutor turns a reader may take in a day: the cost ceiling for one account. */
 const DAILY_TURNS = { paid: 80, free: 12 };
@@ -286,25 +294,30 @@ const FALLBACK_FORMAT = `Answer with one JSON object and nothing else, with thes
 "mark" (integer 0 to 3, or null): only with the move "finish" in explain or interview mode.
 "memo" (string): your private note to yourself for the next turn.`;
 
-/** The same turn on Cloudflare Workers AI, as search falls back for embeddings. */
-async function askCloudflare(prompt, { accountId, apiToken }) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${TUTOR_FALLBACK_MODEL}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiToken}` },
-    body: JSON.stringify({
-      messages: [
-        { role: 'system', content: `${TUTOR_RULES}\n\n${FALLBACK_FORMAT}` },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.6,
-      max_tokens: 700,
-    }),
+/** The same turn on Cloudflare Workers AI, against the shared daily neuron budget (when `db` is given). */
+async function askCloudflare(prompt, { accountId, apiToken }, db) {
+  const system = `${TUTOR_RULES}\n\n${FALLBACK_FORMAT}`;
+  const maxTokens = 700;
+  const result = await withBudget(db, { model: TUTOR_FALLBACK_MODEL, inputChars: system.length + prompt.length, maxOutputTokens: maxTokens }, async () => {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${TUTOR_FALLBACK_MODEL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiToken}` },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.6,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!res.ok) throw new Error(`Cloudflare AI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors).slice(0, 300)}`);
+    return { value: data.result, usage: data.result?.usage };
   });
-  if (!res.ok) throw new Error(`Cloudflare AI ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const data = await res.json();
-  if (!data.success) throw new Error(`Cloudflare AI error: ${JSON.stringify(data.errors).slice(0, 300)}`);
-  const out = data.result?.response;
+  const out = result?.response;
   if (typeof out === 'object' && out !== null) return out;
   // Some models wrap the object in prose or a code fence.
   const text = String(out ?? '');
@@ -313,9 +326,10 @@ async function askCloudflare(prompt, { accountId, apiToken }) {
 
 /**
  * One turn of the tutor against a model: Gemini first, Cloudflare Workers AI
- * if Gemini fails or has no key. Also run by tutor-smoke.mjs, outside Cloud Functions.
+ * if Gemini fails or has no key. Cloudflare calls are metered against the shared
+ * daily budget when `db` is passed; tutor-smoke.mjs, outside Cloud Functions, passes none.
  */
-export async function tutorTurn({ lesson, mode, turns, memo, apiKey, cloudflare }) {
+export async function tutorTurn({ lesson, mode, turns, memo, apiKey, cloudflare, db }) {
   const studentTurns = turns.filter((t) => t.role === 'student').length;
   const prompt = buildTutorPrompt({ lesson, mode, turns, memo });
   const shape = (raw) => shapeTutorReply(raw, { mode, lastTurn: studentTurns >= MAX_STUDENT_TURNS[mode] });
@@ -329,7 +343,7 @@ export async function tutorTurn({ lesson, mode, turns, memo, apiKey, cloudflare 
   }
   if (!cloudflare?.accountId || !cloudflare?.apiToken) throw geminiError ?? new Error('no model is configured for the tutor');
   if (geminiError) console.warn('courseTutor: Gemini failed, using Cloudflare:', String(geminiError?.message ?? geminiError).slice(0, 200));
-  return { ...shape(await askCloudflare(prompt, cloudflare)), provider: 'cloudflare' };
+  return { ...shape(await askCloudflare(prompt, cloudflare, db)), provider: 'cloudflare' };
 }
 
 export const courseTutor = onCall(
@@ -346,6 +360,9 @@ export const courseTutor = onCall(
     if (!lesson.free && !paid) throw new HttpsError('permission-denied', 'This lesson is part of the full course.');
     if (input.mode === 'interview' && !lesson.interview) throw new HttpsError('invalid-argument', 'This lesson has no interview question.');
 
+    // Check the free allowance before spending the student's own turn.
+    if (!(await budgetLeft(db))) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
+
     const allowed = await spendTurn(db, uid, paid ? DAILY_TURNS.paid : DAILY_TURNS.free);
     if (!allowed) {
       throw new HttpsError(
@@ -358,10 +375,12 @@ export const courseTutor = onCall(
       return await tutorTurn({
         lesson,
         ...input,
-        apiKey: process.env.GEMINI_API_KEY,
+        apiKey: geminiKey(),
+        db,
         cloudflare: { accountId: process.env.CLOUDFLARE_ACCOUNT_ID, apiToken: process.env.CLOUDFLARE_API_TOKEN },
       });
     } catch (err) {
+      if (isBudgetExhausted(err)) throw new HttpsError('resource-exhausted', BUDGET_MESSAGE);
       console.error('courseTutor error:', err?.message ?? err);
       throw new HttpsError('unavailable', "The tutor couldn't answer just now. Try again in a moment.");
     }

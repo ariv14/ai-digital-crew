@@ -66,6 +66,9 @@ service cloud.firestore {
     match /coachUsage/{uid} {
       allow read, write: if false;
     }
+    match /aiBudget/{day} {
+      allow read, write: if false;
+    }
     match /searchAnalytics/{docId} {
       allow create: if request.auth != null;
       allow update: if request.auth != null;
