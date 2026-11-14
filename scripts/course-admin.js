@@ -5,6 +5,7 @@
  *   node scripts/course-admin.js codes <courseId> <count> [--uses N] [--note "text"]
  *   node scripts/course-admin.js grant <courseId> <email-or-uid>
  *   node scripts/course-admin.js revoke <courseId> <email-or-uid>
+ *   node scripts/course-admin.js coach-unlimited <email-or-uid> on|off   lift or restore the coach's daily cap
  *   node scripts/course-admin.js list <courseId>              who has access, and code use
  *
  * The lessons file comes from `npm run course:export` in ai-digital-crew-next.
@@ -91,6 +92,19 @@ const commands = {
     console.log(`Revoked ${courseId} from ${who} (${uid}).`);
   },
 
+  async 'coach-unlimited'(who, state) {
+    if (state !== 'on' && state !== 'off') throw new Error('Say "on" or "off": coach-unlimited <email-or-uid> on|off');
+    const uid = await uidFor(who);
+    const ref = db.collection('entitlements').doc(uid);
+    // The flag lives on the entitlement and never grants the course itself.
+    if (!(((await ref.get()).data()?.courses) ?? []).includes('ai-ready')) {
+      console.error(`Account ending ${uid.slice(-4)} has no ai-ready entitlement. Grant the course first; this flag does not give access.`);
+      process.exit(1);
+    }
+    await ref.set({ coachUnlimited: state === 'on' ? true : FieldValue.delete() }, { merge: true });
+    console.log(`Coach daily cap ${state === 'on' ? 'lifted' : 'restored'} for the account ending ${uid.slice(-4)}.`);
+  },
+
   async list(courseId) {
     const holders = await db.collection('entitlements').where('courses', 'array-contains', courseId).get();
     console.log(`${holders.size} account${holders.size === 1 ? '' : 's'} with access:`);
@@ -102,7 +116,7 @@ const commands = {
 };
 
 if (!commands[command]) {
-  console.error('Usage: node scripts/course-admin.js publish|codes|grant|revoke|list ...  (see the top of this file)');
+  console.error('Usage: node scripts/course-admin.js publish|codes|grant|revoke|coach-unlimited|list ...  (see the top of this file)');
   process.exit(1);
 }
 await commands[command](...args.filter((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--')));

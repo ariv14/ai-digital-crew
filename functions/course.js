@@ -16,8 +16,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
-const TUTOR_MODEL = process.env.TUTOR_MODEL || 'gemini-2.5-flash';
-const TUTOR_FALLBACK_MODEL = process.env.TUTOR_FALLBACK_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+export const TUTOR_MODEL = process.env.TUTOR_MODEL || 'gemini-2.5-flash';
+export const TUTOR_FALLBACK_MODEL = process.env.TUTOR_FALLBACK_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
 /** Tutor turns a reader may take in a day: the cost ceiling for one account. */
 const DAILY_TURNS = { paid: 80, free: 12 };
@@ -38,7 +38,7 @@ export function normaliseCode(raw) {
   return String(raw ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
-async function hasCourse(db, uid, courseId) {
+export async function hasCourse(db, uid, courseId) {
   const snap = await db.collection('entitlements').doc(uid).get();
   const courses = snap.data()?.courses;
   return Array.isArray(courses) && courses.includes(courseId);
@@ -101,7 +101,7 @@ export const redeemAccessCode = onCall({ region: 'us-central1', maxInstances: 5 
 const lessonCache = new Map(); // `${courseId}/${lessonId}` → { lesson, at }
 const LESSON_CACHE_MS = 10 * 60 * 1000;
 
-async function loadLesson(db, courseId, lessonId) {
+export async function loadLesson(db, courseId, lessonId) {
   const key = `${courseId}/${lessonId}`;
   const cached = lessonCache.get(key);
   if (cached && Date.now() - cached.at < LESSON_CACHE_MS) return cached.lesson;

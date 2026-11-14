@@ -52,6 +52,7 @@ firebase serve
 | `functions/index.js` | Cloud Function: `getQueryEmbedding` (Gemini + Cloudflare fallback) |
 | `functions/course.js` | Cloud Functions: `redeemAccessCode`, `courseTutor` (paid course on the Next.js site) |
 | `scripts/course-admin.js` | Publish paid lessons, issue access codes, grant or revoke access |
+| `functions/coach.js` | Cloud Functions: `coachChat`, `coachMark` (the student's coach; paid students only: `permission-denied` without the `ai-ready` entitlement, one cap `COACH_DAILY` unless the entitlement has `coachUnlimited: true` (set with `course-admin.js coach-unlimited <email> on|off`; usage still counted), prompt `COACH_RULES`); tests in `functions/test/` via `npm test` there |
 | `functions/package.json` | Cloud Functions dependencies |
 | `scripts/daily-scrape.js` | Daily pipeline orchestrator (GitHub → Gemini → Firestore → Substack) |
 | `scripts/substack-publish.js` | Builds ProseMirror payload, POSTs to Pipedream webhook |
@@ -91,6 +92,6 @@ firebase serve
 - `searchAnalytics`: authenticated create/update, no read
 - `courses/{id}/lessons`: paid-course lessons, readable only by accounts whose `entitlements/{uid}` lists the course; written by `scripts/course-admin.js`
 - `entitlements`: owner read, no client write (Cloud Function `redeemAccessCode` and `course-admin.js` only)
-- `accessCodes`, `redeemAttempts`, `tutorUsage`: no client access
+- `accessCodes`, `redeemAttempts`, `tutorUsage`, `coachUsage`: no client access (`coachUsage` is the daily message count for `coachChat`/`coachMark`)
 - Duplicate detection: query by `fullName` before insert
 - User's projects: query by `submittedBy == uid`

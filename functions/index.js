@@ -5,6 +5,7 @@
  * Uses Gemini (primary) with Cloudflare Workers AI fallback. Checks Firestore searchCache first.
  *
  * redeemAccessCode, courseTutor — paid-course access and the lesson tutor; see course.js.
+ * coachChat, coachMark — the student's personal coach; see coach.js.
  *
  * Secrets (set via firebase functions:secrets:set):
  *   GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
@@ -21,6 +22,8 @@ const db = getFirestore();
 
 // Paid courses: access codes and the lesson tutor.
 export { redeemAccessCode, courseTutor } from './course.js';
+// The student's coach: open conversation and mock-interview marking; see coach.js.
+export { coachChat, coachMark } from './coach.js';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 

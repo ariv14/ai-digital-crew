@@ -53,7 +53,7 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if false;
     }
-    // Server-side only: codes, wrong-guess counters and tutor usage.
+    // Server-side only: codes, wrong-guess counters, tutor usage and coach usage.
     match /accessCodes/{code} {
       allow read, write: if false;
     }
@@ -61,6 +61,9 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /tutorUsage/{uid} {
+      allow read, write: if false;
+    }
+    match /coachUsage/{uid} {
       allow read, write: if false;
     }
     match /searchAnalytics/{docId} {
