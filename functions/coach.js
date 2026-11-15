@@ -8,7 +8,8 @@
  * coachMark — marks one mock-interview answer against the points a strong
  *   answer covers, and says what was strong and what to add.
  *
- * Both need a signed-in account and share one daily message cap, kept in
+ * Both need a signed-in account that holds a paid coach course (COACH_COURSES: AI-Ready
+ * from Zero or the senior interview loop) and share one daily message cap, kept in
  * `coachUsage/{uid}` so the lesson tutor's own limit (`tutorUsage`) is untouched.
  * An account whose `entitlements/{uid}` has `coachUnlimited: true` (set by
  * scripts/course-admin.js) is still counted but never capped.
@@ -26,9 +27,13 @@ import { TUTOR_MODEL, TUTOR_FALLBACK_MODEL, geminiKey, loadLesson } from './cour
 
 // ── Limits ────────────────────────────────────────────────────────────────────
 
-/** Coach messages a day, for students who have the paid course. There is no free tier. */
+/** Coach messages a day, for students who have a paid coach course. There is no free tier. */
 export const COACH_DAILY = 60;
-export const COACH_COURSE = 'ai-ready';
+/**
+ * Paid courses that open the coach: holding ANY of them is enough. Source of truth;
+ * scripts/course-admin.js duplicates it for `coach-unlimited`, so change both together.
+ */
+export const COACH_COURSES = ['ai-ready', 'senior'];
 
 const MAX_TURNS = 12;
 const MAX_TURN_CHARS = 1500;
@@ -125,13 +130,13 @@ export function capDecision(count, limit, unlimited) {
 }
 
 /**
- * The coach is part of the paid course: refuse anyone without it, before any model call or
+ * The coach is part of the paid courses: refuse anyone without one of COACH_COURSES, before any model call or
  * usage write. Returns the entitlement data so the caller need not read it again.
  */
 export async function requirePaidStudent(db, uid) {
   const data = (await db.collection('entitlements').doc(uid).get()).data();
-  if (!(Array.isArray(data?.courses) && data.courses.includes(COACH_COURSE))) {
-    throw new HttpsError('permission-denied', 'Your coach is part of AI-Ready from Zero.');
+  if (!(Array.isArray(data?.courses) && data.courses.some((c) => COACH_COURSES.includes(c)))) {
+    throw new HttpsError('permission-denied', 'Your coach is part of AI-Ready from Zero and the senior interview loop.');
   }
   return data;
 }

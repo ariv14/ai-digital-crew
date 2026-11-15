@@ -122,6 +122,21 @@ test('coach: an entitled caller is allowed', async () => {
   await requirePaidStudent(fakeDb({ courses: ['ai-ready'] }), 'u1');
 });
 
+test('coach: a senior-only entitlement passes the paid check', async () => {
+  const data = { courses: ['senior'] };
+  assert.equal(await requirePaidStudent(fakeDb(data), 'u1'), data);
+});
+
+test('coach: an unrelated course alone is refused with permission-denied', async () => {
+  await assert.rejects(requirePaidStudent(fakeDb({ courses: ['understand', 'build'] }), 'u1'), (e) => e.code === 'permission-denied');
+});
+
+test('coach: coachUnlimited works with senior', async () => {
+  const data = await requirePaidStudent(fakeDb({ courses: ['senior'], coachUnlimited: true }), 'u1');
+  assert.deepEqual(capDecision(5000, COACH_DAILY, isUnlimited(data)), { ok: true, remaining: null });
+  assert.deepEqual(capDecision(COACH_DAILY, COACH_DAILY, isUnlimited({ courses: ['senior'] })), { ok: false, remaining: 0 });
+});
+
 test('coach cap: capped accounts follow the limit, unlimited ones never stop', () => {
   assert.deepEqual(capDecision(10, 60, false), { ok: true, remaining: 49 });
   assert.deepEqual(capDecision(60, 60, false), { ok: false, remaining: 0 });

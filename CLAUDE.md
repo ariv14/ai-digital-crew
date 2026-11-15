@@ -53,7 +53,7 @@ firebase serve
 | `functions/ai-budget.js`, `scripts/ai-budget.js` | Shared daily neuron budget (`aiBudget`) every Workers AI call goes through; keep the two copies identical |
 | `functions/course.js` | Cloud Functions: `redeemAccessCode`, `courseTutor` (paid course on the Next.js site) |
 | `scripts/course-admin.js` | Publish paid lessons, issue access codes, grant or revoke access |
-| `functions/coach.js` | Cloud Functions: `coachChat`, `coachMark` (the student's coach; paid students only: `permission-denied` without the `ai-ready` entitlement, one cap `COACH_DAILY` unless the entitlement has `coachUnlimited: true` (set with `course-admin.js coach-unlimited <email> on|off`; usage still counted), prompt `COACH_RULES`); tests in `functions/test/` via `npm test` there |
+| `functions/coach.js` | Cloud Functions: `coachChat`, `coachMark` (the student's coach; paid students only: `permission-denied` without an entitlement to any of `COACH_COURSES` (`ai-ready`, `senior`), one cap `COACH_DAILY` unless the entitlement has `coachUnlimited: true` (set with `course-admin.js coach-unlimited <email> on|off`; usage still counted), prompt `COACH_RULES`); tests in `functions/test/` via `npm test` there |
 | `functions/package.json` | Cloud Functions dependencies |
 | `scripts/daily-scrape.js` | Daily pipeline orchestrator (GitHub → Workers AI → Firestore → Substack) |
 | `scripts/substack-publish.js` | Builds ProseMirror payload, POSTs to Pipedream webhook |
@@ -94,6 +94,7 @@ firebase serve
 - `courses/{id}/lessons`: paid-course lessons, readable only by accounts whose `entitlements/{uid}` lists the course; written by `scripts/course-admin.js`
 - `entitlements`: owner read, no client write (Cloud Function `redeemAccessCode` and `course-admin.js` only)
 - `aiBudget`: no client access; `aiBudget/{UTC date}.neurons` is the shared Workers AI usage, capped at 9000/day (`AI_DAILY_NEURON_CAP`, never above the 10,000 free) so the account is never billed; tutor, coach, search and the scrape all reserve from it
+- Coach (`coachChat`/`coachMark`): needs an entitlement listing any of `COACH_COURSES` (`ai-ready`, `senior`); same cap and shared AI budget for both
 - `accessCodes`, `redeemAttempts`, `tutorUsage`, `coachUsage`: no client access (`coachUsage` is the daily message count for `coachChat`/`coachMark`)
 - Duplicate detection: query by `fullName` before insert
 - User's projects: query by `submittedBy == uid`

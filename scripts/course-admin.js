@@ -33,6 +33,11 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 initializeApp({ credential: cert(serviceAccount) });
 const db = getFirestore();
+
+// Courses that open the coach. Source of truth: COACH_COURSES in functions/coach.js; keep in step.
+const COACH_COURSES = ['ai-ready', 'senior'];
+// Cosmetic only: redeemAccessCode ignores the prefix (it looks codes up with dashes removed).
+const CODE_PREFIXES = { 'ai-ready': 'AIR', senior: 'SNR' };
 console.log(`Project: ${serviceAccount.project_id}`);
 
 // No 0/O or 1/I/L: codes get read aloud and typed by hand.
@@ -65,7 +70,7 @@ const commands = {
     const batch = db.batch();
     const made = [];
     for (let i = 0; i < Number(count); i++) {
-      const shown = `AIR-${block()}-${block()}`;
+      const shown = `${CODE_PREFIXES[courseId] ?? 'ADC'}-${block()}-${block()}`;
       // Stored without dashes, which is how redeemAccessCode looks a code up.
       batch.create(db.collection('accessCodes').doc(shown.replace(/-/g, '')), {
         courseId, maxUses, note, redeemedBy: [], createdAt: FieldValue.serverTimestamp(),
@@ -97,8 +102,8 @@ const commands = {
     const uid = await uidFor(who);
     const ref = db.collection('entitlements').doc(uid);
     // The flag lives on the entitlement and never grants the course itself.
-    if (!(((await ref.get()).data()?.courses) ?? []).includes('ai-ready')) {
-      console.error(`Account ending ${uid.slice(-4)} has no ai-ready entitlement. Grant the course first; this flag does not give access.`);
+    if (!(((await ref.get()).data()?.courses) ?? []).some((c) => COACH_COURSES.includes(c))) {
+      console.error(`Account ending ${uid.slice(-4)} holds no coach course (${COACH_COURSES.join(', ')}). Grant the course first; this flag does not give access.`);
       process.exit(1);
     }
     await ref.set({ coachUnlimited: state === 'on' ? true : FieldValue.delete() }, { merge: true });
